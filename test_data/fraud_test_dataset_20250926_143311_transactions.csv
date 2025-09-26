@@ -1,0 +1,1001 @@
+transaction_id,user_id,amount,merchant,merchant_category,location,timestamp,payment_method,is_fraud,fraud_type,fraud_confidence
+legit_00000000,user_6048,136.48,Pharmacy,retail,"Los Angeles, CA",2025-07-29T14:33:11.752301,debit_card,False,none,0.0
+legit_00000001,user_2114,43.87,Gas Station,retail,"Chicago, IL",2025-06-26T14:33:11.752336,bank_transfer,False,none,0.0
+legit_00000002,user_7911,55.41,Coffee Shop,retail,"Philadelphia, PA",2025-02-12T14:33:11.752357,debit_card,False,none,0.0
+legit_00000003,user_5959,47.78,Department Store,retail,"Philadelphia, PA",2025-06-05T14:33:11.752376,credit_card,False,none,0.0
+legit_00000004,user_5866,16.4,Online Retailer,retail,"San Antonio, TX",2025-04-22T14:33:11.752393,debit_card,False,none,0.0
+legit_00000005,user_3910,34.23,Restaurant,retail,"Philadelphia, PA",2025-09-18T14:33:11.752410,debit_card,False,none,0.0
+legit_00000006,user_3097,20.36,Department Store,retail,"New York, NY",2024-10-02T14:33:11.752426,debit_card,False,none,0.0
+legit_00000007,user_4002,18.13,Gas Station,retail,"Chicago, IL",2025-09-11T14:33:11.752442,bank_transfer,False,none,0.0
+legit_00000008,user_9889,12.9,Department Store,retail,"Philadelphia, PA",2025-05-25T14:33:11.752459,debit_card,False,none,0.0
+legit_00000009,user_9620,30.19,Grocery Store,retail,"Phoenix, AZ",2025-09-23T14:33:11.752475,credit_card,False,none,0.0
+legit_00000010,user_1473,52.06,Department Store,retail,"Los Angeles, CA",2025-08-07T14:33:11.752491,bank_transfer,False,none,0.0
+legit_00000011,user_3330,14.21,Online Retailer,retail,"Philadelphia, PA",2024-12-01T14:33:11.752507,bank_transfer,False,none,0.0
+legit_00000012,user_6274,72.46,Grocery Store,retail,"Chicago, IL",2025-04-07T14:33:11.752523,debit_card,False,none,0.0
+legit_00000013,user_7538,53.86,Department Store,retail,"Phoenix, AZ",2025-02-19T14:33:11.752539,debit_card,False,none,0.0
+legit_00000014,user_9639,27.75,Restaurant,retail,"San Antonio, TX",2025-09-10T14:33:11.752554,bank_transfer,False,none,0.0
+legit_00000015,user_4472,41.84,Gas Station,retail,"New York, NY",2024-10-21T14:33:11.752570,debit_card,False,none,0.0
+legit_00000016,user_6568,149.69,Department Store,retail,"Houston, TX",2025-09-17T14:33:11.752586,credit_card,False,none,0.0
+legit_00000017,user_5208,17.14,Department Store,retail,"Phoenix, AZ",2025-08-16T14:33:11.752602,credit_card,False,none,0.0
+legit_00000018,user_2642,170.05,Gas Station,retail,"Philadelphia, PA",2024-12-16T14:33:11.752617,debit_card,False,none,0.0
+legit_00000019,user_8276,24.73,Coffee Shop,retail,"Chicago, IL",2025-04-01T14:33:11.752632,debit_card,False,none,0.0
+legit_00000020,user_9984,13.9,Online Retailer,retail,"New York, NY",2024-12-27T14:33:11.752648,credit_card,False,none,0.0
+legit_00000021,user_7990,79.9,Pharmacy,retail,"Chicago, IL",2025-01-08T14:33:11.752663,debit_card,False,none,0.0
+legit_00000022,user_5710,55.97,Coffee Shop,retail,"Chicago, IL",2025-03-27T14:33:11.752679,debit_card,False,none,0.0
+legit_00000023,user_4565,139.25,Gas Station,retail,"Los Angeles, CA",2025-07-05T14:33:11.752694,bank_transfer,False,none,0.0
+legit_00000024,user_7994,66.24,Online Retailer,retail,"Phoenix, AZ",2025-04-29T14:33:11.752710,credit_card,False,none,0.0
+legit_00000025,user_2999,99.33,Pharmacy,retail,"Philadelphia, PA",2025-06-11T14:33:11.752725,debit_card,False,none,0.0
+legit_00000026,user_9351,92.71,Online Retailer,retail,"Philadelphia, PA",2025-01-10T14:33:11.752741,credit_card,False,none,0.0
+legit_00000027,user_4152,8.74,Online Retailer,retail,"San Antonio, TX",2025-01-30T14:33:11.752756,bank_transfer,False,none,0.0
+legit_00000028,user_1445,33.86,Gas Station,retail,"San Antonio, TX",2025-07-17T14:33:11.752772,bank_transfer,False,none,0.0
+legit_00000029,user_7733,201.65,Coffee Shop,retail,"Chicago, IL",2025-06-05T14:33:11.752787,credit_card,False,none,0.0
+legit_00000030,user_7752,166.16,Pharmacy,retail,"Chicago, IL",2025-04-15T14:33:11.752802,debit_card,False,none,0.0
+legit_00000031,user_2563,36.78,Coffee Shop,retail,"Phoenix, AZ",2025-02-01T14:33:11.752818,debit_card,False,none,0.0
+legit_00000032,user_6315,64.02,Department Store,retail,"New York, NY",2025-01-16T14:33:11.752833,debit_card,False,none,0.0
+legit_00000033,user_8021,32.17,Grocery Store,retail,"Philadelphia, PA",2025-07-09T14:33:11.752848,credit_card,False,none,0.0
+legit_00000034,user_3297,156.53,Gas Station,retail,"Chicago, IL",2025-05-30T14:33:11.752864,debit_card,False,none,0.0
+legit_00000035,user_8692,52.27,Department Store,retail,"New York, NY",2025-05-27T14:33:11.752879,bank_transfer,False,none,0.0
+legit_00000036,user_2025,144.28,Online Retailer,retail,"New York, NY",2024-10-20T14:33:11.752894,debit_card,False,none,0.0
+legit_00000037,user_4204,189.76,Pharmacy,retail,"San Antonio, TX",2025-08-07T14:33:11.752910,bank_transfer,False,none,0.0
+legit_00000038,user_1767,14.7,Online Retailer,retail,"Chicago, IL",2024-11-08T14:33:11.752925,credit_card,False,none,0.0
+legit_00000039,user_4808,79.66,Gas Station,retail,"Phoenix, AZ",2025-06-10T14:33:11.752941,debit_card,False,none,0.0
+legit_00000040,user_7516,57.14,Pharmacy,retail,"Chicago, IL",2025-04-07T14:33:11.752956,bank_transfer,False,none,0.0
+legit_00000041,user_5259,64.58,Grocery Store,retail,"Phoenix, AZ",2024-11-02T14:33:11.752972,credit_card,False,none,0.0
+legit_00000042,user_1500,6.97,Online Retailer,retail,"Los Angeles, CA",2024-10-26T14:33:11.752988,debit_card,False,none,0.0
+legit_00000043,user_3568,78.75,Online Retailer,retail,"Los Angeles, CA",2025-05-14T14:33:11.753003,debit_card,False,none,0.0
+legit_00000044,user_1506,52.4,Coffee Shop,retail,"San Antonio, TX",2025-07-14T14:33:11.753019,bank_transfer,False,none,0.0
+legit_00000045,user_4397,318.99,Restaurant,retail,"New York, NY",2024-11-18T14:33:11.753034,credit_card,False,none,0.0
+legit_00000046,user_2583,128.15,Gas Station,retail,"Philadelphia, PA",2025-09-20T14:33:11.753049,credit_card,False,none,0.0
+legit_00000047,user_1948,33.42,Gas Station,retail,"Los Angeles, CA",2024-10-05T14:33:11.753064,bank_transfer,False,none,0.0
+legit_00000048,user_1355,42.95,Online Retailer,retail,"San Antonio, TX",2025-05-21T14:33:11.753080,bank_transfer,False,none,0.0
+legit_00000049,user_8149,111.87,Pharmacy,retail,"Houston, TX",2024-12-02T14:33:11.753095,credit_card,False,none,0.0
+legit_00000050,user_3067,91.15,Coffee Shop,retail,"Phoenix, AZ",2024-11-19T14:33:11.753110,debit_card,False,none,0.0
+legit_00000051,user_7040,94.44,Restaurant,retail,"Houston, TX",2025-06-13T14:33:11.753126,bank_transfer,False,none,0.0
+legit_00000052,user_4279,100.38,Coffee Shop,retail,"Chicago, IL",2025-05-08T14:33:11.753142,debit_card,False,none,0.0
+legit_00000053,user_7924,24.16,Coffee Shop,retail,"Chicago, IL",2024-10-21T14:33:11.753157,debit_card,False,none,0.0
+legit_00000054,user_8236,20.12,Pharmacy,retail,"Houston, TX",2025-05-21T14:33:11.753172,debit_card,False,none,0.0
+legit_00000055,user_4592,5.59,Grocery Store,retail,"Philadelphia, PA",2025-02-03T14:33:11.753187,debit_card,False,none,0.0
+legit_00000056,user_4523,80.36,Grocery Store,retail,"Chicago, IL",2025-05-23T14:33:11.753203,credit_card,False,none,0.0
+legit_00000057,user_1012,47.51,Coffee Shop,retail,"Chicago, IL",2024-10-29T14:33:11.753218,debit_card,False,none,0.0
+legit_00000058,user_6261,17.1,Coffee Shop,retail,"Phoenix, AZ",2025-04-19T14:33:11.753233,credit_card,False,none,0.0
+legit_00000059,user_6154,69.72,Gas Station,retail,"Houston, TX",2025-07-02T14:33:11.753248,debit_card,False,none,0.0
+legit_00000060,user_5116,27.07,Grocery Store,retail,"San Antonio, TX",2025-07-03T14:33:11.753264,bank_transfer,False,none,0.0
+legit_00000061,user_5076,169.52,Grocery Store,retail,"Phoenix, AZ",2025-03-31T14:33:11.753279,bank_transfer,False,none,0.0
+legit_00000062,user_4891,50.32,Grocery Store,retail,"New York, NY",2025-06-23T14:33:11.753294,credit_card,False,none,0.0
+legit_00000063,user_7135,56.15,Restaurant,retail,"Chicago, IL",2024-12-25T14:33:11.753309,debit_card,False,none,0.0
+legit_00000064,user_7963,18.67,Pharmacy,retail,"San Antonio, TX",2025-07-31T14:33:11.753324,credit_card,False,none,0.0
+legit_00000065,user_4872,231.8,Grocery Store,retail,"Los Angeles, CA",2025-06-29T14:33:11.753340,debit_card,False,none,0.0
+legit_00000066,user_4145,194.25,Department Store,retail,"Houston, TX",2025-05-16T14:33:11.753356,debit_card,False,none,0.0
+legit_00000067,user_9887,64.76,Gas Station,retail,"Phoenix, AZ",2025-06-14T14:33:11.753371,credit_card,False,none,0.0
+legit_00000068,user_5287,405.0,Online Retailer,retail,"San Antonio, TX",2025-01-03T14:33:11.753386,debit_card,False,none,0.0
+legit_00000069,user_2221,183.52,Grocery Store,retail,"New York, NY",2024-11-15T14:33:11.753401,debit_card,False,none,0.0
+legit_00000070,user_3630,74.99,Coffee Shop,retail,"Phoenix, AZ",2025-04-03T14:33:11.753416,credit_card,False,none,0.0
+legit_00000071,user_5003,25.12,Pharmacy,retail,"Chicago, IL",2025-05-11T14:33:11.753433,credit_card,False,none,0.0
+legit_00000072,user_4337,74.3,Online Retailer,retail,"Houston, TX",2025-04-06T14:33:11.753449,bank_transfer,False,none,0.0
+legit_00000073,user_7927,44.14,Gas Station,retail,"New York, NY",2025-09-08T14:33:11.753464,debit_card,False,none,0.0
+legit_00000074,user_9685,31.31,Coffee Shop,retail,"Philadelphia, PA",2025-04-19T14:33:11.753480,credit_card,False,none,0.0
+legit_00000075,user_6506,152.35,Pharmacy,retail,"Philadelphia, PA",2024-11-10T14:33:11.753495,credit_card,False,none,0.0
+legit_00000076,user_1676,62.72,Pharmacy,retail,"Los Angeles, CA",2024-11-27T14:33:11.753511,credit_card,False,none,0.0
+legit_00000077,user_7390,361.15,Pharmacy,retail,"San Antonio, TX",2024-10-13T14:33:11.753527,bank_transfer,False,none,0.0
+legit_00000078,user_4260,125.91,Coffee Shop,retail,"Phoenix, AZ",2025-01-07T14:33:11.753542,credit_card,False,none,0.0
+legit_00000079,user_2673,42.29,Online Retailer,retail,"San Antonio, TX",2025-02-24T14:33:11.753558,debit_card,False,none,0.0
+legit_00000080,user_3861,86.9,Grocery Store,retail,"San Antonio, TX",2025-02-12T14:33:11.753573,debit_card,False,none,0.0
+legit_00000081,user_9611,103.46,Coffee Shop,retail,"Chicago, IL",2025-07-07T14:33:11.753588,debit_card,False,none,0.0
+legit_00000082,user_7130,32.92,Coffee Shop,retail,"Los Angeles, CA",2025-07-11T14:33:11.753604,bank_transfer,False,none,0.0
+legit_00000083,user_3395,17.69,Pharmacy,retail,"Los Angeles, CA",2025-02-11T14:33:11.753619,credit_card,False,none,0.0
+legit_00000084,user_6557,38.8,Coffee Shop,retail,"Los Angeles, CA",2025-07-17T14:33:11.753635,bank_transfer,False,none,0.0
+legit_00000085,user_9657,291.69,Gas Station,retail,"Chicago, IL",2025-07-04T14:33:11.753650,bank_transfer,False,none,0.0
+legit_00000086,user_3545,7.65,Online Retailer,retail,"Philadelphia, PA",2025-01-29T14:33:11.753666,debit_card,False,none,0.0
+legit_00000087,user_6664,368.07,Gas Station,retail,"Philadelphia, PA",2024-12-30T14:33:11.753681,bank_transfer,False,none,0.0
+legit_00000088,user_1773,36.18,Online Retailer,retail,"Los Angeles, CA",2024-12-10T14:33:11.753697,bank_transfer,False,none,0.0
+legit_00000089,user_7757,13.14,Pharmacy,retail,"Houston, TX",2025-02-17T14:33:11.753712,bank_transfer,False,none,0.0
+legit_00000090,user_4992,240.9,Coffee Shop,retail,"San Antonio, TX",2025-04-30T14:33:11.753728,debit_card,False,none,0.0
+legit_00000091,user_7115,35.31,Pharmacy,retail,"Philadelphia, PA",2025-02-08T14:33:11.753743,bank_transfer,False,none,0.0
+legit_00000092,user_1827,11.33,Grocery Store,retail,"Houston, TX",2025-01-22T14:33:11.753759,credit_card,False,none,0.0
+legit_00000093,user_4160,118.56,Coffee Shop,retail,"Phoenix, AZ",2025-02-05T14:33:11.753775,debit_card,False,none,0.0
+legit_00000094,user_3984,57.06,Gas Station,retail,"Houston, TX",2025-08-22T14:33:11.753791,bank_transfer,False,none,0.0
+legit_00000095,user_2256,51.84,Restaurant,retail,"New York, NY",2025-04-05T14:33:11.753807,debit_card,False,none,0.0
+legit_00000096,user_9855,126.16,Coffee Shop,retail,"Los Angeles, CA",2025-02-09T14:33:11.753822,bank_transfer,False,none,0.0
+legit_00000097,user_9108,59.2,Grocery Store,retail,"San Antonio, TX",2025-06-10T14:33:11.753837,credit_card,False,none,0.0
+legit_00000098,user_9661,108.13,Grocery Store,retail,"Los Angeles, CA",2025-07-15T14:33:11.753853,bank_transfer,False,none,0.0
+legit_00000099,user_8600,13.44,Pharmacy,retail,"Philadelphia, PA",2024-10-23T14:33:11.753869,debit_card,False,none,0.0
+legit_00000100,user_7796,12.7,Online Retailer,retail,"Los Angeles, CA",2025-03-26T14:33:11.753884,credit_card,False,none,0.0
+legit_00000101,user_5412,20.59,Gas Station,retail,"Houston, TX",2025-08-25T14:33:11.753900,debit_card,False,none,0.0
+legit_00000102,user_1844,40.04,Coffee Shop,retail,"Phoenix, AZ",2025-04-21T14:33:11.753916,bank_transfer,False,none,0.0
+legit_00000103,user_5031,122.33,Online Retailer,retail,"New York, NY",2025-05-02T14:33:11.753931,bank_transfer,False,none,0.0
+legit_00000104,user_8723,19.96,Restaurant,retail,"Houston, TX",2025-04-11T14:33:11.753947,bank_transfer,False,none,0.0
+legit_00000105,user_8700,42.91,Restaurant,retail,"Philadelphia, PA",2025-08-14T14:33:11.753962,bank_transfer,False,none,0.0
+legit_00000106,user_8115,118.04,Online Retailer,retail,"Chicago, IL",2025-07-02T14:33:11.753978,debit_card,False,none,0.0
+legit_00000107,user_2454,29.86,Department Store,retail,"Phoenix, AZ",2024-10-27T14:33:11.753993,bank_transfer,False,none,0.0
+legit_00000108,user_8411,15.85,Online Retailer,retail,"Philadelphia, PA",2025-02-16T14:33:11.754008,credit_card,False,none,0.0
+legit_00000109,user_9539,58.11,Online Retailer,retail,"Houston, TX",2025-01-10T14:33:11.754024,bank_transfer,False,none,0.0
+legit_00000110,user_4722,57.74,Department Store,retail,"Houston, TX",2024-12-08T14:33:11.754039,credit_card,False,none,0.0
+legit_00000111,user_1346,93.9,Online Retailer,retail,"Phoenix, AZ",2025-02-21T14:33:11.754054,credit_card,False,none,0.0
+legit_00000112,user_6434,117.9,Online Retailer,retail,"Houston, TX",2025-08-04T14:33:11.754069,debit_card,False,none,0.0
+legit_00000113,user_5284,19.76,Gas Station,retail,"Houston, TX",2025-03-02T14:33:11.754084,debit_card,False,none,0.0
+legit_00000114,user_1799,43.81,Online Retailer,retail,"Phoenix, AZ",2025-07-13T14:33:11.754099,bank_transfer,False,none,0.0
+legit_00000115,user_9998,88.14,Grocery Store,retail,"Chicago, IL",2025-07-05T14:33:11.754114,bank_transfer,False,none,0.0
+legit_00000116,user_1090,14.14,Online Retailer,retail,"Philadelphia, PA",2025-09-03T14:33:11.754129,bank_transfer,False,none,0.0
+legit_00000117,user_2957,29.84,Online Retailer,retail,"New York, NY",2025-03-05T14:33:11.754143,debit_card,False,none,0.0
+legit_00000118,user_1587,108.9,Restaurant,retail,"Los Angeles, CA",2024-12-08T14:33:11.754159,bank_transfer,False,none,0.0
+legit_00000119,user_2991,92.49,Department Store,retail,"New York, NY",2025-02-23T14:33:11.754174,credit_card,False,none,0.0
+legit_00000120,user_3444,18.23,Gas Station,retail,"Philadelphia, PA",2025-01-23T14:33:11.754189,bank_transfer,False,none,0.0
+legit_00000121,user_5379,6.7,Online Retailer,retail,"Los Angeles, CA",2025-05-29T14:33:11.754204,debit_card,False,none,0.0
+legit_00000122,user_3374,63.75,Department Store,retail,"Chicago, IL",2024-11-28T14:33:11.754219,credit_card,False,none,0.0
+legit_00000123,user_6864,48.39,Pharmacy,retail,"Houston, TX",2025-08-04T14:33:11.754235,credit_card,False,none,0.0
+legit_00000124,user_1765,62.85,Pharmacy,retail,"Phoenix, AZ",2025-01-05T14:33:11.754261,bank_transfer,False,none,0.0
+legit_00000125,user_2050,12.13,Department Store,retail,"Phoenix, AZ",2025-06-18T14:33:11.754276,credit_card,False,none,0.0
+legit_00000126,user_3343,24.52,Online Retailer,retail,"Chicago, IL",2025-08-09T14:33:11.754291,bank_transfer,False,none,0.0
+legit_00000127,user_6002,46.73,Restaurant,retail,"San Antonio, TX",2025-06-14T14:33:11.754306,bank_transfer,False,none,0.0
+legit_00000128,user_9497,52.08,Grocery Store,retail,"New York, NY",2025-08-08T14:33:11.754321,credit_card,False,none,0.0
+legit_00000129,user_1026,45.97,Gas Station,retail,"Phoenix, AZ",2025-03-31T14:33:11.754337,debit_card,False,none,0.0
+legit_00000130,user_5294,20.64,Restaurant,retail,"Los Angeles, CA",2025-01-20T14:33:11.754352,credit_card,False,none,0.0
+legit_00000131,user_8719,147.87,Coffee Shop,retail,"San Antonio, TX",2024-12-07T14:33:11.754369,bank_transfer,False,none,0.0
+legit_00000132,user_7793,24.95,Gas Station,retail,"New York, NY",2024-11-21T14:33:11.754385,bank_transfer,False,none,0.0
+legit_00000133,user_6261,42.81,Gas Station,retail,"New York, NY",2024-12-13T14:33:11.754400,credit_card,False,none,0.0
+legit_00000134,user_8476,22.05,Coffee Shop,retail,"Chicago, IL",2025-04-01T14:33:11.754416,bank_transfer,False,none,0.0
+legit_00000135,user_9586,35.73,Online Retailer,retail,"Chicago, IL",2025-02-17T14:33:11.754432,debit_card,False,none,0.0
+legit_00000136,user_7128,28.84,Department Store,retail,"Chicago, IL",2025-04-01T14:33:11.754447,credit_card,False,none,0.0
+legit_00000137,user_6917,17.6,Pharmacy,retail,"San Antonio, TX",2025-04-04T14:33:11.754463,credit_card,False,none,0.0
+legit_00000138,user_7838,34.68,Restaurant,retail,"Chicago, IL",2024-10-05T14:33:11.754479,credit_card,False,none,0.0
+legit_00000139,user_3679,34.21,Coffee Shop,retail,"Chicago, IL",2025-01-23T14:33:11.754494,bank_transfer,False,none,0.0
+legit_00000140,user_4773,10.89,Grocery Store,retail,"Houston, TX",2024-10-19T14:33:11.754510,bank_transfer,False,none,0.0
+legit_00000141,user_4317,15.31,Gas Station,retail,"Chicago, IL",2025-02-18T14:33:11.754526,credit_card,False,none,0.0
+legit_00000142,user_7777,72.78,Restaurant,retail,"Los Angeles, CA",2025-06-11T14:33:11.754542,bank_transfer,False,none,0.0
+legit_00000143,user_7995,241.65,Grocery Store,retail,"Houston, TX",2025-09-05T14:33:11.754558,bank_transfer,False,none,0.0
+legit_00000144,user_8677,530.55,Coffee Shop,retail,"San Antonio, TX",2025-05-16T14:33:11.754573,debit_card,False,none,0.0
+legit_00000145,user_9870,119.85,Pharmacy,retail,"New York, NY",2025-07-10T14:33:11.754589,credit_card,False,none,0.0
+legit_00000146,user_8272,75.32,Department Store,retail,"San Antonio, TX",2024-12-30T14:33:11.754604,debit_card,False,none,0.0
+legit_00000147,user_4745,65.61,Grocery Store,retail,"Chicago, IL",2025-08-17T14:33:11.754620,credit_card,False,none,0.0
+legit_00000148,user_8505,18.55,Grocery Store,retail,"New York, NY",2025-04-22T14:33:11.754636,debit_card,False,none,0.0
+legit_00000149,user_3861,76.33,Pharmacy,retail,"New York, NY",2025-07-27T14:33:11.754651,debit_card,False,none,0.0
+legit_00000150,user_5781,15.99,Gas Station,retail,"San Antonio, TX",2024-12-31T14:33:11.754667,debit_card,False,none,0.0
+legit_00000151,user_7460,138.09,Gas Station,retail,"Phoenix, AZ",2025-07-25T14:33:11.754682,bank_transfer,False,none,0.0
+legit_00000152,user_5663,94.05,Restaurant,retail,"Philadelphia, PA",2025-08-15T14:33:11.754701,debit_card,False,none,0.0
+legit_00000153,user_2838,99.1,Gas Station,retail,"New York, NY",2025-09-26T14:33:11.754718,bank_transfer,False,none,0.0
+legit_00000154,user_4155,43.71,Grocery Store,retail,"Chicago, IL",2025-02-08T14:33:11.754733,bank_transfer,False,none,0.0
+legit_00000155,user_6294,60.34,Coffee Shop,retail,"Philadelphia, PA",2024-10-27T14:33:11.754748,credit_card,False,none,0.0
+legit_00000156,user_2166,14.45,Restaurant,retail,"Philadelphia, PA",2024-10-07T14:33:11.754764,bank_transfer,False,none,0.0
+legit_00000157,user_4257,63.46,Gas Station,retail,"Philadelphia, PA",2025-05-22T14:33:11.754779,debit_card,False,none,0.0
+legit_00000158,user_2404,32.12,Restaurant,retail,"Los Angeles, CA",2025-01-29T14:33:11.754794,credit_card,False,none,0.0
+legit_00000159,user_4653,149.52,Grocery Store,retail,"San Antonio, TX",2025-02-19T14:33:11.754810,credit_card,False,none,0.0
+legit_00000160,user_8616,223.1,Grocery Store,retail,"Houston, TX",2025-07-25T14:33:11.754825,debit_card,False,none,0.0
+legit_00000161,user_8425,141.07,Online Retailer,retail,"Philadelphia, PA",2024-10-19T14:33:11.754840,bank_transfer,False,none,0.0
+legit_00000162,user_3066,157.62,Gas Station,retail,"San Antonio, TX",2025-05-07T14:33:11.754856,credit_card,False,none,0.0
+legit_00000163,user_5185,52.17,Online Retailer,retail,"San Antonio, TX",2025-08-17T14:33:11.754871,debit_card,False,none,0.0
+legit_00000164,user_8485,16.55,Grocery Store,retail,"Houston, TX",2024-12-12T14:33:11.754888,debit_card,False,none,0.0
+legit_00000165,user_4833,245.12,Restaurant,retail,"Chicago, IL",2025-07-26T14:33:11.754904,credit_card,False,none,0.0
+legit_00000166,user_2914,456.05,Gas Station,retail,"Phoenix, AZ",2025-06-15T14:33:11.754919,credit_card,False,none,0.0
+legit_00000167,user_2379,143.38,Pharmacy,retail,"San Antonio, TX",2025-02-28T14:33:11.754935,bank_transfer,False,none,0.0
+legit_00000168,user_5728,80.51,Department Store,retail,"Phoenix, AZ",2024-12-15T14:33:11.754950,bank_transfer,False,none,0.0
+legit_00000169,user_2589,48.02,Online Retailer,retail,"San Antonio, TX",2025-02-24T14:33:11.754966,bank_transfer,False,none,0.0
+legit_00000170,user_7057,14.83,Coffee Shop,retail,"New York, NY",2025-09-01T14:33:11.754981,bank_transfer,False,none,0.0
+legit_00000171,user_9983,55.73,Restaurant,retail,"Phoenix, AZ",2025-06-10T14:33:11.754996,debit_card,False,none,0.0
+legit_00000172,user_5887,46.48,Online Retailer,retail,"Chicago, IL",2024-11-18T14:33:11.755011,bank_transfer,False,none,0.0
+legit_00000173,user_2632,27.82,Gas Station,retail,"Houston, TX",2025-08-23T14:33:11.755026,credit_card,False,none,0.0
+legit_00000174,user_3668,15.19,Gas Station,retail,"Houston, TX",2024-09-30T14:33:11.755041,debit_card,False,none,0.0
+legit_00000175,user_8297,107.07,Grocery Store,retail,"Phoenix, AZ",2024-11-13T14:33:11.755057,credit_card,False,none,0.0
+legit_00000176,user_6478,44.76,Online Retailer,retail,"San Antonio, TX",2024-11-01T14:33:11.755072,credit_card,False,none,0.0
+legit_00000177,user_6459,41.92,Gas Station,retail,"New York, NY",2025-03-25T14:33:11.755086,bank_transfer,False,none,0.0
+legit_00000178,user_2903,31.23,Department Store,retail,"New York, NY",2024-10-10T14:33:11.755101,bank_transfer,False,none,0.0
+legit_00000179,user_5231,89.98,Grocery Store,retail,"Los Angeles, CA",2025-03-13T14:33:11.755116,bank_transfer,False,none,0.0
+legit_00000180,user_9132,36.85,Gas Station,retail,"Houston, TX",2025-01-25T14:33:11.755130,bank_transfer,False,none,0.0
+legit_00000181,user_8422,62.87,Grocery Store,retail,"Houston, TX",2025-02-06T14:33:11.755145,credit_card,False,none,0.0
+legit_00000182,user_9641,51.77,Online Retailer,retail,"San Antonio, TX",2025-05-22T14:33:11.755160,bank_transfer,False,none,0.0
+legit_00000183,user_9377,86.83,Pharmacy,retail,"Phoenix, AZ",2025-05-13T14:33:11.755175,debit_card,False,none,0.0
+legit_00000184,user_2384,53.01,Grocery Store,retail,"Phoenix, AZ",2024-12-08T14:33:11.755189,debit_card,False,none,0.0
+legit_00000185,user_3688,107.15,Online Retailer,retail,"New York, NY",2024-12-18T14:33:11.755204,credit_card,False,none,0.0
+legit_00000186,user_7392,129.7,Coffee Shop,retail,"Phoenix, AZ",2025-08-20T14:33:11.755219,credit_card,False,none,0.0
+legit_00000187,user_3428,16.46,Grocery Store,retail,"Phoenix, AZ",2024-12-17T14:33:11.755234,credit_card,False,none,0.0
+legit_00000188,user_3670,50.2,Gas Station,retail,"Philadelphia, PA",2025-03-28T14:33:11.755248,credit_card,False,none,0.0
+legit_00000189,user_5968,71.87,Online Retailer,retail,"Chicago, IL",2025-05-18T14:33:11.755263,bank_transfer,False,none,0.0
+legit_00000190,user_7899,7.04,Grocery Store,retail,"San Antonio, TX",2025-01-19T14:33:11.755277,bank_transfer,False,none,0.0
+legit_00000191,user_3609,12.75,Gas Station,retail,"Philadelphia, PA",2025-05-24T14:33:11.755292,credit_card,False,none,0.0
+legit_00000192,user_1624,40.26,Department Store,retail,"Phoenix, AZ",2025-09-24T14:33:11.755307,bank_transfer,False,none,0.0
+legit_00000193,user_2143,175.47,Coffee Shop,retail,"San Antonio, TX",2025-03-05T14:33:11.755322,debit_card,False,none,0.0
+legit_00000194,user_9588,11.61,Online Retailer,retail,"New York, NY",2025-08-07T14:33:11.755336,debit_card,False,none,0.0
+legit_00000195,user_2491,101.34,Gas Station,retail,"San Antonio, TX",2025-06-05T14:33:11.755351,credit_card,False,none,0.0
+legit_00000196,user_4759,46.78,Pharmacy,retail,"Houston, TX",2025-07-25T14:33:11.755366,credit_card,False,none,0.0
+legit_00000197,user_3897,45.35,Restaurant,retail,"Phoenix, AZ",2024-12-11T14:33:11.755380,credit_card,False,none,0.0
+legit_00000198,user_6147,423.13,Online Retailer,retail,"Los Angeles, CA",2025-02-28T14:33:11.755395,debit_card,False,none,0.0
+legit_00000199,user_2788,185.29,Department Store,retail,"New York, NY",2024-11-25T14:33:11.755410,debit_card,False,none,0.0
+legit_00000200,user_3632,25.49,Online Retailer,retail,"Houston, TX",2025-04-06T14:33:11.755424,credit_card,False,none,0.0
+legit_00000201,user_2511,101.92,Department Store,retail,"Phoenix, AZ",2025-02-24T14:33:11.755440,credit_card,False,none,0.0
+legit_00000202,user_3127,70.34,Online Retailer,retail,"San Antonio, TX",2025-05-24T14:33:11.755455,credit_card,False,none,0.0
+legit_00000203,user_9563,21.87,Grocery Store,retail,"New York, NY",2025-07-06T14:33:11.755472,debit_card,False,none,0.0
+legit_00000204,user_1951,507.49,Pharmacy,retail,"Los Angeles, CA",2024-11-26T14:33:11.755489,bank_transfer,False,none,0.0
+legit_00000205,user_5090,32.19,Online Retailer,retail,"Philadelphia, PA",2024-11-04T14:33:11.755503,credit_card,False,none,0.0
+legit_00000206,user_3839,28.9,Pharmacy,retail,"New York, NY",2025-01-08T14:33:11.755518,bank_transfer,False,none,0.0
+legit_00000207,user_6509,41.35,Department Store,retail,"Philadelphia, PA",2025-04-11T14:33:11.755533,credit_card,False,none,0.0
+legit_00000208,user_5757,855.93,Gas Station,retail,"Los Angeles, CA",2025-06-03T14:33:11.755547,debit_card,False,none,0.0
+legit_00000209,user_8790,71.91,Restaurant,retail,"Chicago, IL",2025-07-15T14:33:11.755562,credit_card,False,none,0.0
+legit_00000210,user_9380,58.69,Department Store,retail,"Chicago, IL",2025-09-02T14:33:11.755577,debit_card,False,none,0.0
+legit_00000211,user_7579,51.09,Pharmacy,retail,"Chicago, IL",2025-06-06T14:33:11.755596,bank_transfer,False,none,0.0
+legit_00000212,user_8869,273.64,Restaurant,retail,"Philadelphia, PA",2025-08-11T14:33:11.755611,credit_card,False,none,0.0
+legit_00000213,user_1434,57.91,Gas Station,retail,"San Antonio, TX",2025-03-07T14:33:11.755626,bank_transfer,False,none,0.0
+legit_00000214,user_1915,160.3,Department Store,retail,"Phoenix, AZ",2025-08-20T14:33:11.755640,bank_transfer,False,none,0.0
+legit_00000215,user_1715,59.63,Online Retailer,retail,"San Antonio, TX",2025-06-28T14:33:11.755655,bank_transfer,False,none,0.0
+legit_00000216,user_9710,35.16,Gas Station,retail,"Philadelphia, PA",2025-02-10T14:33:11.755670,bank_transfer,False,none,0.0
+legit_00000217,user_2371,43.3,Grocery Store,retail,"Houston, TX",2025-03-18T14:33:11.755685,bank_transfer,False,none,0.0
+legit_00000218,user_9839,172.31,Coffee Shop,retail,"Chicago, IL",2025-07-19T14:33:11.755700,bank_transfer,False,none,0.0
+legit_00000219,user_8523,61.04,Online Retailer,retail,"Phoenix, AZ",2025-09-09T14:33:11.755714,credit_card,False,none,0.0
+legit_00000220,user_3053,99.89,Coffee Shop,retail,"Los Angeles, CA",2025-09-17T14:33:11.755729,credit_card,False,none,0.0
+legit_00000221,user_8098,38.71,Grocery Store,retail,"Chicago, IL",2025-08-13T14:33:11.755744,credit_card,False,none,0.0
+legit_00000222,user_1535,68.48,Gas Station,retail,"Los Angeles, CA",2025-04-06T14:33:11.755758,credit_card,False,none,0.0
+legit_00000223,user_7860,81.51,Online Retailer,retail,"Houston, TX",2025-04-08T14:33:11.755773,credit_card,False,none,0.0
+legit_00000224,user_9573,27.21,Gas Station,retail,"New York, NY",2025-09-17T14:33:11.755788,debit_card,False,none,0.0
+legit_00000225,user_5440,250.17,Online Retailer,retail,"Houston, TX",2025-05-22T14:33:11.755803,bank_transfer,False,none,0.0
+legit_00000226,user_1649,68.31,Pharmacy,retail,"San Antonio, TX",2025-03-24T14:33:11.755818,bank_transfer,False,none,0.0
+legit_00000227,user_7275,97.13,Pharmacy,retail,"Chicago, IL",2025-03-23T14:33:11.755833,bank_transfer,False,none,0.0
+legit_00000228,user_9367,172.4,Pharmacy,retail,"Chicago, IL",2025-05-15T14:33:11.755847,credit_card,False,none,0.0
+legit_00000229,user_9462,48.97,Pharmacy,retail,"Philadelphia, PA",2025-03-03T14:33:11.755862,debit_card,False,none,0.0
+legit_00000230,user_5780,73.23,Gas Station,retail,"Phoenix, AZ",2024-10-20T14:33:11.755877,debit_card,False,none,0.0
+legit_00000231,user_3655,17.36,Department Store,retail,"Chicago, IL",2024-09-29T14:33:11.755891,bank_transfer,False,none,0.0
+legit_00000232,user_5877,9.39,Restaurant,retail,"New York, NY",2025-05-15T14:33:11.755906,credit_card,False,none,0.0
+legit_00000233,user_6419,72.7,Department Store,retail,"San Antonio, TX",2025-05-03T14:33:11.755921,credit_card,False,none,0.0
+legit_00000234,user_8462,6.68,Department Store,retail,"Los Angeles, CA",2025-05-08T14:33:11.755936,bank_transfer,False,none,0.0
+legit_00000235,user_3908,78.64,Department Store,retail,"Los Angeles, CA",2025-03-08T14:33:11.755951,debit_card,False,none,0.0
+legit_00000236,user_7988,20.27,Gas Station,retail,"San Antonio, TX",2024-10-04T14:33:11.755965,credit_card,False,none,0.0
+legit_00000237,user_5731,191.07,Restaurant,retail,"Philadelphia, PA",2025-03-20T14:33:11.755980,debit_card,False,none,0.0
+legit_00000238,user_4097,22.06,Department Store,retail,"Chicago, IL",2025-08-28T14:33:11.755994,bank_transfer,False,none,0.0
+legit_00000239,user_6856,27.18,Coffee Shop,retail,"New York, NY",2025-08-26T14:33:11.756009,bank_transfer,False,none,0.0
+legit_00000240,user_8627,482.23,Restaurant,retail,"Los Angeles, CA",2025-09-14T14:33:11.756024,bank_transfer,False,none,0.0
+legit_00000241,user_3002,31.38,Pharmacy,retail,"San Antonio, TX",2024-10-27T14:33:11.756039,credit_card,False,none,0.0
+legit_00000242,user_1880,24.39,Coffee Shop,retail,"Philadelphia, PA",2025-08-19T14:33:11.756053,debit_card,False,none,0.0
+legit_00000243,user_5334,140.18,Gas Station,retail,"San Antonio, TX",2025-08-02T14:33:11.756068,debit_card,False,none,0.0
+legit_00000244,user_7911,40.94,Gas Station,retail,"Los Angeles, CA",2025-05-01T14:33:11.756085,bank_transfer,False,none,0.0
+legit_00000245,user_6304,246.41,Online Retailer,retail,"Philadelphia, PA",2024-11-13T14:33:11.756100,debit_card,False,none,0.0
+legit_00000246,user_3844,127.52,Online Retailer,retail,"Los Angeles, CA",2025-04-02T14:33:11.756114,bank_transfer,False,none,0.0
+legit_00000247,user_9599,23.93,Department Store,retail,"Phoenix, AZ",2025-06-13T14:33:11.756129,credit_card,False,none,0.0
+legit_00000248,user_1985,15.5,Restaurant,retail,"San Antonio, TX",2024-10-27T14:33:11.756144,credit_card,False,none,0.0
+legit_00000249,user_9403,111.54,Grocery Store,retail,"Chicago, IL",2025-09-18T14:33:11.756159,credit_card,False,none,0.0
+legit_00000250,user_7943,89.53,Restaurant,retail,"New York, NY",2025-01-16T14:33:11.756173,credit_card,False,none,0.0
+legit_00000251,user_8039,25.66,Gas Station,retail,"San Antonio, TX",2025-07-24T14:33:11.756188,debit_card,False,none,0.0
+legit_00000252,user_5241,85.84,Gas Station,retail,"Houston, TX",2025-06-13T14:33:11.756203,bank_transfer,False,none,0.0
+legit_00000253,user_4884,23.62,Gas Station,retail,"Houston, TX",2025-05-07T14:33:11.756218,credit_card,False,none,0.0
+legit_00000254,user_4338,269.13,Department Store,retail,"Chicago, IL",2024-12-18T14:33:11.756235,credit_card,False,none,0.0
+legit_00000255,user_6918,138.58,Restaurant,retail,"New York, NY",2025-08-01T14:33:11.756249,bank_transfer,False,none,0.0
+legit_00000256,user_9596,68.5,Department Store,retail,"Houston, TX",2024-10-06T14:33:11.756264,debit_card,False,none,0.0
+legit_00000257,user_9367,20.59,Pharmacy,retail,"New York, NY",2025-04-15T14:33:11.756279,credit_card,False,none,0.0
+legit_00000258,user_5224,26.88,Pharmacy,retail,"Phoenix, AZ",2024-12-05T14:33:11.756293,debit_card,False,none,0.0
+legit_00000259,user_2064,71.06,Grocery Store,retail,"Chicago, IL",2025-04-26T14:33:11.756308,credit_card,False,none,0.0
+legit_00000260,user_2562,77.91,Gas Station,retail,"New York, NY",2024-11-30T14:33:11.756323,debit_card,False,none,0.0
+legit_00000261,user_2047,5.49,Coffee Shop,retail,"Philadelphia, PA",2025-06-01T14:33:11.756338,credit_card,False,none,0.0
+legit_00000262,user_1258,78.03,Gas Station,retail,"Phoenix, AZ",2025-01-18T14:33:11.756354,debit_card,False,none,0.0
+legit_00000263,user_6498,58.19,Department Store,retail,"Chicago, IL",2025-08-25T14:33:11.756370,debit_card,False,none,0.0
+legit_00000264,user_9832,45.21,Pharmacy,retail,"Los Angeles, CA",2025-02-19T14:33:11.756385,credit_card,False,none,0.0
+legit_00000265,user_3802,87.51,Gas Station,retail,"Chicago, IL",2024-10-21T14:33:11.756400,bank_transfer,False,none,0.0
+legit_00000266,user_3165,16.66,Department Store,retail,"New York, NY",2025-01-25T14:33:11.756415,credit_card,False,none,0.0
+legit_00000267,user_9540,26.44,Coffee Shop,retail,"San Antonio, TX",2025-07-31T14:33:11.756430,credit_card,False,none,0.0
+legit_00000268,user_1061,73.5,Coffee Shop,retail,"Houston, TX",2024-10-11T14:33:11.756444,bank_transfer,False,none,0.0
+legit_00000269,user_7584,36.05,Department Store,retail,"Phoenix, AZ",2024-11-29T14:33:11.756459,debit_card,False,none,0.0
+legit_00000270,user_4661,182.18,Pharmacy,retail,"New York, NY",2025-07-06T14:33:11.756475,credit_card,False,none,0.0
+legit_00000271,user_8743,34.14,Coffee Shop,retail,"New York, NY",2024-09-28T14:33:11.756489,credit_card,False,none,0.0
+legit_00000272,user_2345,79.76,Gas Station,retail,"San Antonio, TX",2025-08-04T14:33:11.756504,debit_card,False,none,0.0
+legit_00000273,user_9207,9.74,Grocery Store,retail,"New York, NY",2025-08-26T14:33:11.756519,bank_transfer,False,none,0.0
+legit_00000274,user_7160,70.6,Grocery Store,retail,"Chicago, IL",2025-05-17T14:33:11.756534,debit_card,False,none,0.0
+legit_00000275,user_9190,43.68,Grocery Store,retail,"Philadelphia, PA",2025-09-26T14:33:11.756549,bank_transfer,False,none,0.0
+legit_00000276,user_5083,15.54,Coffee Shop,retail,"Philadelphia, PA",2025-06-10T14:33:11.756564,credit_card,False,none,0.0
+legit_00000277,user_1881,37.42,Gas Station,retail,"Phoenix, AZ",2025-01-31T14:33:11.756579,debit_card,False,none,0.0
+legit_00000278,user_4143,535.11,Department Store,retail,"New York, NY",2024-11-10T14:33:11.756594,credit_card,False,none,0.0
+legit_00000279,user_1908,28.95,Coffee Shop,retail,"San Antonio, TX",2025-01-10T14:33:11.756609,bank_transfer,False,none,0.0
+legit_00000280,user_7940,30.87,Department Store,retail,"Los Angeles, CA",2025-04-18T14:33:11.756624,credit_card,False,none,0.0
+legit_00000281,user_9966,157.68,Grocery Store,retail,"Phoenix, AZ",2025-08-02T14:33:11.756639,bank_transfer,False,none,0.0
+legit_00000282,user_1920,32.57,Gas Station,retail,"San Antonio, TX",2024-12-17T14:33:11.756654,bank_transfer,False,none,0.0
+legit_00000283,user_4064,25.79,Coffee Shop,retail,"Los Angeles, CA",2025-02-03T14:33:11.756669,bank_transfer,False,none,0.0
+legit_00000284,user_6870,60.92,Online Retailer,retail,"New York, NY",2025-08-02T14:33:11.756685,debit_card,False,none,0.0
+legit_00000285,user_2343,42.42,Online Retailer,retail,"New York, NY",2025-06-17T14:33:11.756700,debit_card,False,none,0.0
+legit_00000286,user_2649,94.83,Restaurant,retail,"Chicago, IL",2025-06-07T14:33:11.756715,debit_card,False,none,0.0
+legit_00000287,user_7488,49.6,Grocery Store,retail,"New York, NY",2025-08-21T14:33:11.756730,debit_card,False,none,0.0
+legit_00000288,user_5325,9.21,Restaurant,retail,"New York, NY",2025-08-13T14:33:11.756745,debit_card,False,none,0.0
+legit_00000289,user_9060,158.7,Grocery Store,retail,"Phoenix, AZ",2025-03-25T14:33:11.756760,bank_transfer,False,none,0.0
+legit_00000290,user_8922,301.39,Restaurant,retail,"Chicago, IL",2024-10-09T14:33:11.756775,debit_card,False,none,0.0
+legit_00000291,user_3234,89.02,Grocery Store,retail,"Philadelphia, PA",2025-09-09T14:33:11.756790,bank_transfer,False,none,0.0
+legit_00000292,user_3426,53.56,Department Store,retail,"New York, NY",2024-11-19T14:33:11.756805,credit_card,False,none,0.0
+legit_00000293,user_8576,13.58,Grocery Store,retail,"Phoenix, AZ",2025-09-15T14:33:11.756820,debit_card,False,none,0.0
+legit_00000294,user_1227,56.52,Grocery Store,retail,"New York, NY",2024-10-11T14:33:11.756836,debit_card,False,none,0.0
+legit_00000295,user_6577,44.96,Online Retailer,retail,"Phoenix, AZ",2025-02-22T14:33:11.756852,debit_card,False,none,0.0
+legit_00000296,user_7423,21.86,Restaurant,retail,"San Antonio, TX",2025-08-25T14:33:11.756868,debit_card,False,none,0.0
+legit_00000297,user_3801,40.01,Online Retailer,retail,"Philadelphia, PA",2024-11-07T14:33:11.756883,bank_transfer,False,none,0.0
+legit_00000298,user_7428,62.67,Department Store,retail,"Houston, TX",2024-12-26T14:33:11.756897,credit_card,False,none,0.0
+legit_00000299,user_4083,47.66,Restaurant,retail,"San Antonio, TX",2025-04-06T14:33:11.756912,debit_card,False,none,0.0
+legit_00000300,user_8014,23.22,Pharmacy,retail,"Houston, TX",2025-02-20T14:33:11.756927,debit_card,False,none,0.0
+legit_00000301,user_4649,34.51,Department Store,retail,"New York, NY",2025-02-04T14:33:11.756942,bank_transfer,False,none,0.0
+legit_00000302,user_5158,147.28,Pharmacy,retail,"Philadelphia, PA",2024-12-16T14:33:11.756957,credit_card,False,none,0.0
+legit_00000303,user_3302,210.85,Gas Station,retail,"Los Angeles, CA",2025-08-21T14:33:11.756972,bank_transfer,False,none,0.0
+legit_00000304,user_2521,13.1,Department Store,retail,"New York, NY",2024-10-21T14:33:11.756986,credit_card,False,none,0.0
+legit_00000305,user_3794,213.14,Pharmacy,retail,"Philadelphia, PA",2025-06-30T14:33:11.757003,debit_card,False,none,0.0
+legit_00000306,user_1439,20.11,Department Store,retail,"Los Angeles, CA",2025-03-10T14:33:11.757018,bank_transfer,False,none,0.0
+legit_00000307,user_4795,26.61,Grocery Store,retail,"New York, NY",2024-12-28T14:33:11.757033,debit_card,False,none,0.0
+legit_00000308,user_3608,38.88,Online Retailer,retail,"Phoenix, AZ",2025-02-14T14:33:11.757048,credit_card,False,none,0.0
+legit_00000309,user_6622,12.18,Gas Station,retail,"Los Angeles, CA",2025-05-18T14:33:11.757065,credit_card,False,none,0.0
+legit_00000310,user_8147,15.24,Coffee Shop,retail,"Houston, TX",2025-03-01T14:33:11.757079,debit_card,False,none,0.0
+legit_00000311,user_9943,39.35,Pharmacy,retail,"Phoenix, AZ",2025-06-14T14:33:11.757094,debit_card,False,none,0.0
+legit_00000312,user_3930,123.99,Restaurant,retail,"New York, NY",2025-02-14T14:33:11.757109,debit_card,False,none,0.0
+legit_00000313,user_3611,116.27,Grocery Store,retail,"New York, NY",2024-10-15T14:33:11.757124,credit_card,False,none,0.0
+legit_00000314,user_6680,30.22,Pharmacy,retail,"Phoenix, AZ",2025-09-20T14:33:11.757139,debit_card,False,none,0.0
+legit_00000315,user_9622,58.81,Restaurant,retail,"Philadelphia, PA",2025-04-14T14:33:11.757154,credit_card,False,none,0.0
+legit_00000316,user_8404,47.88,Grocery Store,retail,"Los Angeles, CA",2024-10-04T14:33:11.757169,bank_transfer,False,none,0.0
+legit_00000317,user_2316,40.5,Restaurant,retail,"San Antonio, TX",2025-06-21T14:33:11.757183,debit_card,False,none,0.0
+legit_00000318,user_7302,140.34,Restaurant,retail,"Houston, TX",2025-05-26T14:33:11.757198,credit_card,False,none,0.0
+legit_00000319,user_2246,32.92,Pharmacy,retail,"Phoenix, AZ",2024-12-18T14:33:11.757213,credit_card,False,none,0.0
+legit_00000320,user_2730,29.88,Online Retailer,retail,"Philadelphia, PA",2025-03-10T14:33:11.757228,credit_card,False,none,0.0
+legit_00000321,user_1350,109.35,Online Retailer,retail,"Phoenix, AZ",2025-04-11T14:33:11.757243,credit_card,False,none,0.0
+legit_00000322,user_7445,78.09,Restaurant,retail,"Philadelphia, PA",2025-07-23T14:33:11.757258,credit_card,False,none,0.0
+legit_00000323,user_2685,96.78,Pharmacy,retail,"Houston, TX",2025-03-31T14:33:11.757273,debit_card,False,none,0.0
+legit_00000324,user_4816,92.25,Grocery Store,retail,"Houston, TX",2025-05-20T14:33:11.757289,credit_card,False,none,0.0
+legit_00000325,user_9424,99.93,Gas Station,retail,"Phoenix, AZ",2025-06-24T14:33:11.757305,debit_card,False,none,0.0
+legit_00000326,user_1382,37.22,Coffee Shop,retail,"Chicago, IL",2025-03-04T14:33:11.757319,credit_card,False,none,0.0
+legit_00000327,user_5017,80.78,Coffee Shop,retail,"Philadelphia, PA",2024-12-20T14:33:11.757334,credit_card,False,none,0.0
+legit_00000328,user_1705,81.82,Restaurant,retail,"Philadelphia, PA",2025-02-03T14:33:11.757348,debit_card,False,none,0.0
+legit_00000329,user_3273,58.27,Pharmacy,retail,"Los Angeles, CA",2025-02-01T14:33:11.757363,debit_card,False,none,0.0
+legit_00000330,user_4947,10.28,Online Retailer,retail,"Chicago, IL",2025-01-05T14:33:11.757377,bank_transfer,False,none,0.0
+legit_00000331,user_6288,126.92,Coffee Shop,retail,"Phoenix, AZ",2025-04-26T14:33:11.757392,debit_card,False,none,0.0
+legit_00000332,user_2964,28.61,Coffee Shop,retail,"Chicago, IL",2025-05-22T14:33:11.757407,credit_card,False,none,0.0
+legit_00000333,user_2335,53.77,Coffee Shop,retail,"Philadelphia, PA",2025-05-25T14:33:11.757421,credit_card,False,none,0.0
+legit_00000334,user_2158,80.49,Pharmacy,retail,"Chicago, IL",2025-04-03T14:33:11.757436,debit_card,False,none,0.0
+legit_00000335,user_7462,17.12,Restaurant,retail,"San Antonio, TX",2025-08-23T14:33:11.757451,credit_card,False,none,0.0
+legit_00000336,user_5654,29.25,Department Store,retail,"Houston, TX",2025-06-20T14:33:11.757466,credit_card,False,none,0.0
+legit_00000337,user_3894,47.68,Coffee Shop,retail,"Los Angeles, CA",2025-09-18T14:33:11.757480,credit_card,False,none,0.0
+legit_00000338,user_3013,54.33,Restaurant,retail,"Los Angeles, CA",2025-09-22T14:33:11.757495,credit_card,False,none,0.0
+legit_00000339,user_1252,52.75,Online Retailer,retail,"Los Angeles, CA",2025-05-23T14:33:11.757509,debit_card,False,none,0.0
+legit_00000340,user_1701,68.84,Pharmacy,retail,"Los Angeles, CA",2025-05-29T14:33:11.757524,bank_transfer,False,none,0.0
+legit_00000341,user_1990,32.13,Pharmacy,retail,"Phoenix, AZ",2025-06-27T14:33:11.757538,credit_card,False,none,0.0
+legit_00000342,user_9033,86.98,Gas Station,retail,"Phoenix, AZ",2025-01-12T14:33:11.757553,credit_card,False,none,0.0
+legit_00000343,user_9953,46.12,Grocery Store,retail,"New York, NY",2025-06-09T14:33:11.757568,bank_transfer,False,none,0.0
+legit_00000344,user_2468,241.6,Department Store,retail,"Chicago, IL",2024-12-11T14:33:11.757582,bank_transfer,False,none,0.0
+legit_00000345,user_5131,24.17,Gas Station,retail,"Houston, TX",2025-06-08T14:33:11.757597,bank_transfer,False,none,0.0
+legit_00000346,user_9472,19.65,Department Store,retail,"Los Angeles, CA",2025-07-30T14:33:11.757612,bank_transfer,False,none,0.0
+legit_00000347,user_9157,15.65,Grocery Store,retail,"Philadelphia, PA",2025-06-02T14:33:11.757626,debit_card,False,none,0.0
+legit_00000348,user_6725,143.76,Online Retailer,retail,"Houston, TX",2024-10-08T14:33:11.757641,bank_transfer,False,none,0.0
+legit_00000349,user_3844,33.47,Online Retailer,retail,"Philadelphia, PA",2024-10-09T14:33:11.757656,bank_transfer,False,none,0.0
+legit_00000350,user_3742,19.41,Gas Station,retail,"San Antonio, TX",2025-04-12T14:33:11.757670,debit_card,False,none,0.0
+legit_00000351,user_5263,240.02,Coffee Shop,retail,"Houston, TX",2024-12-20T14:33:11.757685,bank_transfer,False,none,0.0
+legit_00000352,user_5119,380.17,Online Retailer,retail,"Phoenix, AZ",2025-05-01T14:33:11.757700,debit_card,False,none,0.0
+legit_00000353,user_1898,5.27,Gas Station,retail,"San Antonio, TX",2024-10-17T14:33:11.757715,debit_card,False,none,0.0
+legit_00000354,user_7423,51.78,Restaurant,retail,"Los Angeles, CA",2025-06-05T14:33:11.757730,credit_card,False,none,0.0
+legit_00000355,user_6839,140.41,Online Retailer,retail,"Chicago, IL",2024-09-28T14:33:11.757745,debit_card,False,none,0.0
+legit_00000356,user_4901,36.64,Pharmacy,retail,"New York, NY",2025-04-03T14:33:11.757761,bank_transfer,False,none,0.0
+legit_00000357,user_2261,34.12,Pharmacy,retail,"New York, NY",2025-02-14T14:33:11.757776,debit_card,False,none,0.0
+legit_00000358,user_3552,154.31,Pharmacy,retail,"Los Angeles, CA",2024-11-15T14:33:11.757790,debit_card,False,none,0.0
+legit_00000359,user_4366,14.94,Online Retailer,retail,"Houston, TX",2025-05-21T14:33:11.757805,credit_card,False,none,0.0
+legit_00000360,user_1673,325.59,Online Retailer,retail,"Phoenix, AZ",2025-09-04T14:33:11.757820,credit_card,False,none,0.0
+legit_00000361,user_7144,33.69,Online Retailer,retail,"Philadelphia, PA",2024-12-03T14:33:11.757834,debit_card,False,none,0.0
+legit_00000362,user_7368,34.65,Gas Station,retail,"Los Angeles, CA",2024-10-25T14:33:11.757849,bank_transfer,False,none,0.0
+legit_00000363,user_1647,64.8,Online Retailer,retail,"Chicago, IL",2024-12-12T14:33:11.757864,debit_card,False,none,0.0
+legit_00000364,user_6028,7.85,Restaurant,retail,"New York, NY",2025-06-29T14:33:11.757880,credit_card,False,none,0.0
+legit_00000365,user_6336,46.78,Department Store,retail,"Phoenix, AZ",2025-06-20T14:33:11.757895,credit_card,False,none,0.0
+legit_00000366,user_9808,41.56,Coffee Shop,retail,"Houston, TX",2025-09-12T14:33:11.757910,bank_transfer,False,none,0.0
+legit_00000367,user_2021,3.93,Restaurant,retail,"San Antonio, TX",2025-06-03T14:33:11.757924,bank_transfer,False,none,0.0
+legit_00000368,user_2479,59.86,Online Retailer,retail,"Philadelphia, PA",2025-04-03T14:33:11.757939,debit_card,False,none,0.0
+legit_00000369,user_3844,18.67,Coffee Shop,retail,"New York, NY",2025-03-11T14:33:11.757954,credit_card,False,none,0.0
+legit_00000370,user_5160,575.48,Coffee Shop,retail,"Houston, TX",2025-07-07T14:33:11.757969,debit_card,False,none,0.0
+legit_00000371,user_9797,24.95,Pharmacy,retail,"Chicago, IL",2025-08-13T14:33:11.757983,credit_card,False,none,0.0
+legit_00000372,user_6844,205.58,Grocery Store,retail,"San Antonio, TX",2025-07-02T14:33:11.757998,credit_card,False,none,0.0
+legit_00000373,user_3428,92.1,Coffee Shop,retail,"San Antonio, TX",2025-08-17T14:33:11.758015,debit_card,False,none,0.0
+legit_00000374,user_5689,157.89,Restaurant,retail,"Philadelphia, PA",2025-08-03T14:33:11.758030,bank_transfer,False,none,0.0
+legit_00000375,user_2101,60.7,Gas Station,retail,"San Antonio, TX",2025-07-14T14:33:11.758045,bank_transfer,False,none,0.0
+legit_00000376,user_7306,200.64,Department Store,retail,"Phoenix, AZ",2025-05-19T14:33:11.758060,bank_transfer,False,none,0.0
+legit_00000377,user_1463,69.12,Grocery Store,retail,"San Antonio, TX",2025-01-11T14:33:11.758075,bank_transfer,False,none,0.0
+legit_00000378,user_5384,89.95,Online Retailer,retail,"Phoenix, AZ",2025-05-17T14:33:11.758090,bank_transfer,False,none,0.0
+legit_00000379,user_3435,20.34,Coffee Shop,retail,"Los Angeles, CA",2025-01-15T14:33:11.758104,debit_card,False,none,0.0
+legit_00000380,user_5115,40.36,Coffee Shop,retail,"Philadelphia, PA",2025-09-19T14:33:11.758119,credit_card,False,none,0.0
+legit_00000381,user_1868,76.66,Department Store,retail,"Los Angeles, CA",2025-09-03T14:33:11.758134,debit_card,False,none,0.0
+legit_00000382,user_2346,5.71,Department Store,retail,"San Antonio, TX",2024-11-01T14:33:11.758149,bank_transfer,False,none,0.0
+legit_00000383,user_9381,90.88,Grocery Store,retail,"Phoenix, AZ",2025-07-20T14:33:11.758164,debit_card,False,none,0.0
+legit_00000384,user_2151,11.5,Pharmacy,retail,"New York, NY",2025-01-29T14:33:11.758179,debit_card,False,none,0.0
+legit_00000385,user_3677,42.51,Pharmacy,retail,"Phoenix, AZ",2025-05-11T14:33:11.758194,bank_transfer,False,none,0.0
+legit_00000386,user_1880,375.2,Coffee Shop,retail,"San Antonio, TX",2025-09-19T14:33:11.758209,bank_transfer,False,none,0.0
+legit_00000387,user_5138,54.08,Coffee Shop,retail,"Houston, TX",2024-11-13T14:33:11.758223,debit_card,False,none,0.0
+legit_00000388,user_5829,38.09,Department Store,retail,"Los Angeles, CA",2024-10-12T14:33:11.758238,credit_card,False,none,0.0
+legit_00000389,user_2165,56.69,Gas Station,retail,"New York, NY",2024-10-11T14:33:11.758253,bank_transfer,False,none,0.0
+legit_00000390,user_3309,34.69,Grocery Store,retail,"New York, NY",2024-09-27T14:33:11.758267,bank_transfer,False,none,0.0
+legit_00000391,user_5200,33.76,Restaurant,retail,"San Antonio, TX",2025-09-18T14:33:11.758282,bank_transfer,False,none,0.0
+legit_00000392,user_4119,27.28,Department Store,retail,"Los Angeles, CA",2025-07-03T14:33:11.758296,credit_card,False,none,0.0
+legit_00000393,user_4997,15.01,Online Retailer,retail,"Chicago, IL",2025-07-19T14:33:11.758311,bank_transfer,False,none,0.0
+legit_00000394,user_4315,112.0,Department Store,retail,"Los Angeles, CA",2025-06-19T14:33:11.758328,credit_card,False,none,0.0
+legit_00000395,user_3400,34.45,Restaurant,retail,"Los Angeles, CA",2024-10-08T14:33:11.758343,credit_card,False,none,0.0
+legit_00000396,user_4780,51.11,Department Store,retail,"New York, NY",2025-04-06T14:33:11.758358,debit_card,False,none,0.0
+legit_00000397,user_1052,121.97,Gas Station,retail,"Chicago, IL",2025-08-13T14:33:11.758373,bank_transfer,False,none,0.0
+legit_00000398,user_1966,153.78,Department Store,retail,"San Antonio, TX",2025-04-30T14:33:11.758388,bank_transfer,False,none,0.0
+legit_00000399,user_4572,44.99,Department Store,retail,"Phoenix, AZ",2025-06-06T14:33:11.758402,debit_card,False,none,0.0
+legit_00000400,user_1887,275.51,Restaurant,retail,"Houston, TX",2024-12-14T14:33:11.758417,credit_card,False,none,0.0
+legit_00000401,user_3097,118.45,Online Retailer,retail,"San Antonio, TX",2025-04-12T14:33:11.758433,credit_card,False,none,0.0
+legit_00000402,user_8584,40.99,Pharmacy,retail,"Houston, TX",2025-04-28T14:33:11.758447,credit_card,False,none,0.0
+legit_00000403,user_3975,63.19,Coffee Shop,retail,"Chicago, IL",2025-02-25T14:33:11.758462,debit_card,False,none,0.0
+legit_00000404,user_4218,51.8,Department Store,retail,"Houston, TX",2025-06-12T14:33:11.758479,bank_transfer,False,none,0.0
+legit_00000405,user_5681,18.42,Restaurant,retail,"Philadelphia, PA",2025-01-22T14:33:11.758493,bank_transfer,False,none,0.0
+legit_00000406,user_7900,240.18,Pharmacy,retail,"Los Angeles, CA",2025-07-01T14:33:11.758508,bank_transfer,False,none,0.0
+legit_00000407,user_6319,19.12,Online Retailer,retail,"Phoenix, AZ",2025-06-12T14:33:11.758525,credit_card,False,none,0.0
+legit_00000408,user_1751,502.0,Restaurant,retail,"Houston, TX",2024-11-13T14:33:11.758539,credit_card,False,none,0.0
+legit_00000409,user_8449,38.37,Department Store,retail,"San Antonio, TX",2025-06-29T14:33:11.758554,credit_card,False,none,0.0
+legit_00000410,user_2448,28.51,Restaurant,retail,"San Antonio, TX",2025-03-12T14:33:11.758569,debit_card,False,none,0.0
+legit_00000411,user_7417,218.88,Grocery Store,retail,"Phoenix, AZ",2025-06-01T14:33:11.758584,debit_card,False,none,0.0
+legit_00000412,user_1696,173.75,Coffee Shop,retail,"Phoenix, AZ",2025-04-14T14:33:11.758598,bank_transfer,False,none,0.0
+legit_00000413,user_3178,20.08,Gas Station,retail,"Los Angeles, CA",2025-03-16T14:33:11.758613,credit_card,False,none,0.0
+legit_00000414,user_9431,17.94,Grocery Store,retail,"Philadelphia, PA",2024-11-20T14:33:11.758627,credit_card,False,none,0.0
+legit_00000415,user_2286,4.7,Gas Station,retail,"Houston, TX",2024-10-28T14:33:11.758642,bank_transfer,False,none,0.0
+legit_00000416,user_3889,73.81,Restaurant,retail,"Houston, TX",2024-11-29T14:33:11.758657,bank_transfer,False,none,0.0
+legit_00000417,user_9621,52.27,Grocery Store,retail,"New York, NY",2025-01-05T14:33:11.758672,bank_transfer,False,none,0.0
+legit_00000418,user_1743,18.8,Gas Station,retail,"Houston, TX",2024-10-03T14:33:11.758687,credit_card,False,none,0.0
+legit_00000419,user_6827,12.2,Online Retailer,retail,"Houston, TX",2024-12-25T14:33:11.758702,credit_card,False,none,0.0
+legit_00000420,user_3376,24.49,Coffee Shop,retail,"Los Angeles, CA",2025-08-24T14:33:11.758716,credit_card,False,none,0.0
+legit_00000421,user_8408,30.6,Pharmacy,retail,"Phoenix, AZ",2025-03-08T14:33:11.758731,bank_transfer,False,none,0.0
+legit_00000422,user_5744,64.33,Pharmacy,retail,"Phoenix, AZ",2024-10-14T14:33:11.758746,credit_card,False,none,0.0
+legit_00000423,user_1756,82.6,Grocery Store,retail,"New York, NY",2024-09-28T14:33:11.758761,debit_card,False,none,0.0
+legit_00000424,user_8597,13.59,Gas Station,retail,"Phoenix, AZ",2025-07-16T14:33:11.758776,credit_card,False,none,0.0
+legit_00000425,user_6627,89.41,Pharmacy,retail,"Houston, TX",2025-01-01T14:33:11.758791,credit_card,False,none,0.0
+legit_00000426,user_1795,80.08,Gas Station,retail,"Houston, TX",2025-07-13T14:33:11.758806,bank_transfer,False,none,0.0
+legit_00000427,user_2681,61.32,Restaurant,retail,"Philadelphia, PA",2025-03-15T14:33:11.758820,credit_card,False,none,0.0
+legit_00000428,user_9388,36.04,Gas Station,retail,"Houston, TX",2025-07-15T14:33:11.758835,bank_transfer,False,none,0.0
+legit_00000429,user_4959,33.0,Grocery Store,retail,"Chicago, IL",2025-01-01T14:33:11.758849,bank_transfer,False,none,0.0
+legit_00000430,user_6324,11.86,Pharmacy,retail,"Los Angeles, CA",2025-01-20T14:33:11.758864,credit_card,False,none,0.0
+legit_00000431,user_5921,27.06,Grocery Store,retail,"Los Angeles, CA",2025-04-07T14:33:11.758879,debit_card,False,none,0.0
+legit_00000432,user_2362,13.91,Grocery Store,retail,"Houston, TX",2024-11-07T14:33:11.758894,credit_card,False,none,0.0
+legit_00000433,user_4586,41.1,Online Retailer,retail,"Phoenix, AZ",2025-01-07T14:33:11.758908,credit_card,False,none,0.0
+legit_00000434,user_7109,26.15,Coffee Shop,retail,"Chicago, IL",2025-03-11T14:33:11.758925,credit_card,False,none,0.0
+legit_00000435,user_9010,111.64,Restaurant,retail,"Chicago, IL",2025-01-03T14:33:11.758940,credit_card,False,none,0.0
+legit_00000436,user_9882,314.89,Restaurant,retail,"Los Angeles, CA",2024-10-16T14:33:11.758954,credit_card,False,none,0.0
+legit_00000437,user_8421,33.74,Grocery Store,retail,"New York, NY",2024-12-16T14:33:11.758969,bank_transfer,False,none,0.0
+legit_00000438,user_9463,27.29,Restaurant,retail,"Philadelphia, PA",2025-07-18T14:33:11.758984,bank_transfer,False,none,0.0
+legit_00000439,user_8997,65.51,Department Store,retail,"Los Angeles, CA",2025-06-04T14:33:11.758999,debit_card,False,none,0.0
+legit_00000440,user_7265,27.78,Department Store,retail,"Houston, TX",2025-04-04T14:33:11.759013,bank_transfer,False,none,0.0
+legit_00000441,user_1733,19.77,Online Retailer,retail,"Phoenix, AZ",2025-05-12T14:33:11.759028,credit_card,False,none,0.0
+legit_00000442,user_4030,17.24,Coffee Shop,retail,"Chicago, IL",2025-01-05T14:33:11.759043,bank_transfer,False,none,0.0
+legit_00000443,user_7857,44.77,Online Retailer,retail,"Chicago, IL",2024-11-12T14:33:11.759057,bank_transfer,False,none,0.0
+legit_00000444,user_2320,19.42,Coffee Shop,retail,"San Antonio, TX",2024-12-24T14:33:11.759074,bank_transfer,False,none,0.0
+legit_00000445,user_5109,111.72,Coffee Shop,retail,"New York, NY",2025-07-05T14:33:11.759088,credit_card,False,none,0.0
+legit_00000446,user_9936,3.84,Department Store,retail,"San Antonio, TX",2025-05-05T14:33:11.759103,debit_card,False,none,0.0
+legit_00000447,user_9886,29.37,Coffee Shop,retail,"Philadelphia, PA",2024-12-22T14:33:11.759118,debit_card,False,none,0.0
+legit_00000448,user_5392,57.11,Pharmacy,retail,"Los Angeles, CA",2024-12-05T14:33:11.759132,bank_transfer,False,none,0.0
+legit_00000449,user_5869,196.28,Pharmacy,retail,"Los Angeles, CA",2024-11-03T14:33:11.759147,bank_transfer,False,none,0.0
+legit_00000450,user_4870,25.98,Gas Station,retail,"Chicago, IL",2025-02-18T14:33:11.759162,debit_card,False,none,0.0
+legit_00000451,user_4197,138.33,Grocery Store,retail,"Houston, TX",2025-09-04T14:33:11.759177,credit_card,False,none,0.0
+legit_00000452,user_8835,210.11,Coffee Shop,retail,"Houston, TX",2025-03-24T14:33:11.759191,debit_card,False,none,0.0
+legit_00000453,user_4380,63.29,Online Retailer,retail,"Chicago, IL",2025-01-07T14:33:11.759206,credit_card,False,none,0.0
+legit_00000454,user_2465,68.89,Coffee Shop,retail,"Los Angeles, CA",2025-01-16T14:33:11.759221,credit_card,False,none,0.0
+legit_00000455,user_9455,57.94,Gas Station,retail,"Houston, TX",2025-02-03T14:33:11.759236,credit_card,False,none,0.0
+legit_00000456,user_5595,43.44,Pharmacy,retail,"San Antonio, TX",2025-07-23T14:33:11.759250,debit_card,False,none,0.0
+legit_00000457,user_6076,194.7,Grocery Store,retail,"New York, NY",2024-10-05T14:33:11.759266,debit_card,False,none,0.0
+legit_00000458,user_2576,107.24,Online Retailer,retail,"Los Angeles, CA",2025-01-04T14:33:11.759282,debit_card,False,none,0.0
+legit_00000459,user_7330,121.04,Gas Station,retail,"Houston, TX",2025-08-07T14:33:11.759297,debit_card,False,none,0.0
+legit_00000460,user_4235,20.1,Pharmacy,retail,"Chicago, IL",2024-12-28T14:33:11.759312,bank_transfer,False,none,0.0
+legit_00000461,user_8849,29.59,Grocery Store,retail,"Phoenix, AZ",2025-04-14T14:33:11.759329,debit_card,False,none,0.0
+legit_00000462,user_5043,80.06,Online Retailer,retail,"Chicago, IL",2025-05-02T14:33:11.759344,debit_card,False,none,0.0
+legit_00000463,user_1615,321.21,Pharmacy,retail,"San Antonio, TX",2024-10-24T14:33:11.759359,debit_card,False,none,0.0
+legit_00000464,user_2276,60.75,Coffee Shop,retail,"Philadelphia, PA",2025-02-11T14:33:11.759374,debit_card,False,none,0.0
+legit_00000465,user_5109,43.49,Grocery Store,retail,"Los Angeles, CA",2024-10-30T14:33:11.759389,bank_transfer,False,none,0.0
+legit_00000466,user_9483,22.24,Gas Station,retail,"Los Angeles, CA",2025-01-18T14:33:11.759404,bank_transfer,False,none,0.0
+legit_00000467,user_3279,79.01,Department Store,retail,"Philadelphia, PA",2024-10-20T14:33:11.759418,bank_transfer,False,none,0.0
+legit_00000468,user_6429,284.76,Gas Station,retail,"Houston, TX",2025-02-04T14:33:11.759433,credit_card,False,none,0.0
+legit_00000469,user_3664,19.47,Coffee Shop,retail,"New York, NY",2024-10-09T14:33:11.759447,bank_transfer,False,none,0.0
+legit_00000470,user_3722,73.6,Coffee Shop,retail,"San Antonio, TX",2025-05-06T14:33:11.759462,debit_card,False,none,0.0
+legit_00000471,user_3133,102.33,Coffee Shop,retail,"New York, NY",2025-07-03T14:33:11.759476,debit_card,False,none,0.0
+legit_00000472,user_6462,116.66,Restaurant,retail,"New York, NY",2024-11-08T14:33:11.759491,credit_card,False,none,0.0
+legit_00000473,user_6150,67.72,Pharmacy,retail,"Phoenix, AZ",2025-04-08T14:33:11.759506,bank_transfer,False,none,0.0
+legit_00000474,user_4785,63.69,Coffee Shop,retail,"Houston, TX",2025-04-02T14:33:11.759520,bank_transfer,False,none,0.0
+legit_00000475,user_5103,91.33,Coffee Shop,retail,"Houston, TX",2024-10-16T14:33:11.759534,bank_transfer,False,none,0.0
+legit_00000476,user_1626,18.64,Online Retailer,retail,"Philadelphia, PA",2025-04-28T14:33:11.759549,credit_card,False,none,0.0
+legit_00000477,user_1191,34.87,Coffee Shop,retail,"Philadelphia, PA",2024-12-12T14:33:11.759564,bank_transfer,False,none,0.0
+legit_00000478,user_5242,42.05,Gas Station,retail,"Chicago, IL",2025-07-29T14:33:11.759578,bank_transfer,False,none,0.0
+legit_00000479,user_4645,48.44,Online Retailer,retail,"Phoenix, AZ",2024-11-09T14:33:11.759593,bank_transfer,False,none,0.0
+legit_00000480,user_6421,39.84,Coffee Shop,retail,"Chicago, IL",2025-08-09T14:33:11.759608,bank_transfer,False,none,0.0
+legit_00000481,user_3576,15.29,Online Retailer,retail,"Phoenix, AZ",2025-05-17T14:33:11.759622,debit_card,False,none,0.0
+legit_00000482,user_1072,25.06,Restaurant,retail,"Chicago, IL",2025-01-23T14:33:11.759637,debit_card,False,none,0.0
+legit_00000483,user_6564,124.81,Pharmacy,retail,"Philadelphia, PA",2025-04-22T14:33:11.759651,credit_card,False,none,0.0
+legit_00000484,user_8558,15.23,Pharmacy,retail,"Philadelphia, PA",2024-12-08T14:33:11.759668,debit_card,False,none,0.0
+legit_00000485,user_8267,57.42,Gas Station,retail,"Phoenix, AZ",2024-10-18T14:33:11.759682,debit_card,False,none,0.0
+legit_00000486,user_2547,13.52,Online Retailer,retail,"Philadelphia, PA",2025-09-12T14:33:11.759697,debit_card,False,none,0.0
+legit_00000487,user_5391,39.92,Gas Station,retail,"Houston, TX",2025-08-26T14:33:11.759712,debit_card,False,none,0.0
+legit_00000488,user_5496,14.49,Department Store,retail,"San Antonio, TX",2025-03-17T14:33:11.759726,credit_card,False,none,0.0
+legit_00000489,user_2652,40.85,Coffee Shop,retail,"Los Angeles, CA",2024-10-09T14:33:11.759741,credit_card,False,none,0.0
+legit_00000490,user_7998,45.47,Coffee Shop,retail,"San Antonio, TX",2025-08-28T14:33:11.759756,bank_transfer,False,none,0.0
+legit_00000491,user_8900,26.93,Gas Station,retail,"Los Angeles, CA",2025-05-16T14:33:11.759770,credit_card,False,none,0.0
+legit_00000492,user_7359,90.52,Online Retailer,retail,"Houston, TX",2024-10-09T14:33:11.759785,credit_card,False,none,0.0
+legit_00000493,user_1017,91.2,Online Retailer,retail,"Los Angeles, CA",2024-11-18T14:33:11.759800,bank_transfer,False,none,0.0
+legit_00000494,user_8305,234.64,Coffee Shop,retail,"New York, NY",2025-05-04T14:33:11.759814,credit_card,False,none,0.0
+legit_00000495,user_7186,116.08,Online Retailer,retail,"New York, NY",2024-10-03T14:33:11.759829,bank_transfer,False,none,0.0
+legit_00000496,user_1641,35.08,Restaurant,retail,"Chicago, IL",2025-08-17T14:33:11.759844,debit_card,False,none,0.0
+legit_00000497,user_4464,65.28,Department Store,retail,"San Antonio, TX",2024-12-25T14:33:11.759858,debit_card,False,none,0.0
+legit_00000498,user_5904,32.92,Coffee Shop,retail,"San Antonio, TX",2025-05-31T14:33:11.759873,debit_card,False,none,0.0
+legit_00000499,user_6725,67.5,Pharmacy,retail,"Philadelphia, PA",2024-12-01T14:33:11.759887,credit_card,False,none,0.0
+legit_00000500,user_8415,22.04,Pharmacy,retail,"San Antonio, TX",2024-10-14T14:33:11.759902,credit_card,False,none,0.0
+legit_00000501,user_7558,207.68,Coffee Shop,retail,"Los Angeles, CA",2024-12-30T14:33:11.759917,credit_card,False,none,0.0
+legit_00000502,user_7094,33.35,Coffee Shop,retail,"New York, NY",2025-08-07T14:33:11.759931,debit_card,False,none,0.0
+legit_00000503,user_9892,117.38,Pharmacy,retail,"Phoenix, AZ",2025-04-02T14:33:11.759946,credit_card,False,none,0.0
+legit_00000504,user_2077,180.25,Pharmacy,retail,"Chicago, IL",2025-01-16T14:33:11.759961,credit_card,False,none,0.0
+legit_00000505,user_1816,380.26,Online Retailer,retail,"San Antonio, TX",2025-07-25T14:33:11.759975,debit_card,False,none,0.0
+legit_00000506,user_8937,23.86,Department Store,retail,"Los Angeles, CA",2025-03-06T14:33:11.759990,credit_card,False,none,0.0
+legit_00000507,user_6430,36.69,Gas Station,retail,"New York, NY",2025-06-03T14:33:11.760005,debit_card,False,none,0.0
+legit_00000508,user_6594,116.1,Online Retailer,retail,"Philadelphia, PA",2024-12-11T14:33:11.760019,debit_card,False,none,0.0
+legit_00000509,user_1491,28.47,Restaurant,retail,"San Antonio, TX",2025-02-01T14:33:11.760036,bank_transfer,False,none,0.0
+legit_00000510,user_7304,76.84,Grocery Store,retail,"Houston, TX",2025-02-05T14:33:11.760051,debit_card,False,none,0.0
+legit_00000511,user_3725,54.69,Department Store,retail,"San Antonio, TX",2024-12-25T14:33:11.760065,bank_transfer,False,none,0.0
+legit_00000512,user_5231,24.94,Gas Station,retail,"Los Angeles, CA",2025-03-24T14:33:11.760080,debit_card,False,none,0.0
+legit_00000513,user_7028,81.75,Restaurant,retail,"Chicago, IL",2025-08-11T14:33:11.760095,debit_card,False,none,0.0
+legit_00000514,user_9016,74.42,Gas Station,retail,"Los Angeles, CA",2025-04-07T14:33:11.760109,bank_transfer,False,none,0.0
+legit_00000515,user_2525,9.34,Coffee Shop,retail,"New York, NY",2025-04-16T14:33:11.760124,credit_card,False,none,0.0
+legit_00000516,user_9750,200.23,Online Retailer,retail,"San Antonio, TX",2024-09-27T14:33:11.760138,credit_card,False,none,0.0
+legit_00000517,user_3491,128.59,Coffee Shop,retail,"Chicago, IL",2025-03-27T14:33:11.760153,debit_card,False,none,0.0
+legit_00000518,user_9669,330.99,Gas Station,retail,"Los Angeles, CA",2025-02-05T14:33:11.760169,debit_card,False,none,0.0
+legit_00000519,user_4868,6.96,Grocery Store,retail,"Houston, TX",2025-06-01T14:33:11.760185,credit_card,False,none,0.0
+legit_00000520,user_1902,33.22,Gas Station,retail,"Los Angeles, CA",2025-06-11T14:33:11.760202,bank_transfer,False,none,0.0
+legit_00000521,user_4074,13.61,Pharmacy,retail,"Phoenix, AZ",2025-09-23T14:33:11.760220,bank_transfer,False,none,0.0
+legit_00000522,user_2860,70.06,Online Retailer,retail,"Phoenix, AZ",2024-11-28T14:33:11.760235,credit_card,False,none,0.0
+legit_00000523,user_7489,16.25,Restaurant,retail,"Los Angeles, CA",2024-10-21T14:33:11.760252,debit_card,False,none,0.0
+legit_00000524,user_2490,103.81,Gas Station,retail,"San Antonio, TX",2025-08-24T14:33:11.760271,bank_transfer,False,none,0.0
+legit_00000525,user_4582,290.84,Coffee Shop,retail,"Phoenix, AZ",2024-10-29T14:33:11.760286,bank_transfer,False,none,0.0
+legit_00000526,user_8527,383.5,Coffee Shop,retail,"Los Angeles, CA",2024-11-24T14:33:11.760301,bank_transfer,False,none,0.0
+legit_00000527,user_1637,26.68,Coffee Shop,retail,"Phoenix, AZ",2025-02-24T14:33:11.760316,bank_transfer,False,none,0.0
+legit_00000528,user_8376,16.63,Coffee Shop,retail,"New York, NY",2025-07-30T14:33:11.760331,debit_card,False,none,0.0
+legit_00000529,user_1837,54.4,Online Retailer,retail,"Chicago, IL",2025-04-19T14:33:11.760346,bank_transfer,False,none,0.0
+legit_00000530,user_3192,56.03,Pharmacy,retail,"Phoenix, AZ",2025-08-23T14:33:11.760361,credit_card,False,none,0.0
+legit_00000531,user_4307,89.64,Gas Station,retail,"Phoenix, AZ",2024-10-20T14:33:11.760375,debit_card,False,none,0.0
+legit_00000532,user_7814,32.08,Online Retailer,retail,"Los Angeles, CA",2025-07-07T14:33:11.760390,credit_card,False,none,0.0
+legit_00000533,user_2035,67.33,Pharmacy,retail,"Phoenix, AZ",2025-05-23T14:33:11.760405,bank_transfer,False,none,0.0
+legit_00000534,user_9666,29.73,Department Store,retail,"San Antonio, TX",2025-01-28T14:33:11.760420,credit_card,False,none,0.0
+legit_00000535,user_4692,284.0,Gas Station,retail,"Los Angeles, CA",2025-01-17T14:33:11.760435,credit_card,False,none,0.0
+legit_00000536,user_2716,137.8,Grocery Store,retail,"Philadelphia, PA",2024-11-29T14:33:11.760450,bank_transfer,False,none,0.0
+legit_00000537,user_3447,17.57,Pharmacy,retail,"New York, NY",2025-08-08T14:33:11.760465,bank_transfer,False,none,0.0
+legit_00000538,user_2379,84.1,Restaurant,retail,"Chicago, IL",2025-03-06T14:33:11.760480,bank_transfer,False,none,0.0
+legit_00000539,user_9895,89.23,Grocery Store,retail,"Los Angeles, CA",2025-04-10T14:33:11.760495,credit_card,False,none,0.0
+legit_00000540,user_2229,16.67,Online Retailer,retail,"Chicago, IL",2024-12-04T14:33:11.760509,bank_transfer,False,none,0.0
+legit_00000541,user_6802,41.69,Coffee Shop,retail,"Chicago, IL",2025-07-22T14:33:11.760524,debit_card,False,none,0.0
+legit_00000542,user_8633,649.23,Grocery Store,retail,"Philadelphia, PA",2025-01-25T14:33:11.760539,bank_transfer,False,none,0.0
+legit_00000543,user_1990,17.84,Coffee Shop,retail,"Phoenix, AZ",2025-04-21T14:33:11.760556,credit_card,False,none,0.0
+legit_00000544,user_4692,4.99,Grocery Store,retail,"Philadelphia, PA",2025-09-15T14:33:11.760572,bank_transfer,False,none,0.0
+legit_00000545,user_2639,138.0,Department Store,retail,"Los Angeles, CA",2024-10-05T14:33:11.760587,debit_card,False,none,0.0
+legit_00000546,user_1464,13.28,Online Retailer,retail,"Los Angeles, CA",2024-10-23T14:33:11.760602,credit_card,False,none,0.0
+legit_00000547,user_4105,11.73,Online Retailer,retail,"Chicago, IL",2025-01-30T14:33:11.760616,bank_transfer,False,none,0.0
+legit_00000548,user_7551,116.62,Restaurant,retail,"New York, NY",2025-07-07T14:33:11.760631,debit_card,False,none,0.0
+legit_00000549,user_5526,78.17,Pharmacy,retail,"New York, NY",2025-04-12T14:33:11.760646,credit_card,False,none,0.0
+legit_00000550,user_1248,634.05,Department Store,retail,"San Antonio, TX",2025-07-11T14:33:11.760661,credit_card,False,none,0.0
+legit_00000551,user_2000,131.57,Department Store,retail,"Los Angeles, CA",2025-09-06T14:33:11.760676,credit_card,False,none,0.0
+legit_00000552,user_7797,60.22,Department Store,retail,"Philadelphia, PA",2025-03-21T14:33:11.760690,bank_transfer,False,none,0.0
+legit_00000553,user_9811,27.42,Department Store,retail,"New York, NY",2025-05-05T14:33:11.760705,bank_transfer,False,none,0.0
+legit_00000554,user_4263,53.7,Pharmacy,retail,"San Antonio, TX",2024-12-03T14:33:11.760720,bank_transfer,False,none,0.0
+legit_00000555,user_8494,106.5,Grocery Store,retail,"New York, NY",2025-08-13T14:33:11.760735,debit_card,False,none,0.0
+legit_00000556,user_1424,51.29,Grocery Store,retail,"San Antonio, TX",2025-03-17T14:33:11.760750,bank_transfer,False,none,0.0
+legit_00000557,user_8376,77.23,Department Store,retail,"Houston, TX",2025-08-19T14:33:11.760765,credit_card,False,none,0.0
+legit_00000558,user_6072,63.05,Department Store,retail,"Chicago, IL",2024-11-06T14:33:11.760780,debit_card,False,none,0.0
+legit_00000559,user_8472,220.8,Department Store,retail,"San Antonio, TX",2025-05-14T14:33:11.760795,credit_card,False,none,0.0
+legit_00000560,user_8471,136.14,Department Store,retail,"New York, NY",2024-11-06T14:33:11.760812,credit_card,False,none,0.0
+legit_00000561,user_8794,394.53,Online Retailer,retail,"San Antonio, TX",2025-01-28T14:33:11.760827,debit_card,False,none,0.0
+legit_00000562,user_3341,24.8,Department Store,retail,"New York, NY",2025-08-31T14:33:11.760842,bank_transfer,False,none,0.0
+legit_00000563,user_1771,24.52,Restaurant,retail,"Chicago, IL",2025-03-17T14:33:11.760856,bank_transfer,False,none,0.0
+legit_00000564,user_5589,93.05,Pharmacy,retail,"Philadelphia, PA",2025-05-20T14:33:11.760873,credit_card,False,none,0.0
+legit_00000565,user_7234,87.78,Restaurant,retail,"Los Angeles, CA",2024-11-13T14:33:11.760888,bank_transfer,False,none,0.0
+legit_00000566,user_8876,27.71,Grocery Store,retail,"Houston, TX",2025-09-09T14:33:11.760903,credit_card,False,none,0.0
+legit_00000567,user_4394,140.59,Online Retailer,retail,"Los Angeles, CA",2025-05-29T14:33:11.760918,debit_card,False,none,0.0
+legit_00000568,user_6655,206.73,Online Retailer,retail,"Los Angeles, CA",2025-03-13T14:33:11.760933,bank_transfer,False,none,0.0
+legit_00000569,user_3585,17.53,Restaurant,retail,"New York, NY",2025-03-09T14:33:11.760948,bank_transfer,False,none,0.0
+legit_00000570,user_7564,41.05,Restaurant,retail,"San Antonio, TX",2025-06-13T14:33:11.760965,bank_transfer,False,none,0.0
+legit_00000571,user_5454,10.38,Online Retailer,retail,"New York, NY",2025-09-17T14:33:11.760982,bank_transfer,False,none,0.0
+legit_00000572,user_7217,113.59,Department Store,retail,"Phoenix, AZ",2025-03-03T14:33:11.760999,credit_card,False,none,0.0
+legit_00000573,user_3485,51.35,Grocery Store,retail,"Houston, TX",2025-08-15T14:33:11.761017,bank_transfer,False,none,0.0
+legit_00000574,user_3530,47.84,Restaurant,retail,"Chicago, IL",2025-07-19T14:33:11.761034,debit_card,False,none,0.0
+legit_00000575,user_1237,12.8,Gas Station,retail,"Phoenix, AZ",2025-01-26T14:33:11.761049,credit_card,False,none,0.0
+legit_00000576,user_4925,103.98,Pharmacy,retail,"Phoenix, AZ",2024-10-05T14:33:11.761064,credit_card,False,none,0.0
+legit_00000577,user_6610,6.97,Grocery Store,retail,"New York, NY",2025-08-22T14:33:11.761079,credit_card,False,none,0.0
+legit_00000578,user_7789,300.94,Gas Station,retail,"Philadelphia, PA",2025-04-16T14:33:11.761094,bank_transfer,False,none,0.0
+legit_00000579,user_8639,65.42,Grocery Store,retail,"Chicago, IL",2025-03-28T14:33:11.761110,bank_transfer,False,none,0.0
+legit_00000580,user_3005,37.37,Pharmacy,retail,"Chicago, IL",2025-06-13T14:33:11.761125,bank_transfer,False,none,0.0
+legit_00000581,user_5075,44.54,Pharmacy,retail,"Chicago, IL",2024-10-04T14:33:11.761140,bank_transfer,False,none,0.0
+legit_00000582,user_8913,156.74,Online Retailer,retail,"Houston, TX",2025-06-30T14:33:11.761155,credit_card,False,none,0.0
+legit_00000583,user_5815,51.82,Coffee Shop,retail,"San Antonio, TX",2024-10-20T14:33:11.761173,credit_card,False,none,0.0
+legit_00000584,user_6381,499.97,Department Store,retail,"San Antonio, TX",2025-09-24T14:33:11.761191,bank_transfer,False,none,0.0
+legit_00000585,user_5301,31.59,Coffee Shop,retail,"Chicago, IL",2025-09-22T14:33:11.761207,credit_card,False,none,0.0
+legit_00000586,user_4177,26.48,Restaurant,retail,"San Antonio, TX",2025-05-11T14:33:11.761221,credit_card,False,none,0.0
+legit_00000587,user_1910,43.93,Online Retailer,retail,"New York, NY",2025-05-29T14:33:11.761236,debit_card,False,none,0.0
+legit_00000588,user_4379,239.18,Grocery Store,retail,"Houston, TX",2025-03-23T14:33:11.761251,bank_transfer,False,none,0.0
+legit_00000589,user_9415,43.2,Coffee Shop,retail,"Los Angeles, CA",2025-06-01T14:33:11.761266,credit_card,False,none,0.0
+legit_00000590,user_6857,149.87,Department Store,retail,"Chicago, IL",2025-03-16T14:33:11.761280,debit_card,False,none,0.0
+legit_00000591,user_2315,23.94,Grocery Store,retail,"Philadelphia, PA",2024-11-02T14:33:11.761295,credit_card,False,none,0.0
+legit_00000592,user_6927,17.25,Pharmacy,retail,"Philadelphia, PA",2025-06-23T14:33:11.761310,debit_card,False,none,0.0
+legit_00000593,user_2925,13.23,Coffee Shop,retail,"Phoenix, AZ",2025-01-24T14:33:11.761327,credit_card,False,none,0.0
+legit_00000594,user_7845,103.4,Department Store,retail,"New York, NY",2025-04-16T14:33:11.761342,debit_card,False,none,0.0
+legit_00000595,user_9389,132.06,Online Retailer,retail,"Phoenix, AZ",2025-05-21T14:33:11.761357,credit_card,False,none,0.0
+legit_00000596,user_9883,29.62,Gas Station,retail,"Houston, TX",2025-06-14T14:33:11.761372,debit_card,False,none,0.0
+legit_00000597,user_8152,567.74,Gas Station,retail,"New York, NY",2025-05-16T14:33:11.761387,bank_transfer,False,none,0.0
+legit_00000598,user_4494,58.3,Gas Station,retail,"Los Angeles, CA",2025-05-05T14:33:11.761402,debit_card,False,none,0.0
+legit_00000599,user_6807,61.8,Restaurant,retail,"New York, NY",2024-10-21T14:33:11.761416,debit_card,False,none,0.0
+legit_00000600,user_9979,637.78,Grocery Store,retail,"Phoenix, AZ",2025-03-14T14:33:11.761431,credit_card,False,none,0.0
+legit_00000601,user_8754,4.64,Gas Station,retail,"Chicago, IL",2025-05-25T14:33:11.761446,credit_card,False,none,0.0
+legit_00000602,user_8297,5.27,Gas Station,retail,"San Antonio, TX",2024-10-07T14:33:11.761461,bank_transfer,False,none,0.0
+legit_00000603,user_7051,40.07,Grocery Store,retail,"Houston, TX",2024-11-18T14:33:11.761476,bank_transfer,False,none,0.0
+legit_00000604,user_8264,31.41,Online Retailer,retail,"New York, NY",2024-10-24T14:33:11.761492,debit_card,False,none,0.0
+legit_00000605,user_5206,58.96,Restaurant,retail,"San Antonio, TX",2025-01-22T14:33:11.761507,credit_card,False,none,0.0
+legit_00000606,user_4043,64.35,Coffee Shop,retail,"Phoenix, AZ",2025-06-12T14:33:11.761522,bank_transfer,False,none,0.0
+legit_00000607,user_2249,20.09,Department Store,retail,"Los Angeles, CA",2025-08-20T14:33:11.761537,bank_transfer,False,none,0.0
+legit_00000608,user_3523,35.64,Online Retailer,retail,"Chicago, IL",2025-02-28T14:33:11.761551,credit_card,False,none,0.0
+legit_00000609,user_2081,53.11,Grocery Store,retail,"Chicago, IL",2025-09-17T14:33:11.761566,credit_card,False,none,0.0
+legit_00000610,user_9064,14.6,Restaurant,retail,"San Antonio, TX",2025-06-18T14:33:11.761581,debit_card,False,none,0.0
+legit_00000611,user_4570,247.39,Pharmacy,retail,"Chicago, IL",2025-05-17T14:33:11.761598,debit_card,False,none,0.0
+legit_00000612,user_4798,243.09,Online Retailer,retail,"Chicago, IL",2025-07-13T14:33:11.761613,debit_card,False,none,0.0
+legit_00000613,user_9343,210.28,Department Store,retail,"Houston, TX",2025-05-24T14:33:11.761627,credit_card,False,none,0.0
+legit_00000614,user_6121,660.62,Gas Station,retail,"Phoenix, AZ",2025-01-06T14:33:11.761643,credit_card,False,none,0.0
+legit_00000615,user_5470,141.65,Department Store,retail,"Philadelphia, PA",2025-02-05T14:33:11.761661,bank_transfer,False,none,0.0
+legit_00000616,user_5926,13.09,Online Retailer,retail,"Los Angeles, CA",2024-10-01T14:33:11.761677,bank_transfer,False,none,0.0
+legit_00000617,user_5047,86.0,Restaurant,retail,"Chicago, IL",2025-04-15T14:33:11.761692,credit_card,False,none,0.0
+legit_00000618,user_4018,82.28,Department Store,retail,"Philadelphia, PA",2025-09-19T14:33:11.761707,credit_card,False,none,0.0
+legit_00000619,user_8394,84.05,Restaurant,retail,"Philadelphia, PA",2024-12-27T14:33:11.761722,debit_card,False,none,0.0
+legit_00000620,user_8249,17.81,Online Retailer,retail,"Philadelphia, PA",2024-11-02T14:33:11.761737,bank_transfer,False,none,0.0
+legit_00000621,user_1772,59.48,Online Retailer,retail,"Houston, TX",2025-01-20T14:33:11.761751,credit_card,False,none,0.0
+legit_00000622,user_7617,51.24,Gas Station,retail,"New York, NY",2025-09-24T14:33:11.761767,credit_card,False,none,0.0
+legit_00000623,user_5351,114.39,Online Retailer,retail,"Houston, TX",2025-01-31T14:33:11.761781,bank_transfer,False,none,0.0
+legit_00000624,user_1094,102.28,Restaurant,retail,"Chicago, IL",2025-08-02T14:33:11.761796,bank_transfer,False,none,0.0
+legit_00000625,user_7712,43.21,Restaurant,retail,"Chicago, IL",2025-03-11T14:33:11.761811,credit_card,False,none,0.0
+legit_00000626,user_5337,178.85,Gas Station,retail,"Chicago, IL",2025-08-08T14:33:11.761826,credit_card,False,none,0.0
+legit_00000627,user_9279,83.33,Coffee Shop,retail,"New York, NY",2025-06-30T14:33:11.761840,bank_transfer,False,none,0.0
+legit_00000628,user_6024,31.05,Online Retailer,retail,"Chicago, IL",2024-12-18T14:33:11.761855,credit_card,False,none,0.0
+legit_00000629,user_5777,33.73,Gas Station,retail,"Chicago, IL",2025-02-01T14:33:11.761870,credit_card,False,none,0.0
+legit_00000630,user_4138,40.39,Pharmacy,retail,"Houston, TX",2025-05-30T14:33:11.761885,debit_card,False,none,0.0
+legit_00000631,user_8216,21.51,Restaurant,retail,"San Antonio, TX",2025-04-11T14:33:11.761900,bank_transfer,False,none,0.0
+legit_00000632,user_7022,64.8,Department Store,retail,"Los Angeles, CA",2025-08-25T14:33:11.761915,bank_transfer,False,none,0.0
+legit_00000633,user_5922,190.98,Grocery Store,retail,"Phoenix, AZ",2025-07-24T14:33:11.761930,bank_transfer,False,none,0.0
+legit_00000634,user_5441,113.87,Grocery Store,retail,"Houston, TX",2025-01-07T14:33:11.761945,debit_card,False,none,0.0
+legit_00000635,user_7344,43.65,Grocery Store,retail,"Phoenix, AZ",2025-06-22T14:33:11.761960,credit_card,False,none,0.0
+legit_00000636,user_3054,221.54,Coffee Shop,retail,"Philadelphia, PA",2025-06-05T14:33:11.761974,bank_transfer,False,none,0.0
+legit_00000637,user_7757,73.56,Pharmacy,retail,"San Antonio, TX",2025-07-05T14:33:11.761989,credit_card,False,none,0.0
+legit_00000638,user_5683,166.76,Pharmacy,retail,"Los Angeles, CA",2025-05-26T14:33:11.762004,bank_transfer,False,none,0.0
+legit_00000639,user_6119,7.35,Restaurant,retail,"New York, NY",2025-07-02T14:33:11.762019,credit_card,False,none,0.0
+legit_00000640,user_4093,47.6,Pharmacy,retail,"Houston, TX",2025-01-24T14:33:11.762034,bank_transfer,False,none,0.0
+legit_00000641,user_9074,30.04,Department Store,retail,"Philadelphia, PA",2025-09-02T14:33:11.762049,credit_card,False,none,0.0
+legit_00000642,user_1180,41.39,Coffee Shop,retail,"Chicago, IL",2025-09-16T14:33:11.762064,debit_card,False,none,0.0
+legit_00000643,user_6530,121.23,Online Retailer,retail,"Chicago, IL",2025-03-22T14:33:11.762078,bank_transfer,False,none,0.0
+legit_00000644,user_3131,34.0,Restaurant,retail,"New York, NY",2025-05-05T14:33:11.762095,bank_transfer,False,none,0.0
+legit_00000645,user_8345,225.43,Online Retailer,retail,"Philadelphia, PA",2025-07-31T14:33:11.762110,bank_transfer,False,none,0.0
+legit_00000646,user_1456,68.85,Online Retailer,retail,"New York, NY",2025-04-25T14:33:11.762125,debit_card,False,none,0.0
+legit_00000647,user_9829,32.98,Pharmacy,retail,"San Antonio, TX",2024-10-28T14:33:11.762140,bank_transfer,False,none,0.0
+legit_00000648,user_8504,442.37,Coffee Shop,retail,"San Antonio, TX",2025-09-21T14:33:11.762157,credit_card,False,none,0.0
+legit_00000649,user_2856,93.06,Grocery Store,retail,"Chicago, IL",2025-07-31T14:33:11.762172,bank_transfer,False,none,0.0
+legit_00000650,user_1205,30.57,Grocery Store,retail,"Chicago, IL",2025-01-03T14:33:11.762187,credit_card,False,none,0.0
+legit_00000651,user_5227,5.05,Department Store,retail,"Phoenix, AZ",2025-04-01T14:33:11.762202,bank_transfer,False,none,0.0
+legit_00000652,user_6086,28.47,Grocery Store,retail,"Los Angeles, CA",2025-06-11T14:33:11.762218,debit_card,False,none,0.0
+legit_00000653,user_2994,63.76,Online Retailer,retail,"New York, NY",2025-06-14T14:33:11.762233,credit_card,False,none,0.0
+legit_00000654,user_7719,133.04,Online Retailer,retail,"Houston, TX",2024-10-05T14:33:11.762250,bank_transfer,False,none,0.0
+legit_00000655,user_9573,21.09,Coffee Shop,retail,"Houston, TX",2025-08-09T14:33:11.762265,credit_card,False,none,0.0
+legit_00000656,user_9973,20.06,Gas Station,retail,"San Antonio, TX",2024-12-25T14:33:11.762328,debit_card,False,none,0.0
+legit_00000657,user_3777,28.33,Department Store,retail,"Chicago, IL",2025-04-26T14:33:11.762357,credit_card,False,none,0.0
+legit_00000658,user_3839,121.67,Online Retailer,retail,"New York, NY",2024-12-11T14:33:11.762378,debit_card,False,none,0.0
+legit_00000659,user_6894,29.16,Grocery Store,retail,"Houston, TX",2025-09-26T14:33:11.762398,debit_card,False,none,0.0
+legit_00000660,user_6522,65.67,Coffee Shop,retail,"Chicago, IL",2025-07-23T14:33:11.762418,credit_card,False,none,0.0
+legit_00000661,user_3372,28.07,Restaurant,retail,"Chicago, IL",2025-08-06T14:33:11.762435,credit_card,False,none,0.0
+legit_00000662,user_2094,240.58,Pharmacy,retail,"Houston, TX",2025-05-19T14:33:11.762455,credit_card,False,none,0.0
+legit_00000663,user_8968,96.27,Department Store,retail,"Houston, TX",2025-02-24T14:33:11.762471,debit_card,False,none,0.0
+legit_00000664,user_8525,55.31,Pharmacy,retail,"Phoenix, AZ",2024-10-07T14:33:11.762487,debit_card,False,none,0.0
+legit_00000665,user_2426,26.99,Restaurant,retail,"Houston, TX",2024-10-04T14:33:11.762503,bank_transfer,False,none,0.0
+legit_00000666,user_2864,15.27,Pharmacy,retail,"San Antonio, TX",2024-10-27T14:33:11.762519,bank_transfer,False,none,0.0
+legit_00000667,user_4078,225.59,Restaurant,retail,"Los Angeles, CA",2025-07-01T14:33:11.762535,credit_card,False,none,0.0
+legit_00000668,user_3831,22.95,Grocery Store,retail,"Los Angeles, CA",2025-02-10T14:33:11.762553,debit_card,False,none,0.0
+legit_00000669,user_7019,780.84,Restaurant,retail,"Houston, TX",2024-11-25T14:33:11.762569,debit_card,False,none,0.0
+legit_00000670,user_1737,30.51,Department Store,retail,"Philadelphia, PA",2024-09-30T14:33:11.762585,debit_card,False,none,0.0
+legit_00000671,user_2791,161.6,Pharmacy,retail,"Phoenix, AZ",2025-01-17T14:33:11.762600,debit_card,False,none,0.0
+legit_00000672,user_3390,9.53,Grocery Store,retail,"Houston, TX",2025-05-04T14:33:11.762616,bank_transfer,False,none,0.0
+legit_00000673,user_9180,245.65,Department Store,retail,"Houston, TX",2024-11-04T14:33:11.762632,credit_card,False,none,0.0
+legit_00000674,user_4040,2206.36,Coffee Shop,retail,"Chicago, IL",2025-08-20T14:33:11.762647,debit_card,False,none,0.0
+legit_00000675,user_2440,23.89,Restaurant,retail,"Philadelphia, PA",2025-07-13T14:33:11.762663,credit_card,False,none,0.0
+legit_00000676,user_5986,73.04,Restaurant,retail,"San Antonio, TX",2025-01-31T14:33:11.762678,credit_card,False,none,0.0
+legit_00000677,user_6150,56.65,Pharmacy,retail,"New York, NY",2025-01-27T14:33:11.762693,debit_card,False,none,0.0
+legit_00000678,user_3296,21.3,Gas Station,retail,"Chicago, IL",2025-08-16T14:33:11.762708,debit_card,False,none,0.0
+legit_00000679,user_3237,89.07,Grocery Store,retail,"Los Angeles, CA",2025-07-23T14:33:11.762724,debit_card,False,none,0.0
+legit_00000680,user_9087,39.66,Online Retailer,retail,"San Antonio, TX",2024-12-31T14:33:11.762739,debit_card,False,none,0.0
+legit_00000681,user_9496,69.15,Online Retailer,retail,"Phoenix, AZ",2025-02-08T14:33:11.762754,debit_card,False,none,0.0
+legit_00000682,user_3736,46.94,Coffee Shop,retail,"Phoenix, AZ",2025-06-25T14:33:11.762769,debit_card,False,none,0.0
+legit_00000683,user_4070,273.88,Online Retailer,retail,"New York, NY",2025-05-16T14:33:11.762784,bank_transfer,False,none,0.0
+legit_00000684,user_4357,35.31,Pharmacy,retail,"Houston, TX",2025-02-05T14:33:11.762802,bank_transfer,False,none,0.0
+legit_00000685,user_8930,57.74,Pharmacy,retail,"San Antonio, TX",2025-02-03T14:33:11.762817,bank_transfer,False,none,0.0
+legit_00000686,user_4669,3.85,Grocery Store,retail,"Phoenix, AZ",2025-09-20T14:33:11.762832,bank_transfer,False,none,0.0
+legit_00000687,user_9138,127.66,Coffee Shop,retail,"Philadelphia, PA",2024-10-06T14:33:11.762847,bank_transfer,False,none,0.0
+legit_00000688,user_6445,21.14,Pharmacy,retail,"Houston, TX",2025-09-19T14:33:11.762862,bank_transfer,False,none,0.0
+legit_00000689,user_9485,203.66,Grocery Store,retail,"Houston, TX",2025-07-07T14:33:11.762878,debit_card,False,none,0.0
+legit_00000690,user_7040,136.42,Department Store,retail,"Houston, TX",2025-08-28T14:33:11.762893,credit_card,False,none,0.0
+legit_00000691,user_7500,32.87,Department Store,retail,"San Antonio, TX",2024-10-07T14:33:11.762908,debit_card,False,none,0.0
+legit_00000692,user_2842,27.96,Department Store,retail,"Philadelphia, PA",2024-10-28T14:33:11.762923,debit_card,False,none,0.0
+legit_00000693,user_6837,348.44,Coffee Shop,retail,"Chicago, IL",2024-10-31T14:33:11.762938,debit_card,False,none,0.0
+legit_00000694,user_2068,49.86,Grocery Store,retail,"New York, NY",2025-05-19T14:33:11.762953,credit_card,False,none,0.0
+legit_00000695,user_9788,27.51,Pharmacy,retail,"Los Angeles, CA",2025-01-31T14:33:11.762969,debit_card,False,none,0.0
+legit_00000696,user_7072,55.46,Grocery Store,retail,"Philadelphia, PA",2024-11-30T14:33:11.762984,bank_transfer,False,none,0.0
+legit_00000697,user_7502,340.14,Restaurant,retail,"Houston, TX",2024-11-11T14:33:11.762999,credit_card,False,none,0.0
+legit_00000698,user_2395,218.93,Gas Station,retail,"Phoenix, AZ",2025-02-04T14:33:11.763014,debit_card,False,none,0.0
+legit_00000699,user_9780,47.42,Department Store,retail,"Philadelphia, PA",2025-05-15T14:33:11.763029,debit_card,False,none,0.0
+legit_00000700,user_7828,238.6,Grocery Store,retail,"Chicago, IL",2025-06-07T14:33:11.763044,credit_card,False,none,0.0
+legit_00000701,user_3220,130.41,Coffee Shop,retail,"Chicago, IL",2025-03-16T14:33:11.763059,bank_transfer,False,none,0.0
+legit_00000702,user_7842,7.32,Coffee Shop,retail,"Phoenix, AZ",2024-11-01T14:33:11.763075,credit_card,False,none,0.0
+legit_00000703,user_5344,227.25,Gas Station,retail,"Phoenix, AZ",2025-07-07T14:33:11.763090,credit_card,False,none,0.0
+legit_00000704,user_4466,120.46,Coffee Shop,retail,"Phoenix, AZ",2024-09-29T14:33:11.763105,credit_card,False,none,0.0
+legit_00000705,user_5090,124.75,Restaurant,retail,"Philadelphia, PA",2025-03-31T14:33:11.763120,credit_card,False,none,0.0
+legit_00000706,user_5527,40.06,Gas Station,retail,"Los Angeles, CA",2024-11-22T14:33:11.763135,credit_card,False,none,0.0
+legit_00000707,user_4137,61.4,Coffee Shop,retail,"Houston, TX",2025-03-23T14:33:11.763150,debit_card,False,none,0.0
+legit_00000708,user_9471,88.82,Coffee Shop,retail,"Houston, TX",2025-01-05T14:33:11.763166,debit_card,False,none,0.0
+legit_00000709,user_9064,26.89,Grocery Store,retail,"Philadelphia, PA",2024-10-17T14:33:11.763183,debit_card,False,none,0.0
+legit_00000710,user_4375,73.3,Restaurant,retail,"San Antonio, TX",2024-10-25T14:33:11.763200,debit_card,False,none,0.0
+legit_00000711,user_3339,142.84,Pharmacy,retail,"Phoenix, AZ",2025-06-06T14:33:11.763216,credit_card,False,none,0.0
+legit_00000712,user_4641,21.54,Grocery Store,retail,"Houston, TX",2025-06-12T14:33:11.763231,credit_card,False,none,0.0
+legit_00000713,user_5012,28.88,Gas Station,retail,"Los Angeles, CA",2025-07-17T14:33:11.763249,bank_transfer,False,none,0.0
+legit_00000714,user_8783,22.33,Online Retailer,retail,"Houston, TX",2025-03-30T14:33:11.763264,credit_card,False,none,0.0
+legit_00000715,user_9948,40.39,Online Retailer,retail,"Phoenix, AZ",2025-02-07T14:33:11.763279,debit_card,False,none,0.0
+legit_00000716,user_1196,49.66,Coffee Shop,retail,"San Antonio, TX",2025-06-07T14:33:11.763294,debit_card,False,none,0.0
+legit_00000717,user_1671,55.09,Department Store,retail,"Houston, TX",2025-02-20T14:33:11.763310,debit_card,False,none,0.0
+legit_00000718,user_9816,45.31,Online Retailer,retail,"Chicago, IL",2025-08-24T14:33:11.763325,credit_card,False,none,0.0
+legit_00000719,user_1423,212.68,Pharmacy,retail,"San Antonio, TX",2025-09-18T14:33:11.763341,bank_transfer,False,none,0.0
+legit_00000720,user_1706,10.83,Coffee Shop,retail,"Chicago, IL",2024-10-20T14:33:11.763358,debit_card,False,none,0.0
+legit_00000721,user_3064,39.27,Pharmacy,retail,"Los Angeles, CA",2025-09-08T14:33:11.763373,debit_card,False,none,0.0
+legit_00000722,user_4875,30.79,Pharmacy,retail,"Chicago, IL",2024-11-03T14:33:11.763389,debit_card,False,none,0.0
+legit_00000723,user_7869,159.88,Grocery Store,retail,"Phoenix, AZ",2025-05-15T14:33:11.763404,credit_card,False,none,0.0
+legit_00000724,user_5753,98.81,Department Store,retail,"Los Angeles, CA",2025-09-23T14:33:11.763421,bank_transfer,False,none,0.0
+legit_00000725,user_8292,98.29,Gas Station,retail,"Los Angeles, CA",2025-03-20T14:33:11.763437,debit_card,False,none,0.0
+legit_00000726,user_8022,76.08,Department Store,retail,"Los Angeles, CA",2025-01-24T14:33:11.763452,debit_card,False,none,0.0
+legit_00000727,user_5312,138.82,Grocery Store,retail,"Phoenix, AZ",2024-10-17T14:33:11.763467,credit_card,False,none,0.0
+legit_00000728,user_9440,43.5,Restaurant,retail,"Houston, TX",2025-04-02T14:33:11.763482,credit_card,False,none,0.0
+legit_00000729,user_7159,230.37,Grocery Store,retail,"Phoenix, AZ",2024-11-26T14:33:11.763497,credit_card,False,none,0.0
+legit_00000730,user_1057,51.59,Coffee Shop,retail,"Phoenix, AZ",2024-10-01T14:33:11.763513,bank_transfer,False,none,0.0
+legit_00000731,user_4816,1.84,Restaurant,retail,"Houston, TX",2024-10-25T14:33:11.763528,debit_card,False,none,0.0
+legit_00000732,user_6322,22.02,Grocery Store,retail,"Philadelphia, PA",2025-06-13T14:33:11.763543,bank_transfer,False,none,0.0
+legit_00000733,user_2534,62.15,Pharmacy,retail,"Houston, TX",2025-07-02T14:33:11.763558,debit_card,False,none,0.0
+legit_00000734,user_1523,85.32,Restaurant,retail,"Phoenix, AZ",2025-08-31T14:33:11.763573,bank_transfer,False,none,0.0
+legit_00000735,user_7658,60.5,Online Retailer,retail,"Chicago, IL",2025-03-12T14:33:11.763588,debit_card,False,none,0.0
+legit_00000736,user_1171,24.67,Restaurant,retail,"Houston, TX",2025-04-07T14:33:11.763603,credit_card,False,none,0.0
+legit_00000737,user_1825,273.81,Online Retailer,retail,"Chicago, IL",2025-02-14T14:33:11.763618,bank_transfer,False,none,0.0
+legit_00000738,user_1108,59.15,Gas Station,retail,"Houston, TX",2025-02-25T14:33:11.763633,bank_transfer,False,none,0.0
+legit_00000739,user_4872,21.95,Department Store,retail,"New York, NY",2025-03-11T14:33:11.763648,credit_card,False,none,0.0
+legit_00000740,user_1329,36.94,Coffee Shop,retail,"Chicago, IL",2025-04-21T14:33:11.763663,bank_transfer,False,none,0.0
+legit_00000741,user_6662,25.77,Coffee Shop,retail,"Chicago, IL",2025-06-15T14:33:11.763680,credit_card,False,none,0.0
+legit_00000742,user_6924,65.39,Online Retailer,retail,"San Antonio, TX",2025-06-16T14:33:11.763698,debit_card,False,none,0.0
+legit_00000743,user_1072,105.28,Coffee Shop,retail,"Los Angeles, CA",2024-12-11T14:33:11.763713,bank_transfer,False,none,0.0
+legit_00000744,user_5016,112.99,Department Store,retail,"Los Angeles, CA",2024-12-05T14:33:11.763728,debit_card,False,none,0.0
+legit_00000745,user_4157,18.53,Restaurant,retail,"Philadelphia, PA",2024-10-24T14:33:11.763743,credit_card,False,none,0.0
+legit_00000746,user_1673,80.12,Restaurant,retail,"Phoenix, AZ",2025-08-10T14:33:11.763759,credit_card,False,none,0.0
+legit_00000747,user_4624,13.15,Restaurant,retail,"Philadelphia, PA",2024-12-20T14:33:11.763774,credit_card,False,none,0.0
+legit_00000748,user_9586,19.36,Department Store,retail,"Los Angeles, CA",2025-09-11T14:33:11.763789,bank_transfer,False,none,0.0
+legit_00000749,user_7852,10.68,Department Store,retail,"Houston, TX",2024-12-18T14:33:11.763804,debit_card,False,none,0.0
+legit_00000750,user_3460,5.76,Pharmacy,retail,"Phoenix, AZ",2025-01-11T14:33:11.763820,debit_card,False,none,0.0
+legit_00000751,user_1951,24.24,Pharmacy,retail,"Chicago, IL",2025-09-11T14:33:11.763835,debit_card,False,none,0.0
+legit_00000752,user_3285,949.82,Online Retailer,retail,"Houston, TX",2025-08-26T14:33:11.763850,bank_transfer,False,none,0.0
+legit_00000753,user_7943,81.13,Department Store,retail,"New York, NY",2025-05-15T14:33:11.763867,debit_card,False,none,0.0
+legit_00000754,user_2272,40.44,Online Retailer,retail,"Philadelphia, PA",2024-11-01T14:33:11.763882,credit_card,False,none,0.0
+legit_00000755,user_8242,108.8,Online Retailer,retail,"Los Angeles, CA",2024-10-21T14:33:11.763897,debit_card,False,none,0.0
+legit_00000756,user_8235,67.18,Restaurant,retail,"New York, NY",2025-09-20T14:33:11.763912,debit_card,False,none,0.0
+legit_00000757,user_2301,218.81,Pharmacy,retail,"Philadelphia, PA",2024-11-02T14:33:11.763927,debit_card,False,none,0.0
+legit_00000758,user_4638,125.0,Coffee Shop,retail,"San Antonio, TX",2025-01-06T14:33:11.763942,credit_card,False,none,0.0
+legit_00000759,user_6978,51.14,Grocery Store,retail,"Los Angeles, CA",2025-01-09T14:33:11.763957,debit_card,False,none,0.0
+legit_00000760,user_9773,69.24,Coffee Shop,retail,"Los Angeles, CA",2024-10-07T14:33:11.763972,bank_transfer,False,none,0.0
+legit_00000761,user_8091,86.53,Department Store,retail,"Philadelphia, PA",2025-07-11T14:33:11.763988,credit_card,False,none,0.0
+legit_00000762,user_3185,137.68,Pharmacy,retail,"Los Angeles, CA",2025-02-14T14:33:11.764003,debit_card,False,none,0.0
+legit_00000763,user_7460,94.04,Restaurant,retail,"San Antonio, TX",2025-03-27T14:33:11.764018,credit_card,False,none,0.0
+legit_00000764,user_9876,213.06,Online Retailer,retail,"Phoenix, AZ",2025-05-21T14:33:11.764037,debit_card,False,none,0.0
+legit_00000765,user_4106,48.37,Grocery Store,retail,"New York, NY",2025-06-05T14:33:11.764051,credit_card,False,none,0.0
+legit_00000766,user_9300,40.08,Pharmacy,retail,"San Antonio, TX",2025-08-09T14:33:11.764066,bank_transfer,False,none,0.0
+legit_00000767,user_8645,381.42,Department Store,retail,"Phoenix, AZ",2025-08-21T14:33:11.764081,bank_transfer,False,none,0.0
+legit_00000768,user_2486,42.58,Online Retailer,retail,"Los Angeles, CA",2024-12-21T14:33:11.764096,bank_transfer,False,none,0.0
+legit_00000769,user_1924,89.74,Gas Station,retail,"Chicago, IL",2025-05-03T14:33:11.764111,credit_card,False,none,0.0
+legit_00000770,user_7611,295.17,Department Store,retail,"Phoenix, AZ",2025-04-20T14:33:11.764125,bank_transfer,False,none,0.0
+legit_00000771,user_4814,53.11,Grocery Store,retail,"Chicago, IL",2025-06-21T14:33:11.764140,credit_card,False,none,0.0
+legit_00000772,user_8383,23.19,Pharmacy,retail,"Los Angeles, CA",2025-03-26T14:33:11.764155,debit_card,False,none,0.0
+legit_00000773,user_3023,64.83,Restaurant,retail,"New York, NY",2024-12-20T14:33:11.764170,debit_card,False,none,0.0
+legit_00000774,user_1482,436.13,Department Store,retail,"Philadelphia, PA",2025-07-18T14:33:11.764185,debit_card,False,none,0.0
+legit_00000775,user_2546,30.23,Online Retailer,retail,"Los Angeles, CA",2025-08-24T14:33:11.764200,debit_card,False,none,0.0
+legit_00000776,user_2710,69.41,Restaurant,retail,"Philadelphia, PA",2025-08-17T14:33:11.764214,debit_card,False,none,0.0
+legit_00000777,user_5142,94.72,Pharmacy,retail,"Chicago, IL",2025-09-09T14:33:11.764229,debit_card,False,none,0.0
+legit_00000778,user_7895,50.27,Grocery Store,retail,"Houston, TX",2025-08-27T14:33:11.764244,debit_card,False,none,0.0
+legit_00000779,user_6167,39.25,Coffee Shop,retail,"Los Angeles, CA",2025-02-03T14:33:11.764262,credit_card,False,none,0.0
+legit_00000780,user_7256,210.86,Grocery Store,retail,"New York, NY",2025-04-02T14:33:11.764277,bank_transfer,False,none,0.0
+legit_00000781,user_3922,18.0,Pharmacy,retail,"Phoenix, AZ",2025-04-17T14:33:11.764292,bank_transfer,False,none,0.0
+legit_00000782,user_3061,82.07,Grocery Store,retail,"Phoenix, AZ",2024-12-03T14:33:11.764307,debit_card,False,none,0.0
+legit_00000783,user_3228,11.99,Online Retailer,retail,"New York, NY",2024-12-30T14:33:11.764322,debit_card,False,none,0.0
+legit_00000784,user_6180,6.32,Gas Station,retail,"New York, NY",2024-11-16T14:33:11.764337,credit_card,False,none,0.0
+legit_00000785,user_1775,482.8,Restaurant,retail,"New York, NY",2025-04-11T14:33:11.764352,credit_card,False,none,0.0
+legit_00000786,user_8338,174.81,Online Retailer,retail,"Los Angeles, CA",2025-09-21T14:33:11.764367,debit_card,False,none,0.0
+legit_00000787,user_4132,54.05,Gas Station,retail,"Houston, TX",2025-01-11T14:33:11.764382,debit_card,False,none,0.0
+legit_00000788,user_5027,64.17,Pharmacy,retail,"Houston, TX",2024-10-25T14:33:11.764397,bank_transfer,False,none,0.0
+legit_00000789,user_8838,53.4,Pharmacy,retail,"Phoenix, AZ",2025-02-01T14:33:11.764412,bank_transfer,False,none,0.0
+legit_00000790,user_7299,33.87,Pharmacy,retail,"Phoenix, AZ",2025-04-18T14:33:11.764427,debit_card,False,none,0.0
+legit_00000791,user_7534,32.88,Grocery Store,retail,"New York, NY",2025-01-29T14:33:11.764441,credit_card,False,none,0.0
+legit_00000792,user_3859,54.98,Grocery Store,retail,"Philadelphia, PA",2024-11-22T14:33:11.764456,debit_card,False,none,0.0
+legit_00000793,user_6085,14.92,Gas Station,retail,"Philadelphia, PA",2025-03-17T14:33:11.764471,debit_card,False,none,0.0
+legit_00000794,user_5839,12.02,Pharmacy,retail,"New York, NY",2025-09-23T14:33:11.764486,bank_transfer,False,none,0.0
+legit_00000795,user_1994,58.87,Online Retailer,retail,"San Antonio, TX",2025-01-22T14:33:11.764500,bank_transfer,False,none,0.0
+legit_00000796,user_1649,224.95,Grocery Store,retail,"Chicago, IL",2025-06-29T14:33:11.764515,bank_transfer,False,none,0.0
+legit_00000797,user_1368,123.49,Gas Station,retail,"Philadelphia, PA",2024-10-21T14:33:11.764530,credit_card,False,none,0.0
+legit_00000798,user_9465,203.78,Pharmacy,retail,"Chicago, IL",2024-11-05T14:33:11.764545,bank_transfer,False,none,0.0
+legit_00000799,user_2330,147.71,Grocery Store,retail,"Los Angeles, CA",2024-10-22T14:33:11.764560,debit_card,False,none,0.0
+legit_00000800,user_6946,251.97,Department Store,retail,"San Antonio, TX",2025-08-07T14:33:11.764577,bank_transfer,False,none,0.0
+legit_00000801,user_2297,53.0,Department Store,retail,"Chicago, IL",2025-05-23T14:33:11.764592,debit_card,False,none,0.0
+legit_00000802,user_5589,65.2,Restaurant,retail,"Phoenix, AZ",2025-08-16T14:33:11.764608,credit_card,False,none,0.0
+legit_00000803,user_3804,510.45,Restaurant,retail,"New York, NY",2024-11-13T14:33:11.764623,bank_transfer,False,none,0.0
+legit_00000804,user_9369,356.03,Restaurant,retail,"Philadelphia, PA",2024-10-23T14:33:11.764640,credit_card,False,none,0.0
+legit_00000805,user_1056,122.86,Department Store,retail,"New York, NY",2024-11-04T14:33:11.764655,bank_transfer,False,none,0.0
+legit_00000806,user_4806,17.98,Gas Station,retail,"Chicago, IL",2025-01-06T14:33:11.764670,debit_card,False,none,0.0
+legit_00000807,user_2764,171.28,Gas Station,retail,"Los Angeles, CA",2025-04-24T14:33:11.764686,credit_card,False,none,0.0
+legit_00000808,user_4625,39.25,Gas Station,retail,"Houston, TX",2025-03-26T14:33:11.764701,credit_card,False,none,0.0
+legit_00000809,user_2678,206.89,Restaurant,retail,"Phoenix, AZ",2025-04-09T14:33:11.764716,bank_transfer,False,none,0.0
+legit_00000810,user_3931,99.93,Restaurant,retail,"Chicago, IL",2025-06-17T14:33:11.764731,bank_transfer,False,none,0.0
+legit_00000811,user_4278,73.06,Department Store,retail,"Chicago, IL",2024-11-04T14:33:11.764746,bank_transfer,False,none,0.0
+legit_00000812,user_6276,190.49,Gas Station,retail,"Houston, TX",2025-01-13T14:33:11.764761,debit_card,False,none,0.0
+legit_00000813,user_8505,192.95,Grocery Store,retail,"Philadelphia, PA",2025-09-16T14:33:11.764776,bank_transfer,False,none,0.0
+legit_00000814,user_7986,202.62,Online Retailer,retail,"New York, NY",2025-07-23T14:33:11.764791,debit_card,False,none,0.0
+legit_00000815,user_2072,71.47,Coffee Shop,retail,"Chicago, IL",2025-01-11T14:33:11.764808,bank_transfer,False,none,0.0
+legit_00000816,user_4120,57.61,Coffee Shop,retail,"Los Angeles, CA",2025-03-24T14:33:11.764823,bank_transfer,False,none,0.0
+legit_00000817,user_5021,91.73,Department Store,retail,"Houston, TX",2025-04-17T14:33:11.764838,debit_card,False,none,0.0
+legit_00000818,user_7949,11.23,Gas Station,retail,"Los Angeles, CA",2025-02-06T14:33:11.764852,credit_card,False,none,0.0
+legit_00000819,user_2721,17.54,Coffee Shop,retail,"Phoenix, AZ",2025-01-12T14:33:11.764867,credit_card,False,none,0.0
+legit_00000820,user_8863,137.58,Grocery Store,retail,"Chicago, IL",2025-04-08T14:33:11.764882,bank_transfer,False,none,0.0
+legit_00000821,user_2814,137.93,Coffee Shop,retail,"Phoenix, AZ",2025-09-16T14:33:11.764897,bank_transfer,False,none,0.0
+legit_00000822,user_6598,193.54,Online Retailer,retail,"Phoenix, AZ",2024-11-13T14:33:11.764912,credit_card,False,none,0.0
+legit_00000823,user_2487,34.76,Restaurant,retail,"Houston, TX",2025-01-22T14:33:11.764926,credit_card,False,none,0.0
+legit_00000824,user_2992,420.9,Restaurant,retail,"Los Angeles, CA",2025-02-05T14:33:11.764941,debit_card,False,none,0.0
+legit_00000825,user_6682,91.11,Gas Station,retail,"Phoenix, AZ",2025-01-05T14:33:11.764956,credit_card,False,none,0.0
+legit_00000826,user_3673,251.45,Restaurant,retail,"Phoenix, AZ",2025-05-19T14:33:11.764971,debit_card,False,none,0.0
+legit_00000827,user_9335,204.03,Gas Station,retail,"San Antonio, TX",2025-03-24T14:33:11.764986,bank_transfer,False,none,0.0
+legit_00000828,user_6344,67.72,Coffee Shop,retail,"Philadelphia, PA",2025-01-07T14:33:11.765001,debit_card,False,none,0.0
+legit_00000829,user_8452,95.04,Coffee Shop,retail,"Los Angeles, CA",2025-01-12T14:33:11.765016,bank_transfer,False,none,0.0
+legit_00000830,user_2216,18.06,Restaurant,retail,"San Antonio, TX",2025-05-18T14:33:11.765031,bank_transfer,False,none,0.0
+legit_00000831,user_9790,37.87,Grocery Store,retail,"Chicago, IL",2025-08-08T14:33:11.765045,bank_transfer,False,none,0.0
+legit_00000832,user_5636,89.58,Grocery Store,retail,"Phoenix, AZ",2025-02-24T14:33:11.765060,debit_card,False,none,0.0
+legit_00000833,user_1291,631.22,Gas Station,retail,"Phoenix, AZ",2025-08-03T14:33:11.765075,debit_card,False,none,0.0
+legit_00000834,user_9453,73.21,Pharmacy,retail,"Philadelphia, PA",2024-10-19T14:33:11.765090,debit_card,False,none,0.0
+legit_00000835,user_6281,35.24,Department Store,retail,"Houston, TX",2025-05-23T14:33:11.765105,bank_transfer,False,none,0.0
+legit_00000836,user_5797,31.51,Department Store,retail,"Philadelphia, PA",2025-04-29T14:33:11.765120,credit_card,False,none,0.0
+legit_00000837,user_8711,27.85,Grocery Store,retail,"Philadelphia, PA",2025-06-08T14:33:11.765135,bank_transfer,False,none,0.0
+legit_00000838,user_9923,19.97,Coffee Shop,retail,"Houston, TX",2024-12-07T14:33:11.765152,credit_card,False,none,0.0
+legit_00000839,user_3916,70.92,Grocery Store,retail,"Houston, TX",2025-08-17T14:33:11.765167,debit_card,False,none,0.0
+legit_00000840,user_4030,185.76,Grocery Store,retail,"New York, NY",2025-08-28T14:33:11.765182,credit_card,False,none,0.0
+legit_00000841,user_2722,106.43,Gas Station,retail,"Chicago, IL",2025-06-22T14:33:11.765197,bank_transfer,False,none,0.0
+legit_00000842,user_1245,70.93,Online Retailer,retail,"Houston, TX",2025-02-17T14:33:11.765212,credit_card,False,none,0.0
+legit_00000843,user_7988,88.8,Coffee Shop,retail,"Houston, TX",2025-03-04T14:33:11.765227,credit_card,False,none,0.0
+legit_00000844,user_2378,230.28,Gas Station,retail,"Chicago, IL",2025-01-03T14:33:11.765244,bank_transfer,False,none,0.0
+legit_00000845,user_5394,7.52,Restaurant,retail,"Chicago, IL",2025-07-21T14:33:11.765259,bank_transfer,False,none,0.0
+legit_00000846,user_6803,20.38,Restaurant,retail,"New York, NY",2025-04-26T14:33:11.765274,bank_transfer,False,none,0.0
+legit_00000847,user_3441,33.33,Pharmacy,retail,"New York, NY",2025-01-26T14:33:11.765288,bank_transfer,False,none,0.0
+legit_00000848,user_9549,40.02,Online Retailer,retail,"New York, NY",2024-10-17T14:33:11.765303,credit_card,False,none,0.0
+legit_00000849,user_8948,182.61,Coffee Shop,retail,"New York, NY",2025-08-23T14:33:11.765318,credit_card,False,none,0.0
+legit_00000850,user_3798,79.26,Pharmacy,retail,"New York, NY",2025-07-30T14:33:11.765333,credit_card,False,none,0.0
+legit_00000851,user_8720,147.14,Restaurant,retail,"San Antonio, TX",2025-02-10T14:33:11.765347,bank_transfer,False,none,0.0
+legit_00000852,user_2673,111.86,Grocery Store,retail,"Houston, TX",2025-01-31T14:33:11.765362,debit_card,False,none,0.0
+legit_00000853,user_1495,6.8,Department Store,retail,"Los Angeles, CA",2025-06-23T14:33:11.765377,debit_card,False,none,0.0
+legit_00000854,user_6909,7.83,Grocery Store,retail,"Chicago, IL",2025-06-19T14:33:11.765392,bank_transfer,False,none,0.0
+legit_00000855,user_2605,29.88,Gas Station,retail,"Philadelphia, PA",2025-06-05T14:33:11.765407,credit_card,False,none,0.0
+legit_00000856,user_2020,9.7,Restaurant,retail,"Phoenix, AZ",2025-02-12T14:33:11.765422,credit_card,False,none,0.0
+legit_00000857,user_7085,23.17,Coffee Shop,retail,"New York, NY",2024-12-19T14:33:11.765436,bank_transfer,False,none,0.0
+legit_00000858,user_2762,101.12,Department Store,retail,"Los Angeles, CA",2025-04-05T14:33:11.765452,bank_transfer,False,none,0.0
+legit_00000859,user_3259,59.14,Pharmacy,retail,"Phoenix, AZ",2025-03-29T14:33:11.765466,credit_card,False,none,0.0
+legit_00000860,user_5706,21.19,Department Store,retail,"Chicago, IL",2025-05-20T14:33:11.765481,debit_card,False,none,0.0
+legit_00000861,user_3438,216.47,Restaurant,retail,"New York, NY",2025-04-13T14:33:11.765497,bank_transfer,False,none,0.0
+legit_00000862,user_9566,20.99,Online Retailer,retail,"Phoenix, AZ",2025-04-04T14:33:11.765512,bank_transfer,False,none,0.0
+legit_00000863,user_7400,12.83,Coffee Shop,retail,"Houston, TX",2025-02-02T14:33:11.765527,credit_card,False,none,0.0
+legit_00000864,user_9268,15.58,Pharmacy,retail,"Philadelphia, PA",2025-03-22T14:33:11.765542,debit_card,False,none,0.0
+legit_00000865,user_1707,33.82,Grocery Store,retail,"Philadelphia, PA",2024-11-19T14:33:11.765557,bank_transfer,False,none,0.0
+legit_00000866,user_2027,355.74,Pharmacy,retail,"Los Angeles, CA",2025-01-12T14:33:11.765577,bank_transfer,False,none,0.0
+legit_00000867,user_8358,50.59,Restaurant,retail,"Philadelphia, PA",2024-10-12T14:33:11.765592,bank_transfer,False,none,0.0
+legit_00000868,user_8534,54.76,Restaurant,retail,"San Antonio, TX",2025-06-19T14:33:11.765607,bank_transfer,False,none,0.0
+legit_00000869,user_9967,38.11,Coffee Shop,retail,"San Antonio, TX",2025-05-11T14:33:11.765622,credit_card,False,none,0.0
+legit_00000870,user_2862,56.07,Department Store,retail,"Chicago, IL",2025-01-11T14:33:11.765638,credit_card,False,none,0.0
+legit_00000871,user_6802,91.45,Grocery Store,retail,"Phoenix, AZ",2025-03-07T14:33:11.765652,bank_transfer,False,none,0.0
+legit_00000872,user_9749,12.46,Department Store,retail,"Philadelphia, PA",2024-11-26T14:33:11.765667,debit_card,False,none,0.0
+legit_00000873,user_1014,39.3,Online Retailer,retail,"Philadelphia, PA",2024-11-10T14:33:11.765682,debit_card,False,none,0.0
+legit_00000874,user_3966,71.9,Grocery Store,retail,"San Antonio, TX",2025-09-20T14:33:11.765697,bank_transfer,False,none,0.0
+legit_00000875,user_7835,32.5,Department Store,retail,"Houston, TX",2025-04-28T14:33:11.765712,debit_card,False,none,0.0
+legit_00000876,user_7900,54.76,Department Store,retail,"Houston, TX",2025-09-02T14:33:11.765727,debit_card,False,none,0.0
+legit_00000877,user_5023,298.71,Grocery Store,retail,"Chicago, IL",2025-02-23T14:33:11.765742,debit_card,False,none,0.0
+legit_00000878,user_4245,80.02,Department Store,retail,"Los Angeles, CA",2025-06-10T14:33:11.765756,bank_transfer,False,none,0.0
+legit_00000879,user_5445,33.24,Online Retailer,retail,"Philadelphia, PA",2025-07-14T14:33:11.765771,credit_card,False,none,0.0
+legit_00000880,user_6955,103.46,Restaurant,retail,"New York, NY",2025-02-14T14:33:11.765786,bank_transfer,False,none,0.0
+legit_00000881,user_3831,101.86,Restaurant,retail,"Los Angeles, CA",2025-01-28T14:33:11.765800,debit_card,False,none,0.0
+legit_00000882,user_8620,34.34,Online Retailer,retail,"Phoenix, AZ",2025-03-13T14:33:11.765815,bank_transfer,False,none,0.0
+legit_00000883,user_4170,22.96,Coffee Shop,retail,"Los Angeles, CA",2025-05-29T14:33:11.765830,debit_card,False,none,0.0
+legit_00000884,user_3857,157.45,Online Retailer,retail,"New York, NY",2025-05-08T14:33:11.765846,bank_transfer,False,none,0.0
+legit_00000885,user_8027,328.89,Restaurant,retail,"Phoenix, AZ",2025-02-24T14:33:11.765861,bank_transfer,False,none,0.0
+legit_00000886,user_5082,219.39,Online Retailer,retail,"Philadelphia, PA",2024-10-21T14:33:11.765876,bank_transfer,False,none,0.0
+legit_00000887,user_1341,38.71,Pharmacy,retail,"Houston, TX",2024-12-16T14:33:11.765890,debit_card,False,none,0.0
+legit_00000888,user_4863,85.51,Coffee Shop,retail,"San Antonio, TX",2025-09-24T14:33:11.765905,credit_card,False,none,0.0
+legit_00000889,user_2423,69.89,Pharmacy,retail,"Chicago, IL",2025-05-20T14:33:11.765920,bank_transfer,False,none,0.0
+legit_00000890,user_1742,220.96,Gas Station,retail,"Philadelphia, PA",2025-04-24T14:33:11.765935,debit_card,False,none,0.0
+legit_00000891,user_8916,139.89,Grocery Store,retail,"New York, NY",2025-07-05T14:33:11.765950,debit_card,False,none,0.0
+legit_00000892,user_4520,50.69,Pharmacy,retail,"Chicago, IL",2025-05-03T14:33:11.765965,credit_card,False,none,0.0
+legit_00000893,user_8086,175.48,Restaurant,retail,"Houston, TX",2025-01-09T14:33:11.765980,credit_card,False,none,0.0
+legit_00000894,user_9857,47.65,Pharmacy,retail,"Los Angeles, CA",2025-04-11T14:33:11.765995,credit_card,False,none,0.0
+legit_00000895,user_7596,25.37,Gas Station,retail,"New York, NY",2025-09-11T14:33:11.766010,debit_card,False,none,0.0
+legit_00000896,user_5523,156.03,Grocery Store,retail,"Phoenix, AZ",2025-05-05T14:33:11.766025,credit_card,False,none,0.0
+legit_00000897,user_9006,11.16,Grocery Store,retail,"San Antonio, TX",2025-03-14T14:33:11.766040,bank_transfer,False,none,0.0
+legit_00000898,user_9370,57.17,Department Store,retail,"Phoenix, AZ",2024-12-23T14:33:11.766055,debit_card,False,none,0.0
+legit_00000899,user_9541,171.52,Coffee Shop,retail,"Chicago, IL",2025-07-17T14:33:11.766070,credit_card,False,none,0.0
+legit_00000900,user_9130,22.69,Online Retailer,retail,"New York, NY",2025-09-19T14:33:11.766084,credit_card,False,none,0.0
+legit_00000901,user_8949,63.86,Department Store,retail,"Philadelphia, PA",2025-03-20T14:33:11.766099,debit_card,False,none,0.0
+legit_00000902,user_4762,20.95,Pharmacy,retail,"Chicago, IL",2024-12-09T14:33:11.766116,credit_card,False,none,0.0
+legit_00000903,user_4402,79.71,Online Retailer,retail,"Philadelphia, PA",2024-09-29T14:33:11.766134,debit_card,False,none,0.0
+legit_00000904,user_4499,24.82,Department Store,retail,"Phoenix, AZ",2025-01-01T14:33:11.766149,debit_card,False,none,0.0
+legit_00000905,user_4910,56.98,Pharmacy,retail,"Los Angeles, CA",2025-08-17T14:33:11.766164,bank_transfer,False,none,0.0
+legit_00000906,user_7198,101.29,Coffee Shop,retail,"Chicago, IL",2025-04-17T14:33:11.766179,bank_transfer,False,none,0.0
+legit_00000907,user_1135,39.67,Coffee Shop,retail,"Philadelphia, PA",2025-01-19T14:33:11.766194,credit_card,False,none,0.0
+legit_00000908,user_2606,16.86,Grocery Store,retail,"Houston, TX",2025-05-09T14:33:11.766209,bank_transfer,False,none,0.0
+legit_00000909,user_2482,272.14,Coffee Shop,retail,"Los Angeles, CA",2025-07-17T14:33:11.766224,bank_transfer,False,none,0.0
+legit_00000910,user_2975,5.89,Department Store,retail,"Phoenix, AZ",2025-06-24T14:33:11.766238,bank_transfer,False,none,0.0
+legit_00000911,user_6364,135.16,Online Retailer,retail,"Houston, TX",2025-09-19T14:33:11.766253,debit_card,False,none,0.0
+legit_00000912,user_7662,398.05,Restaurant,retail,"Los Angeles, CA",2024-10-26T14:33:11.766267,bank_transfer,False,none,0.0
+legit_00000913,user_7957,31.36,Online Retailer,retail,"Philadelphia, PA",2025-02-18T14:33:11.766282,credit_card,False,none,0.0
+legit_00000914,user_6583,75.91,Grocery Store,retail,"Phoenix, AZ",2025-08-11T14:33:11.766297,bank_transfer,False,none,0.0
+legit_00000915,user_3444,38.13,Grocery Store,retail,"Los Angeles, CA",2025-01-11T14:33:11.766312,credit_card,False,none,0.0
+legit_00000916,user_7779,24.52,Restaurant,retail,"New York, NY",2024-10-07T14:33:11.766327,debit_card,False,none,0.0
+legit_00000917,user_7461,256.76,Pharmacy,retail,"Chicago, IL",2025-09-18T14:33:11.766344,debit_card,False,none,0.0
+legit_00000918,user_2097,10.79,Coffee Shop,retail,"Los Angeles, CA",2025-08-10T14:33:11.766359,bank_transfer,False,none,0.0
+legit_00000919,user_5393,31.95,Coffee Shop,retail,"New York, NY",2025-02-18T14:33:11.766373,bank_transfer,False,none,0.0
+legit_00000920,user_9354,46.92,Pharmacy,retail,"Phoenix, AZ",2025-01-09T14:33:11.766388,debit_card,False,none,0.0
+legit_00000921,user_3082,142.19,Online Retailer,retail,"Houston, TX",2025-05-22T14:33:11.766403,credit_card,False,none,0.0
+legit_00000922,user_4843,357.67,Coffee Shop,retail,"Houston, TX",2025-07-17T14:33:11.766418,debit_card,False,none,0.0
+legit_00000923,user_8798,19.03,Online Retailer,retail,"Philadelphia, PA",2024-10-16T14:33:11.766434,credit_card,False,none,0.0
+legit_00000924,user_8180,94.36,Online Retailer,retail,"Chicago, IL",2025-08-06T14:33:11.766466,credit_card,False,none,0.0
+legit_00000925,user_1491,88.11,Pharmacy,retail,"Houston, TX",2025-01-11T14:33:11.766481,bank_transfer,False,none,0.0
+legit_00000926,user_7266,247.95,Online Retailer,retail,"San Antonio, TX",2025-04-29T14:33:11.766496,bank_transfer,False,none,0.0
+legit_00000927,user_4405,42.81,Online Retailer,retail,"San Antonio, TX",2025-04-05T14:33:11.766511,debit_card,False,none,0.0
+legit_00000928,user_3259,18.24,Department Store,retail,"San Antonio, TX",2025-03-20T14:33:11.766526,credit_card,False,none,0.0
+legit_00000929,user_2020,58.89,Grocery Store,retail,"Houston, TX",2024-11-21T14:33:11.766540,debit_card,False,none,0.0
+legit_00000930,user_6573,9.26,Department Store,retail,"Philadelphia, PA",2024-12-28T14:33:11.766555,debit_card,False,none,0.0
+legit_00000931,user_8913,78.54,Gas Station,retail,"San Antonio, TX",2024-09-29T14:33:11.766570,bank_transfer,False,none,0.0
+legit_00000932,user_1872,22.14,Coffee Shop,retail,"Phoenix, AZ",2024-09-29T14:33:11.766585,bank_transfer,False,none,0.0
+legit_00000933,user_1523,131.13,Gas Station,retail,"Phoenix, AZ",2025-06-07T14:33:11.766600,bank_transfer,False,none,0.0
+legit_00000934,user_6947,12.42,Department Store,retail,"Los Angeles, CA",2025-09-16T14:33:11.766615,bank_transfer,False,none,0.0
+legit_00000935,user_3854,61.56,Gas Station,retail,"New York, NY",2025-05-05T14:33:11.766629,debit_card,False,none,0.0
+legit_00000936,user_4328,23.8,Coffee Shop,retail,"San Antonio, TX",2024-11-22T14:33:11.766647,bank_transfer,False,none,0.0
+legit_00000937,user_6194,50.47,Restaurant,retail,"Chicago, IL",2025-08-28T14:33:11.766665,bank_transfer,False,none,0.0
+legit_00000938,user_5331,6.19,Coffee Shop,retail,"Chicago, IL",2025-09-12T14:33:11.766682,debit_card,False,none,0.0
+legit_00000939,user_7064,252.56,Gas Station,retail,"Houston, TX",2025-08-08T14:33:11.766698,bank_transfer,False,none,0.0
+legit_00000940,user_2968,4.99,Gas Station,retail,"Los Angeles, CA",2024-12-31T14:33:11.766713,credit_card,False,none,0.0
+legit_00000941,user_4230,15.88,Grocery Store,retail,"Philadelphia, PA",2024-11-08T14:33:11.766729,credit_card,False,none,0.0
+legit_00000942,user_3278,214.62,Department Store,retail,"Los Angeles, CA",2024-12-02T14:33:11.766744,debit_card,False,none,0.0
+legit_00000943,user_3452,88.96,Gas Station,retail,"New York, NY",2025-03-12T14:33:11.766760,debit_card,False,none,0.0
+legit_00000944,user_7352,193.07,Coffee Shop,retail,"New York, NY",2025-04-06T14:33:11.766779,debit_card,False,none,0.0
+legit_00000945,user_7243,5.25,Department Store,retail,"Phoenix, AZ",2025-01-29T14:33:11.766795,debit_card,False,none,0.0
+legit_00000946,user_1669,36.5,Pharmacy,retail,"Houston, TX",2025-04-13T14:33:11.766811,credit_card,False,none,0.0
+legit_00000947,user_5567,207.52,Grocery Store,retail,"Los Angeles, CA",2025-06-21T14:33:11.766826,bank_transfer,False,none,0.0
+legit_00000948,user_9350,49.37,Grocery Store,retail,"San Antonio, TX",2025-04-04T14:33:11.766841,credit_card,False,none,0.0
+legit_00000949,user_3469,24.25,Department Store,retail,"Philadelphia, PA",2025-05-12T14:33:11.766857,debit_card,False,none,0.0
+fraud_00000950,user_3217,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:33:11.766882,money_order,True,payment_method_fraud,0.9
+fraud_00000951,user_8586,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T02:06:11.766900,credit_card,True,temporal_anomaly,0.9
+fraud_00000952,user_2406,1650.78,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:28:12.766937,credit_card,True,velocity_fraud,0.9
+fraud_00000953,user_1259,100.0,Suspicious Merchant,high_risk,High Risk Country A,2025-09-26T14:33:11.766948,credit_card,True,geographic_anomaly,0.9
+fraud_00000954,user_3076,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T05:07:11.766964,credit_card,True,temporal_anomaly,0.9
+fraud_00000955,user_7053,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:33:11.766972,crypto,True,payment_method_fraud,0.9
+fraud_00000956,user_4455,100.0,Suspicious Merchant,high_risk,Sanctioned Region,2025-09-26T14:33:11.766982,credit_card,True,geographic_anomaly,0.9
+fraud_00000957,user_3527,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:33:11.766992,money_order,True,payment_method_fraud,0.9
+fraud_00000958,user_8450,580.88,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:28:26.767005,credit_card,True,velocity_fraud,0.9
+fraud_00000959,user_8648,9553.58,Jewelry Store,high_risk,Unknown Location,2025-09-26T14:33:11.767014,credit_card,True,high_amount_patterns,0.9
+fraud_00000960,user_4535,70619.64,Electronics Warehouse,high_risk,Unknown Location,2025-09-26T14:33:11.767029,credit_card,True,high_amount_patterns,0.9
+fraud_00000961,user_6430,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:33:11.767042,credit_card,True,geographic_anomaly,0.9
+fraud_00000962,user_6335,39892.26,Electronics Warehouse,high_risk,Unknown Location,2025-09-26T14:33:11.767052,credit_card,True,high_amount_patterns,0.9
+fraud_00000963,user_5984,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:33:11.767065,credit_card,True,geographic_anomaly,0.9
+fraud_00000964,user_9276,1370.26,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:31:45.767080,credit_card,True,velocity_fraud,0.9
+fraud_00000965,user_3087,810.72,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:30:09.767090,credit_card,True,velocity_fraud,0.9
+fraud_00000966,user_2697,668.65,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:28:30.767100,credit_card,True,velocity_fraud,0.9
+fraud_00000967,user_5645,1815.2,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:28:57.767111,credit_card,True,velocity_fraud,0.9
+fraud_00000968,user_8384,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T04:29:11.767123,credit_card,True,temporal_anomaly,0.9
+fraud_00000969,user_5731,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T03:39:11.767135,credit_card,True,temporal_anomaly,0.9
+fraud_00000970,user_7133,100.0,Suspicious Merchant,high_risk,Offshore Territory,2025-09-26T14:33:11.767142,credit_card,True,geographic_anomaly,0.9
+fraud_00000971,user_8134,978.93,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:31:09.767154,credit_card,True,velocity_fraud,0.9
+fraud_00000972,user_2274,55191.36,Jewelry Store,high_risk,Unknown Location,2025-09-26T14:33:11.767162,credit_card,True,high_amount_patterns,0.9
+fraud_00000973,user_1958,1498.08,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:30:08.767179,credit_card,True,velocity_fraud,0.9
+fraud_00000974,user_9702,1012.64,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:31:50.767189,credit_card,True,velocity_fraud,0.9
+fraud_00000975,user_5940,520.5,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:31:02.767198,credit_card,True,velocity_fraud,0.9
+fraud_00000976,user_1668,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T03:03:11.767210,credit_card,True,temporal_anomaly,0.9
+fraud_00000977,user_8176,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T05:22:11.767221,credit_card,True,temporal_anomaly,0.9
+fraud_00000978,user_1581,76705.98,Cash Advance,high_risk,Unknown Location,2025-09-26T14:33:11.767228,credit_card,True,high_amount_patterns,0.9
+fraud_00000979,user_3274,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T03:17:11.767247,credit_card,True,temporal_anomaly,0.9
+fraud_00000980,user_5473,100.0,Suspicious Merchant,high_risk,High Risk Country A,2025-09-26T14:33:11.767254,credit_card,True,geographic_anomaly,0.9
+fraud_00000981,user_3791,1327.23,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:32:04.767266,credit_card,True,velocity_fraud,0.9
+fraud_00000982,user_1455,191992.1,Cash Advance,high_risk,Unknown Location,2025-09-26T14:33:11.767273,credit_card,True,high_amount_patterns,0.9
+fraud_00000983,user_8912,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:33:11.767285,credit_card,True,geographic_anomaly,0.9
+fraud_00000984,user_3293,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:33:11.767294,credit_card,True,geographic_anomaly,0.9
+fraud_00000985,user_8939,778.89,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:30:43.767306,credit_card,True,velocity_fraud,0.9
+fraud_00000986,user_2251,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:33:11.767313,money_order,True,payment_method_fraud,0.9
+fraud_00000987,user_4662,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T02:30:11.767327,credit_card,True,temporal_anomaly,0.9
+fraud_00000988,user_6496,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T04:14:11.767338,credit_card,True,temporal_anomaly,0.9
+fraud_00000989,user_4053,66554.54,Jewelry Store,high_risk,Unknown Location,2025-09-26T14:33:11.767345,credit_card,True,high_amount_patterns,0.9
+fraud_00000990,user_4495,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T05:23:11.767361,credit_card,True,temporal_anomaly,0.9
+fraud_00000991,user_2760,100.0,Suspicious Merchant,high_risk,Sanctioned Region,2025-09-26T14:33:11.767367,credit_card,True,geographic_anomaly,0.9
+fraud_00000992,user_3078,632.54,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:29:09.767379,credit_card,True,velocity_fraud,0.9
+fraud_00000993,user_7364,100.0,Suspicious Merchant,high_risk,High Risk Country A,2025-09-26T14:33:11.767386,credit_card,True,geographic_anomaly,0.9
+fraud_00000994,user_9286,81252.9,Cash Advance,high_risk,Unknown Location,2025-09-26T14:33:11.767396,credit_card,True,high_amount_patterns,0.9
+fraud_00000995,user_5373,100.0,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T02:43:11.767411,credit_card,True,temporal_anomaly,0.9
+fraud_00000996,user_8571,807.29,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:31:08.767421,credit_card,True,velocity_fraud,0.9
+fraud_00000997,user_9985,468468.07,Jewelry Store,high_risk,Unknown Location,2025-09-26T14:33:11.767428,credit_card,True,high_amount_patterns,0.9
+fraud_00000998,user_5556,1736.09,Suspicious Merchant,high_risk,Unknown Location,2025-09-26T14:29:08.767442,credit_card,True,velocity_fraud,0.9
+fraud_00000999,user_7323,150800.45,Electronics Warehouse,high_risk,Unknown Location,2025-09-26T14:33:11.767449,credit_card,True,high_amount_patterns,0.9

@@ -1,0 +1,57 @@
+# Core MCP Framework
+fastmcp>=0.2.0
+
+# Machine Learning Core
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+xgboost>=1.7.0
+
+# Deep Learning
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Graph Analysis
+networkx>=3.0
+
+# Statistical Computing
+scipy>=1.10.0
+
+# Data Visualization (optional)
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Real-time Processing
+redis>=4.5.0
+aioredis>=2.0.0
+
+# Database Support
+asyncpg>=0.28.0
+sqlalchemy>=2.0.0
+
+# Monitoring and Logging
+prometheus-client>=0.16.0
+structlog>=23.0.0
+
+# Security and Encryption
+cryptography>=40.0.0
+bcrypt>=4.0.0
+
+# API and Web
+fastapi>=0.100.0
+uvicorn>=0.22.0
+pydantic>=2.0.0
+
+# Behavioral Analysis
+dtaidistance>=2.3.0  # For time series distance calculations
+
+# Development and Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.0.0
+
+# Performance Optimization
+numba>=0.57.0
+cython>=0.29.0
