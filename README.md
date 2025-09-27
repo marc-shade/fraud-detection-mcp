@@ -1,16 +1,10 @@
-# 🔍 Advanced Fraud Detection MCP
+# Advanced Fraud Detection MCP
 
-<div align="center">
-  <img src="assets/bloodhound_avatar.png" alt="Fraud Detection Bloodhound" width="300" style="border-radius: 15px;">
-  <br>
-  <em>Your AI-powered fraud detection companion</em>
-</div>
+## Overview
 
-## 🚀 Overview
+<img src="assets/bloodhound_avatar.png" alt="Fraud Detection Bloodhound" width="300" style="border-radius: 15px;" align="right">A sophisticated, open-source Model Context Protocol (MCP) server for advanced fraud detection using cutting-edge 2024-2025 algorithms and techniques. This system combines behavioral biometrics, machine learning, and real-time anomaly detection for comprehensive fraud prevention.
 
-A sophisticated, open-source Model Context Protocol (MCP) server for advanced fraud detection using cutting-edge 2024-2025 algorithms and techniques. This system combines behavioral biometrics, machine learning, and real-time anomaly detection for comprehensive fraud prevention.
-
-**🎯 Built for the Modern Threat Landscape** - Designed to detect sophisticated fraud patterns including synthetic identities, account takeovers, and AI-generated attacks.
+**Built for the Modern Threat Landscape** - Designed to detect sophisticated fraud patterns including synthetic identities, account takeovers, and AI-generated attacks.
 
 ## Key Features
 
