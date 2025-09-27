@@ -64,7 +64,7 @@
 - **API**: FastAPI with MCP protocol
 - **Database**: PostgreSQL, InfluxDB for time-series
 
-## 📦 Installation
+## Installation
 
 ### Quick Start
 
@@ -196,11 +196,3 @@ This is an open-source project. Contributions welcome for:
 ## License
 
 MIT License - See LICENSE file for details
-
-## Research References
-
-Based on cutting-edge 2024-2025 research in:
-- Behavioral biometrics for financial security
-- Graph neural networks for fraud detection
-- Explainable AI in fraud prevention
-- Real-time anomaly detection systems
