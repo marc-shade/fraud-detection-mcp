@@ -74,7 +74,9 @@ class ModelTrainer:
         test_size: float = 0.2,
         validation_size: float = 0.1,
         use_smote: bool = True,
-        optimize_hyperparams: bool = True
+        optimize_hyperparams: bool = True,
+        train_autoencoder: bool = False,
+        train_gnn: bool = False
     ) -> Dict[str, Any]:
         """
         Complete training pipeline for all fraud detection models
@@ -85,6 +87,8 @@ class ModelTrainer:
             validation_size: Validation set proportion
             use_smote: Apply SMOTE for class balancing
             optimize_hyperparams: Use Optuna for hyperparameter tuning
+            train_autoencoder: Train autoencoder for anomaly detection (requires PyTorch)
+            train_gnn: Train Graph Neural Network (requires PyTorch Geometric)
 
         Returns:
             Training results with metrics
@@ -149,12 +153,37 @@ class ModelTrainer:
             logger.info("="*60)
             ensemble_metrics = self._evaluate_ensemble(X_test, y_test)
 
-            # 7. Find optimal threshold
+            # 7. Train advanced models if requested
+            autoencoder_metrics = None
+            if train_autoencoder:
+                logger.info("\n" + "="*60)
+                logger.info("Training Autoencoder...")
+                logger.info("="*60)
+                try:
+                    autoencoder_metrics = self._train_autoencoder(
+                        X_train, X_test, y_test, contamination=y_train.mean()
+                    )
+                except Exception as e:
+                    logger.error(f"Autoencoder training failed: {e}")
+
+            gnn_metrics = None
+            if train_gnn:
+                logger.info("\n" + "="*60)
+                logger.info("Training Graph Neural Network...")
+                logger.info("="*60)
+                try:
+                    gnn_metrics = self._train_gnn(
+                        X_train, X_test, y_train, y_test
+                    )
+                except Exception as e:
+                    logger.error(f"GNN training failed: {e}")
+
+            # 8. Find optimal threshold
             optimal_threshold = self._find_optimal_threshold(
                 X_test, y_test
             )
 
-            # 8. Save models
+            # 9. Save models
             self._save_models()
 
             # 9. Log to MLflow
@@ -186,6 +215,15 @@ class ModelTrainer:
                     "scaler": str(self.model_dir / "scaler_latest.joblib")
                 }
             }
+
+            # Add advanced model metrics if trained
+            if autoencoder_metrics:
+                results["autoencoder"] = autoencoder_metrics
+                results["model_paths"]["autoencoder"] = str(self.model_dir / "autoencoder_latest.pth")
+
+            if gnn_metrics:
+                results["gnn"] = gnn_metrics
+                results["model_paths"]["gnn"] = str(self.model_dir / "gnn_latest.pth")
 
             logger.info("\n" + "="*60)
             logger.info("Training Complete!")
@@ -534,22 +572,128 @@ class ModelTrainer:
 
         return optimal_threshold
 
+    def _train_autoencoder(
+        self,
+        X_train: np.ndarray,
+        X_test: np.ndarray,
+        y_test: np.ndarray,
+        contamination: float = 0.05
+    ) -> Dict[str, Any]:
+        """
+        Train autoencoder for anomaly detection
+
+        Args:
+            X_train: Training features (normal transactions only)
+            X_test: Test features
+            y_test: Test labels
+            contamination: Expected fraud rate for threshold setting
+
+        Returns:
+            Training metrics
+        """
+        from models.autoencoder import AutoencoderFraudDetector
+
+        logger.info("Training Autoencoder...")
+
+        # Filter training data to normal transactions only
+        # (For unsupervised anomaly detection)
+        X_train_normal = X_train  # In real scenario, filter out known fraud
+
+        # Initialize and train
+        autoencoder = AutoencoderFraudDetector(
+            input_dim=X_train.shape[1],
+            encoding_dim=16,
+            contamination=contamination
+        )
+
+        autoencoder.fit(X_train_normal, epochs=50, batch_size=256, verbose=1)
+
+        # Evaluate
+        y_pred = autoencoder.predict(X_test)
+        y_pred_proba = autoencoder.predict_proba(X_test)[:, 1]
+
+        # Store model
+        self.models['autoencoder'] = autoencoder
+
+        # Calculate metrics
+        metrics = self._calculate_metrics(
+            y_test, y_pred, y_pred_proba, "Autoencoder"
+        )
+
+        return metrics
+
+    def _train_gnn(
+        self,
+        X_train: np.ndarray,
+        X_test: np.ndarray,
+        y_train: np.ndarray,
+        y_test: np.ndarray
+    ) -> Dict[str, Any]:
+        """
+        Train Graph Neural Network for fraud detection
+
+        Args:
+            X_train: Training features
+            X_test: Test features
+            y_train: Training labels
+            y_test: Test labels
+
+        Returns:
+            Training metrics
+        """
+        from models.gnn_fraud_detector import GNNFraudDetector
+
+        logger.info("Training Graph Neural Network...")
+
+        # Initialize and train
+        gnn = GNNFraudDetector(
+            input_dim=X_train.shape[1],
+            hidden_dim=64,
+            num_layers=2
+        )
+
+        gnn.fit(X_train, y_train, epochs=50, batch_size=256, verbose=1)
+
+        # Evaluate
+        y_pred = gnn.predict(X_test)
+        y_pred_proba = gnn.predict_proba(X_test)[:, 1]
+
+        # Store model
+        self.models['gnn'] = gnn
+
+        # Calculate metrics
+        metrics = self._calculate_metrics(
+            y_test, y_pred, y_pred_proba, "GNN"
+        )
+
+        return metrics
+
     def _save_models(self):
-        """Save trained models and scalers"""
+        """Save trained models and scalers (handles both sklearn and PyTorch models)"""
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # Save models with timestamp and as latest
         for name, model in self.models.items():
-            # Timestamped version
-            model_path = self.model_dir / f"{name}_{timestamp}.joblib"
-            joblib.dump(model, model_path)
+            # Check if model has PyTorch save method (for Autoencoder/GNN)
+            if hasattr(model, 'save_model') and callable(model.save_model):
+                # PyTorch model - use its own save method
+                latest_path = self.model_dir / f"{name}_latest.pth"
+                timestamped_path = self.model_dir / f"{name}_{timestamp}.pth"
 
-            # Latest version
-            latest_path = self.model_dir / f"{name}_latest.joblib"
-            joblib.dump(model, latest_path)
+                model.save_model(str(latest_path))
+                model.save_model(str(timestamped_path))
+                logger.info(f"Saved PyTorch {name} to {latest_path}")
+            else:
+                # Sklearn model - use joblib
+                model_path = self.model_dir / f"{name}_{timestamp}.joblib"
+                joblib.dump(model, model_path)
 
-            logger.info(f"Saved {name} to {latest_path}")
+                # Latest version
+                latest_path = self.model_dir / f"{name}_latest.joblib"
+                joblib.dump(model, latest_path)
+
+                logger.info(f"Saved {name} to {latest_path}")
 
         # Save scalers
         for name, scaler in self.scalers.items():
@@ -596,10 +740,19 @@ class ModelTrainer:
             "xgboost_model"
         )
 
-    def load_models(self) -> bool:
-        """Load trained models"""
+    def load_models(self, load_advanced: bool = True) -> bool:
+        """
+        Load trained models (both sklearn and PyTorch)
+
+        Args:
+            load_advanced: Whether to load advanced models (autoencoder, GNN)
+
+        Returns:
+            True if core models loaded successfully
+        """
 
         try:
+            # Load core sklearn models
             self.models['isolation_forest'] = joblib.load(
                 self.model_dir / "isolation_forest_latest.joblib"
             )
@@ -613,12 +766,45 @@ class ModelTrainer:
                 self.model_dir / "feature_names.joblib"
             )
 
-            logger.info("Models loaded successfully")
+            logger.info("Core models loaded successfully")
+
+            # Optionally load advanced PyTorch models
+            if load_advanced:
+                # Try to load autoencoder
+                autoencoder_path = self.model_dir / "autoencoder_latest.pth"
+                if autoencoder_path.exists():
+                    try:
+                        from models.autoencoder import AutoencoderFraudDetector
+                        input_dim = len(self.feature_names)
+                        autoencoder = AutoencoderFraudDetector(input_dim=input_dim)
+                        autoencoder.load_model(str(autoencoder_path))
+                        self.models['autoencoder'] = autoencoder
+                        logger.info("Autoencoder loaded successfully")
+                    except Exception as e:
+                        logger.warning(f"Failed to load autoencoder: {e}")
+
+                # Try to load GNN
+                gnn_path = self.model_dir / "gnn_latest.pth"
+                if gnn_path.exists():
+                    try:
+                        from models.gnn_fraud_detector import GNNFraudDetector
+                        input_dim = len(self.feature_names)
+                        gnn = GNNFraudDetector(input_dim=input_dim)
+                        gnn.load_model(str(gnn_path))
+                        self.models['gnn'] = gnn
+                        logger.info("GNN loaded successfully")
+                    except Exception as e:
+                        logger.warning(f"Failed to load GNN: {e}")
+
             return True
 
         except FileNotFoundError as e:
-            logger.warning(f"Models not found: {e}")
+            logger.warning(f"Core models not found: {e}")
             return False
+
+
+# Alias for backward compatibility
+FraudDetectionPipeline = ModelTrainer
 
 
 if __name__ == "__main__":

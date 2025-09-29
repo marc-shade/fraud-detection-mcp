@@ -498,6 +498,143 @@ class AsyncInferenceEngine:
         logger.info("Cache cleared")
 
 
+class AsyncFraudDetector:
+    """
+    High-level async fraud detector integrating all models
+    Uses ensemble of traditional ML and advanced deep learning models
+    """
+
+    def __init__(
+        self,
+        fraud_pipeline,
+        feature_engineer: FeatureEngineer,
+        use_advanced_models: bool = True
+    ):
+        """
+        Initialize async fraud detector
+
+        Args:
+            fraud_pipeline: Trained FraudDetectionPipeline (ModelTrainer)
+            feature_engineer: Feature extraction pipeline
+            use_advanced_models: Use autoencoder/GNN if available
+        """
+        self.pipeline = fraud_pipeline
+        self.feature_engineer = feature_engineer
+        self.use_advanced_models = use_advanced_models
+
+        # Check which models are available
+        self.has_autoencoder = 'autoencoder' in fraud_pipeline.models
+        self.has_gnn = 'gnn' in fraud_pipeline.models
+        self.has_isolation_forest = 'isolation_forest' in fraud_pipeline.models
+        self.has_xgboost = 'xgboost' in fraud_pipeline.models
+
+        logger.info(f"AsyncFraudDetector initialized:")
+        logger.info(f"  - Isolation Forest: {self.has_isolation_forest}")
+        logger.info(f"  - XGBoost: {self.has_xgboost}")
+        logger.info(f"  - Autoencoder: {self.has_autoencoder}")
+        logger.info(f"  - GNN: {self.has_gnn}")
+
+    async def analyze_transaction_async(self, analysis_request) -> Dict[str, Any]:
+        """
+        Analyze transaction asynchronously using ensemble of models
+
+        Args:
+            analysis_request: AnalysisRequest object
+
+        Returns:
+            Analysis result dictionary
+        """
+        transaction = analysis_request.transaction_data
+
+        # Extract features
+        features, feature_names = self.feature_engineer.extract_features(transaction)
+        features_array = np.array(features).reshape(1, -1)
+
+        # Scale features if scaler available
+        if 'transaction' in self.pipeline.scalers:
+            features_array = self.pipeline.scalers['transaction'].transform(features_array)
+
+        # Collect predictions from available models
+        predictions = {}
+        probabilities = {}
+
+        # Traditional models
+        if self.has_isolation_forest:
+            iso_score = self.pipeline.models['isolation_forest'].score_samples(features_array)[0]
+            iso_proba = self._anomaly_score_to_proba(iso_score)
+            predictions['isolation_forest'] = 1 if iso_proba > 0.5 else 0
+            probabilities['isolation_forest'] = iso_proba
+
+        if self.has_xgboost:
+            xgb_proba = self.pipeline.models['xgboost'].predict_proba(features_array)[0, 1]
+            predictions['xgboost'] = 1 if xgb_proba > 0.5 else 0
+            probabilities['xgboost'] = xgb_proba
+
+        # Advanced models
+        if self.use_advanced_models and self.has_autoencoder:
+            auto_proba = self.pipeline.models['autoencoder'].predict_proba(features_array)[0, 1]
+            predictions['autoencoder'] = 1 if auto_proba > 0.5 else 0
+            probabilities['autoencoder'] = auto_proba
+
+        if self.use_advanced_models and self.has_gnn:
+            gnn_proba = self.pipeline.models['gnn'].predict_proba(features_array)[0, 1]
+            predictions['gnn'] = 1 if gnn_proba > 0.5 else 0
+            probabilities['gnn'] = gnn_proba
+
+        # Ensemble prediction (weighted average)
+        weights = self._get_model_weights()
+        ensemble_proba = sum(probabilities[name] * weights[name]
+                            for name in probabilities.keys()) / sum(weights[name] for name in probabilities.keys())
+
+        # Determine risk level
+        if ensemble_proba < 0.3:
+            risk_level = "LOW"
+        elif ensemble_proba < 0.6:
+            risk_level = "MEDIUM"
+        elif ensemble_proba < 0.8:
+            risk_level = "HIGH"
+        else:
+            risk_level = "CRITICAL"
+
+        return {
+            "transaction_id": transaction.transaction_id,
+            "risk_score": float(ensemble_proba),
+            "risk_level": risk_level,
+            "is_fraud": bool(ensemble_proba > 0.5),
+            "model_predictions": predictions,
+            "model_probabilities": probabilities,
+            "confidence": float(1.0 - abs(ensemble_proba - 0.5) * 2),
+            "features_analyzed": len(features)
+        }
+
+    def _anomaly_score_to_proba(self, score: float) -> float:
+        """Convert anomaly score to probability"""
+        # Isolation forest scores are negative, more negative = more anomalous
+        # Normalize to [0, 1] range
+        return 1 / (1 + np.exp(score * 5))  # Sigmoid transformation
+
+    def _get_model_weights(self) -> Dict[str, float]:
+        """
+        Get model weights for ensemble
+        Advanced models get higher weights if available
+        """
+        weights = {}
+
+        if self.has_isolation_forest:
+            weights['isolation_forest'] = 0.2
+
+        if self.has_xgboost:
+            weights['xgboost'] = 0.4
+
+        if self.use_advanced_models and self.has_autoencoder:
+            weights['autoencoder'] = 0.2
+
+        if self.use_advanced_models and self.has_gnn:
+            weights['gnn'] = 0.3
+
+        return weights
+
+
 # Factory function
 def create_inference_engine(
     model,
@@ -525,4 +662,4 @@ def create_inference_engine(
     )
 
 
-__all__ = ['AsyncInferenceEngine', 'create_inference_engine', 'LRUCache']
+__all__ = ['AsyncInferenceEngine', 'AsyncFraudDetector', 'create_inference_engine', 'LRUCache']
