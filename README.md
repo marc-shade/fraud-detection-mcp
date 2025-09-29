@@ -70,7 +70,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/2-acre-studios/fraud-detection-mcp
+git clone https://github.com/marc-shade/fraud-detection-mcp
 cd fraud-detection-mcp
 
 # Create virtual environment (recommended)
