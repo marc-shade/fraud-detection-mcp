@@ -6,9 +6,12 @@ numpy>=1.24.0
 pandas>=2.0.0
 scikit-learn>=1.3.0
 xgboost>=1.7.0
+imbalanced-learn>=0.11.0  # SMOTE for class balancing
+joblib>=1.3.0  # Model persistence
 
 # Deep Learning
 torch>=2.0.0
+torch-geometric>=2.4.0  # Graph Neural Networks
 torchvision>=0.15.0
 
 # Graph Analysis
@@ -17,41 +20,75 @@ networkx>=3.0
 # Statistical Computing
 scipy>=1.10.0
 
-# Data Visualization (optional)
+# Explainable AI
+shap>=0.43.0  # SHAP values for model explanation
+lime>=0.2.0  # LIME for local explanations
+
+# Feature Engineering
+category-encoders>=2.6.0  # Advanced categorical encoding
+
+# MLOps
+mlflow>=2.8.0  # Experiment tracking
+optuna>=3.4.0  # Hyperparameter optimization
+
+# Data Visualization
 matplotlib>=3.7.0
 seaborn>=0.12.0
 
 # Real-time Processing
 redis>=4.5.0
-aioredis>=2.0.0
+aiofiles>=23.0.0  # Async file operations
 
 # Database Support
 asyncpg>=0.28.0
 sqlalchemy>=2.0.0
+alembic>=1.12.0  # Database migrations
 
 # Monitoring and Logging
 prometheus-client>=0.16.0
 structlog>=23.0.0
+python-json-logger>=2.0.0
 
 # Security and Encryption
 cryptography>=40.0.0
 bcrypt>=4.0.0
+python-jose[cryptography]>=3.3.0  # JWT tokens
+passlib[bcrypt]>=1.7.4  # Password hashing
+python-multipart>=0.0.6  # Form data parsing
 
 # API and Web
 fastapi>=0.100.0
-uvicorn>=0.22.0
+uvicorn[standard]>=0.22.0
 pydantic>=2.0.0
+pydantic-settings>=2.0.0  # Settings management
+python-dotenv>=1.0.0  # Environment variables
+slowapi>=0.1.9  # Rate limiting
+fastapi-limiter>=0.1.5  # Advanced rate limiting
 
 # Behavioral Analysis
-dtaidistance>=2.3.0  # For time series distance calculations
+dtaidistance>=2.3.0  # Time series distance calculations
 
 # Development and Testing
 pytest>=7.0.0
 pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0  # Coverage reporting
+pytest-mock>=3.12.0  # Mocking
 black>=23.0.0
 flake8>=6.0.0
 mypy>=1.0.0
+pre-commit>=3.5.0  # Git hooks
+bandit>=1.7.5  # Security linting
 
 # Performance Optimization
 numba>=0.57.0
 cython>=0.29.0
+
+# Benchmarking
+locust>=2.17.0  # Load testing
+memory-profiler>=0.61.0  # Memory profiling
+
+# Utilities
+tqdm>=4.66.0  # Progress bars
+click>=8.1.7  # CLI framework
+rich>=13.6.0  # Beautiful terminal output
+tabulate>=0.9.0  # Table formatting

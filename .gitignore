@@ -162,8 +162,14 @@ cython_debug/
 *.model
 *.pkl
 *.joblib
-models/
-data/
+models/*.joblib
+models/*.pth
+models/*.pkl
+!models/*.py
+!models/__init__.py
+data/*.csv
+data/*.json
+!test_data/
 logs/
 *.db
 *.sqlite
@@ -183,8 +189,29 @@ secrets.json
 # Test outputs
 test_results/
 coverage_reports/
+benchmark_results/
+
+# MLflow
+mlruns/
+mlflow.db
+
+# Monitoring outputs
+*.png
+*.jpg
+*.pdf
+!assets/*.png
+!assets/*.jpg
+
+# Cache
+cache/
+.cache/
+*.cache
+
+# Redis
+dump.rdb
 
 # Temporary files
 tmp/
 temp/
 *.tmp
+*.bak
