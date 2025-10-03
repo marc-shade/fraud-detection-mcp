@@ -192,6 +192,7 @@ This is an open-source project. Contributions welcome for:
 - Additional behavioral biometrics
 - Extended documentation
 - Test coverage
+- etc.
 
 ## License
 
