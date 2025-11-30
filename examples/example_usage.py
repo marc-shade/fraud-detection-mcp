@@ -207,7 +207,7 @@ async def example_comprehensive_fraud_detection():
         "payment_method": "credit_card",
         "card_type": "amex",
         "user_id": "user_67890",
-        "ip_address": "192.168.1.100",
+        "ip_address": "192.0.2.217",
         "device_fingerprint": "device_abc123"
     }
 

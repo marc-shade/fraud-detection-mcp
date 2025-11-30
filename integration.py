@@ -31,7 +31,9 @@ class SyntheticDataIntegration:
     """Integration with synthetic-data-mcp for fraud detection testing"""
 
     def __init__(self):
-        self.output_dir = Path("/Users/marc/Documents/Cline/MCP/fraud-detection-mcp/test_data")
+        import os
+        base_dir = os.environ.get("FRAUD_DETECTION_DATA_DIR", str(Path(__file__).parent / "test_data"))
+        self.output_dir = Path(base_dir)
         self.output_dir.mkdir(exist_ok=True)
 
     def generate_fraud_patterns(self) -> Dict[str, Any]:
