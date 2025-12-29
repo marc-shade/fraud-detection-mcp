@@ -35,6 +35,70 @@ logger = logging.getLogger(__name__)
 # Initialize MCP server
 mcp = FastMCP("Advanced Fraud Detection")
 
+
+# =============================================================================
+# Input Validation Functions
+# =============================================================================
+
+def validate_transaction_data(data: Dict[str, Any]) -> Tuple[bool, str]:
+    """Validate transaction data structure and values."""
+    if not isinstance(data, dict):
+        return False, "transaction_data must be a dictionary"
+
+    # Validate amount if present
+    if "amount" in data:
+        amount = data["amount"]
+        if not isinstance(amount, (int, float)):
+            return False, "amount must be numeric"
+        if amount < 0:
+            return False, "amount cannot be negative"
+        if amount > 1_000_000_000:  # 1 billion limit
+            return False, "amount exceeds maximum allowed value"
+
+    # Validate timestamp if present
+    if "timestamp" in data:
+        ts = data["timestamp"]
+        if isinstance(ts, str):
+            try:
+                datetime.fromisoformat(ts.replace('Z', '+00:00'))
+            except ValueError:
+                return False, "invalid timestamp format"
+
+    return True, "valid"
+
+
+def validate_behavioral_data(data: Dict[str, Any]) -> Tuple[bool, str]:
+    """Validate behavioral biometrics data."""
+    if not isinstance(data, dict):
+        return False, "behavioral_data must be a dictionary"
+
+    # Validate keystroke dynamics
+    if "keystroke_dynamics" in data:
+        keystroke = data["keystroke_dynamics"]
+        if not isinstance(keystroke, list):
+            return False, "keystroke_dynamics must be a list"
+        for item in keystroke[:100]:  # Check first 100 items
+            if not isinstance(item, dict):
+                return False, "keystroke_dynamics items must be dictionaries"
+            # Validate timing values are reasonable (0-10 seconds)
+            for key in ["dwell_time", "flight_time"]:
+                if key in item:
+                    val = item[key]
+                    if not isinstance(val, (int, float)) or val < 0 or val > 10000:
+                        return False, f"invalid {key} value"
+
+    # Validate mouse movements
+    if "mouse_movements" in data:
+        mouse = data["mouse_movements"]
+        if not isinstance(mouse, list):
+            return False, "mouse_movements must be a list"
+        for item in mouse[:1000]:  # Check first 1000 items
+            if not isinstance(item, dict):
+                return False, "mouse_movements items must be dictionaries"
+
+    return True, "valid"
+
+
 class BehavioralBiometrics:
     """Behavioral biometrics analysis for fraud detection"""
 
@@ -416,6 +480,16 @@ def analyze_transaction(
         Comprehensive fraud analysis with risk score and explanations
     """
     try:
+        # Validate inputs
+        valid, msg = validate_transaction_data(transaction_data)
+        if not valid:
+            return {"error": f"Invalid transaction data: {msg}", "status": "validation_failed"}
+
+        if behavioral_data:
+            valid, msg = validate_behavioral_data(behavioral_data)
+            if not valid:
+                return {"error": f"Invalid behavioral data: {msg}", "status": "validation_failed"}
+
         # Primary transaction analysis
         transaction_result = transaction_analyzer.analyze_transaction(transaction_data)
 
