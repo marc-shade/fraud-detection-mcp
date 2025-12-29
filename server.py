@@ -117,6 +117,10 @@ class BehavioralBiometrics:
             n_estimators=100
         )
 
+        # Fit with dummy training data (10 features: 5 dwell + 5 flight)
+        dummy_keystroke_data = np.random.randn(100, 10) * 50 + 100
+        self.keystroke_model.fit(dummy_keystroke_data)
+
         # One-Class SVM for mouse patterns
         self.mouse_model = OneClassSVM(
             kernel='rbf',
@@ -124,12 +128,20 @@ class BehavioralBiometrics:
             nu=0.1
         )
 
+        # Fit with dummy mouse data
+        dummy_mouse_data = np.random.randn(100, 5) * 20 + 50
+        self.mouse_model.fit(dummy_mouse_data)
+
         # Local Outlier Factor for touch patterns
         self.touch_model = LocalOutlierFactor(
             n_neighbors=20,
             contamination=0.1,
             novelty=True
         )
+
+        # Fit with dummy touch data
+        dummy_touch_data = np.random.randn(100, 5) * 10 + 30
+        self.touch_model.fit(dummy_touch_data)
 
     def analyze_keystroke_dynamics(self, keystroke_data: List[Dict]) -> Dict[str, Any]:
         """Analyze keystroke dynamics for behavioral anomalies"""
@@ -242,6 +254,15 @@ class TransactionAnalyzer:
             learning_rate=0.1,
             random_state=42
         )
+
+        # Fit models with dummy transaction data
+        # Transaction features: amount, log_amount, hour, weekday, day, location_hash, merchant_hash, payment_risk
+        dummy_transaction_features = np.random.randn(100, 8) * 100 + 500
+        self.isolation_forest.fit(dummy_transaction_features)
+
+        # Fit XGBoost with dummy labels
+        dummy_labels = np.random.randint(0, 2, 100)
+        self.xgb_model.fit(dummy_transaction_features, dummy_labels)
 
     def analyze_transaction(self, transaction_data: Dict[str, Any]) -> Dict[str, Any]:
         """Comprehensive transaction fraud analysis"""
@@ -462,23 +483,17 @@ behavioral_analyzer = BehavioralBiometrics()
 transaction_analyzer = TransactionAnalyzer()
 network_analyzer = NetworkAnalyzer()
 
-@mcp.tool()
-def analyze_transaction(
+
+# =============================================================================
+# Implementation Functions (testable)
+# =============================================================================
+
+def analyze_transaction_impl(
     transaction_data: Dict[str, Any],
     include_behavioral: bool = False,
     behavioral_data: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
-    """
-    Comprehensive transaction fraud analysis using multiple detection methods.
-
-    Args:
-        transaction_data: Transaction details (amount, merchant, location, timestamp, etc.)
-        include_behavioral: Whether to include behavioral biometrics analysis
-        behavioral_data: Behavioral data (keystroke dynamics, mouse patterns, etc.)
-
-    Returns:
-        Comprehensive fraud analysis with risk score and explanations
-    """
+    """Implementation of comprehensive transaction fraud analysis"""
     try:
         # Validate inputs
         valid, msg = validate_transaction_data(transaction_data)
