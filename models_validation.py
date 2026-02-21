@@ -32,6 +32,13 @@ class RiskLevel(str, Enum):
     UNKNOWN = "UNKNOWN"
 
 
+class TrafficSource(str, Enum):
+    """Traffic source classification"""
+    HUMAN = "human"
+    AGENT = "agent"
+    UNKNOWN = "unknown"
+
+
 class KeystrokeEvent(BaseModel):
     """Single keystroke event with timing"""
     key: str = Field(..., max_length=10)
@@ -117,6 +124,22 @@ class TransactionData(BaseModel):
     card_type: Optional[str] = Field(None, max_length=50)
     currency: Optional[str] = Field("USD", max_length=3, pattern=r'^[A-Z]{3}$')
     merchant_id: Optional[str] = Field(None, max_length=100)
+
+    # Agent transaction fields (optional)
+    is_agent: Optional[bool] = Field(
+        None,
+        description="Whether this transaction was initiated by an AI agent"
+    )
+    agent_identifier: Optional[str] = Field(
+        None,
+        max_length=200,
+        description="Agent identity string (e.g., 'stripe-acp:agent-123')"
+    )
+    user_agent: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="HTTP User-Agent or agent protocol identifier"
+    )
 
     @field_validator('timestamp')
     @classmethod
@@ -382,6 +405,7 @@ class BatchAnalysisRequest(BaseModel):
 __all__ = [
     'PaymentMethod',
     'RiskLevel',
+    'TrafficSource',
     'KeystrokeEvent',
     'TransactionData',
     'BehavioralData',
