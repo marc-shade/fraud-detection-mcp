@@ -61,6 +61,15 @@ except ImportError:
     AUTOENCODER_AVAILABLE = False
     AutoencoderFraudDetector = None
 
+# Explainability module (graceful degradation if unavailable)
+try:
+    from explainability import FraudExplainer, SHAP_AVAILABLE
+    EXPLAINABILITY_AVAILABLE = True
+except ImportError:
+    EXPLAINABILITY_AVAILABLE = False
+    SHAP_AVAILABLE = False
+    FraudExplainer = None
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -681,11 +690,18 @@ def _dict_to_transaction_data(data: Dict[str, Any]) -> TransactionData:
 
 
 # Initialize explainer with transaction analyzer's trained model
-from explainability import FraudExplainer
-fraud_explainer = FraudExplainer(
-    model=transaction_analyzer.isolation_forest,
-    feature_names=transaction_analyzer.feature_engineer.feature_names
-)
+if EXPLAINABILITY_AVAILABLE and FraudExplainer is not None:
+    try:
+        fraud_explainer = FraudExplainer(
+            model=transaction_analyzer.isolation_forest,
+            feature_names=transaction_analyzer.feature_engineer.feature_names
+        )
+        logger.info("FraudExplainer initialized successfully")
+    except Exception as e:
+        logger.warning(f"Failed to initialize FraudExplainer: {e}")
+        fraud_explainer = None
+else:
+    fraud_explainer = None
 
 # Initialize prediction cache and inference statistics
 prediction_cache = LRUCache(capacity=1000)
@@ -773,13 +789,14 @@ def analyze_transaction_impl(
 
         # Generate feature-level explanation
         feature_explanation = None
-        try:
-            features = transaction_analyzer._extract_transaction_features(transaction_data)
-            feature_explanation = fraud_explainer.explain_prediction(
-                features, transaction_result.get("risk_score", 0.0)
-            )
-        except Exception as e:
-            logger.warning(f"Feature explanation failed: {e}")
+        if fraud_explainer is not None:
+            try:
+                features = transaction_analyzer._extract_transaction_features(transaction_data)
+                feature_explanation = fraud_explainer.explain_prediction(
+                    features, transaction_result.get("risk_score", 0.0)
+                )
+            except Exception as e:
+                logger.warning(f"Feature explanation failed: {e}")
 
         results = {
             "transaction_analysis": transaction_result,
