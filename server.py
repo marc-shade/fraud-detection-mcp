@@ -1392,6 +1392,14 @@ def health_check_impl() -> Dict[str, Any]:
                 if synthetic_data_integration is not None else None
             ),
         },
+        "security_utils": {
+            "available": SECURITY_UTILS_AVAILABLE,
+            "sanitizer_loaded": sanitizer is not None,
+            "rate_limiter": (
+                rate_limiter.get_status()
+                if rate_limiter is not None else None
+            ),
+        },
     }
 
     # Add system metrics if monitoring available
