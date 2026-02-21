@@ -247,9 +247,21 @@ class TransactionAnalyzer:
 
     def _initialize_models(self):
         """Initialize transaction analysis models"""
-        # Fit Isolation Forest with dummy transaction data
-        # Transaction features: amount, log_amount, hour, weekday, day, location_hash, merchant_hash, payment_risk
-        dummy_transaction_features = np.random.randn(100, 8) * 100 + 500
+        # Fit Isolation Forest with representative transaction data
+        # Features: amount, log_amount, hour, weekday, day, location_hash, merchant_hash, payment_risk
+        rng = np.random.RandomState(42)
+        n = 200
+        amounts = rng.exponential(500, n)
+        dummy_transaction_features = np.column_stack([
+            amounts,                                         # amount: $0-$2000+
+            np.log1p(amounts),                               # log_amount
+            rng.randint(0, 24, n).astype(float),             # hour: 0-23
+            rng.randint(0, 7, n).astype(float),              # weekday: 0-6
+            rng.randint(1, 32, n).astype(float),             # day: 1-31
+            rng.randint(0, 1000, n).astype(float),           # location_hash: 0-999
+            rng.randint(0, 1000, n).astype(float),           # merchant_hash: 0-999
+            rng.choice([0.1, 0.2, 0.3, 0.5, 0.8], n),       # payment_risk
+        ])
         self.isolation_forest.fit(dummy_transaction_features)
 
     def analyze_transaction(self, transaction_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -266,7 +278,7 @@ class TransactionAnalyzer:
             risk_factors = self._identify_risk_factors(transaction_data, features)
 
             # Calculate overall risk score
-            base_risk = max(0, min(1, (0.5 - anomaly_score) * 2))
+            base_risk = max(0, min(1, 0.5 - anomaly_score))
             risk_multiplier = 1 + len(risk_factors) * 0.1
             final_risk = min(1.0, base_risk * risk_multiplier)
 
@@ -640,6 +652,12 @@ def generate_risk_score_impl(
 ) -> Dict[str, Any]:
     """Implementation of comprehensive risk score generation"""
     try:
+        # Validate transaction data
+        valid, msg = validate_transaction_data(transaction_data)
+        if not valid:
+            return {"error": f"Invalid transaction data: {msg}", "status": "validation_failed",
+                    "overall_risk_score": 0.0, "risk_level": "UNKNOWN"}
+
         # Perform all analyses
         transaction_analysis = transaction_analyzer.analyze_transaction(transaction_data)
 
@@ -793,7 +811,7 @@ def explain_decision_impl(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
         if component_scores:
             for component, score in component_scores.items():
                 if component == "transaction":
-                    weight = 0.6 if len(component_scores) > 1 else 1.0
+                    weight = 0.5 if len(component_scores) == 3 else (0.6 if len(component_scores) == 2 else 1.0)
                 elif component == "behavioral":
                     weight = 0.3 if len(component_scores) == 3 else 0.4
                 else:  # network

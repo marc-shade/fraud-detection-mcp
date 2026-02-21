@@ -4,12 +4,12 @@ Integration tests for complete fraud detection workflows
 
 import pytest
 from datetime import datetime
-from server_wrapper import (
-    analyze_transaction,
-    detect_behavioral_anomaly,
-    assess_network_risk,
-    generate_risk_score,
-    explain_decision
+from server import (
+    analyze_transaction_impl as analyze_transaction,
+    detect_behavioral_anomaly_impl as detect_behavioral_anomaly,
+    assess_network_risk_impl as assess_network_risk,
+    generate_risk_score_impl as generate_risk_score,
+    explain_decision_impl as explain_decision,
 )
 
 
@@ -337,15 +337,15 @@ class TestCompleteWorkflows:
         comprehensive = generate_risk_score(high_risk_transaction)
 
         # Should aggregate anomalies
-        assert 'all_detected_anomalies' in comprehensive
-        assert isinstance(comprehensive['all_detected_anomalies'], list)
+        assert 'detected_anomalies' in comprehensive
+        assert isinstance(comprehensive['detected_anomalies'], list)
 
         # Explanation should reference these anomalies
         explanation = explain_decision(comprehensive)
 
-        if len(comprehensive['all_detected_anomalies']) > 0:
+        if len(comprehensive['detected_anomalies']) > 0:
             # Key factors should include the anomalies
             factor_names = [f['factor'] for f in explanation['key_factors']]
             # At least some anomalies should be in factors
             assert any(anomaly in factor_names
-                      for anomaly in comprehensive['all_detected_anomalies'])
+                      for anomaly in comprehensive['detected_anomalies'])

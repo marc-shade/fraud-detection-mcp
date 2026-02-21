@@ -300,7 +300,7 @@ def comprehensive_analysis_result():
     return {
         'overall_risk_score': 0.75,
         'risk_level': 'HIGH',
-        'all_detected_anomalies': [
+        'detected_anomalies': [
             'high_amount_transaction',
             'unusual_time_pattern',
             'keystroke_anomaly'
@@ -317,10 +317,13 @@ def comprehensive_analysis_result():
 @pytest.fixture(autouse=True)
 def reset_ml_models():
     """Reset ML models before each test to ensure isolation"""
-    # This fixture runs automatically before each test
-    # Models are re-initialized in their respective classes
+    from server import network_analyzer
+    import networkx as nx
+    from collections import deque
     yield
-    # Cleanup after test if needed
+    # Reset network graph state after each test
+    network_analyzer.transaction_graph = nx.Graph()
+    network_analyzer._node_order = deque()
 
 
 @pytest.fixture

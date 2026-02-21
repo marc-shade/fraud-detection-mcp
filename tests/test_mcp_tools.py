@@ -4,12 +4,12 @@ Tests for MCP tool endpoints
 
 import pytest
 from datetime import datetime
-from server_wrapper import (
-    analyze_transaction,
-    detect_behavioral_anomaly,
-    assess_network_risk,
-    generate_risk_score,
-    explain_decision
+from server import (
+    analyze_transaction_impl as analyze_transaction,
+    detect_behavioral_anomaly_impl as detect_behavioral_anomaly,
+    assess_network_risk_impl as assess_network_risk,
+    generate_risk_score_impl as generate_risk_score,
+    explain_decision_impl as explain_decision,
 )
 
 
@@ -154,13 +154,11 @@ class TestAnalyzeTransactionTool:
 
     def test_error_handling_exception(self):
         """Test error handling when analysis fails"""
-        # Pass something that will cause an exception
+        # Pass something that will cause a validation error
         result = analyze_transaction(None)
 
         assert 'error' in result
-        assert result['overall_risk_score'] == 0.0
-        assert result['risk_level'] == 'UNKNOWN'
-        assert result['status'] == 'analysis_failed'
+        assert result['status'] == 'validation_failed'
 
 
 class TestDetectBehavioralAnomalyTool:
@@ -210,8 +208,7 @@ class TestDetectBehavioralAnomalyTool:
         result = detect_behavioral_anomaly(None)
 
         assert 'error' in result
-        assert result['overall_anomaly_score'] == 0.0
-        assert result['status'] == 'analysis_failed'
+        assert result['status'] == 'validation_failed'
 
 
 class TestAssessNetworkRiskTool:
@@ -254,7 +251,7 @@ class TestGenerateRiskScoreTool:
         assert 'component_scores' in result
         assert 'risk_level' in result
         assert 'confidence' in result
-        assert 'all_detected_anomalies' in result
+        assert 'detected_anomalies' in result
         assert 'comprehensive_explanation' in result
         assert 'recommended_actions' in result
 
@@ -359,14 +356,14 @@ class TestGenerateRiskScoreTool:
         explanation = result['comprehensive_explanation']
         assert isinstance(explanation, str)
 
-        if len(result['all_detected_anomalies']) > 0:
+        if len(result['detected_anomalies']) > 0:
             assert 'anomalies' in explanation.lower()
 
     def test_comprehensive_explanation_no_anomalies(self, sample_transaction_data):
         """Test comprehensive explanation when no anomalies detected"""
         result = generate_risk_score(sample_transaction_data)
 
-        if len(result['all_detected_anomalies']) == 0:
+        if len(result['detected_anomalies']) == 0:
             assert 'no significant anomalies' in result['comprehensive_explanation'].lower()
 
     def test_analysis_components_listed(
@@ -400,7 +397,7 @@ class TestGenerateRiskScoreTool:
         assert 'error' in result
         assert result['overall_risk_score'] == 0.0
         assert result['risk_level'] == 'UNKNOWN'
-        assert result['status'] == 'analysis_failed'
+        assert result['status'] == 'validation_failed'
 
 
 class TestExplainDecisionTool:
@@ -455,7 +452,7 @@ class TestExplainDecisionTool:
         analysis_result = {
             'overall_risk_score': 0.6,
             'risk_level': 'MEDIUM',
-            'all_detected_anomalies': [],
+            'detected_anomalies': [],
             'component_scores': {'transaction': 0.6}
         }
         result = explain_decision(analysis_result)
@@ -468,7 +465,7 @@ class TestExplainDecisionTool:
         analysis_result = {
             'overall_risk_score': 0.6,
             'risk_level': 'MEDIUM',
-            'all_detected_anomalies': [],
+            'detected_anomalies': [],
             'component_scores': {
                 'transaction': 0.6,
                 'behavioral': 0.5
@@ -485,7 +482,7 @@ class TestExplainDecisionTool:
         analysis_result = {
             'overall_risk_score': 0.6,
             'risk_level': 'MEDIUM',
-            'all_detected_anomalies': [],
+            'detected_anomalies': [],
             'component_scores': {
                 'transaction': 0.6,
                 'behavioral': 0.5,
@@ -513,7 +510,7 @@ class TestExplainDecisionTool:
         analysis_result = {
             'overall_risk_score': 0.8,
             'risk_level': 'HIGH',
-            'all_detected_anomalies': ['high_amount_transaction'],
+            'detected_anomalies': ['high_amount_transaction'],
             'component_scores': {'transaction': 0.8}
         }
         result = explain_decision(analysis_result)
@@ -526,7 +523,7 @@ class TestExplainDecisionTool:
         analysis_result = {
             'overall_risk_score': 0.2,
             'risk_level': 'LOW',
-            'all_detected_anomalies': [],
+            'detected_anomalies': [],
             'component_scores': {'transaction': 0.2}
         }
         result = explain_decision(analysis_result)

@@ -3,17 +3,16 @@ Tests for error handling and edge cases
 """
 
 import pytest
+from datetime import datetime
 from server import (
     BehavioralBiometrics,
     TransactionAnalyzer,
-    NetworkAnalyzer
-)
-from server_wrapper import (
-    analyze_transaction,
-    detect_behavioral_anomaly,
-    assess_network_risk,
-    generate_risk_score,
-    explain_decision
+    NetworkAnalyzer,
+    analyze_transaction_impl as analyze_transaction,
+    detect_behavioral_anomaly_impl as detect_behavioral_anomaly,
+    assess_network_risk_impl as assess_network_risk,
+    generate_risk_score_impl as generate_risk_score,
+    explain_decision_impl as explain_decision,
 )
 
 
@@ -68,14 +67,14 @@ class TestErrorHandling:
         result = analyze_transaction(None)
 
         assert 'error' in result
-        assert result['status'] == 'analysis_failed'
+        assert result['status'] == 'validation_failed'
 
     def test_detect_behavioral_anomaly_with_none(self):
         """Test detect_behavioral_anomaly tool with None input"""
         result = detect_behavioral_anomaly(None)
 
         assert 'error' in result
-        assert result['status'] == 'analysis_failed'
+        assert result['status'] == 'validation_failed'
 
     def test_assess_network_risk_with_none(self):
         """Test assess_network_risk tool with None input"""
@@ -89,7 +88,7 @@ class TestErrorHandling:
         result = generate_risk_score(None)
 
         assert 'error' in result
-        assert result['status'] == 'analysis_failed'
+        assert result['status'] == 'validation_failed'
 
     def test_explain_decision_with_none(self):
         """Test explain_decision tool with None input"""
