@@ -574,3 +574,46 @@ class TestFeatureExplanation:
         }
         result = explain_decision_impl(comprehensive_analysis_result)
         assert 'feature_analysis' in result
+
+
+class TestHealthCheck:
+    """Test health check functionality"""
+
+    def test_health_check_returns_healthy(self):
+        from server import health_check_impl
+        result = health_check_impl()
+        assert result["status"] in ("healthy", "degraded")
+        assert "timestamp" in result
+        assert "version" in result
+
+    def test_health_check_models_section(self):
+        from server import health_check_impl
+        result = health_check_impl()
+        models = result["models"]
+        assert models["isolation_forest"] is True
+        assert models["feature_engineer"] is True
+        assert models["explainer"] is True
+        assert models["feature_count"] == 46
+
+    def test_health_check_cache_section(self):
+        from server import health_check_impl
+        result = health_check_impl()
+        cache = result["cache"]
+        assert "size" in cache
+        assert "capacity" in cache
+        assert cache["capacity"] == 1000
+
+    def test_health_check_inference_section(self):
+        from server import health_check_impl
+        result = health_check_impl()
+        inference = result["inference"]
+        assert "total_predictions" in inference
+        assert "batch_predictions" in inference
+
+    def test_health_check_system_section(self):
+        from server import health_check_impl
+        result = health_check_impl()
+        # System section present if monitoring available
+        if "system" in result:
+            system = result["system"]
+            assert "cpu_percent" in system or "error" in system

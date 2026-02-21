@@ -1072,6 +1072,47 @@ def get_inference_stats_impl() -> Dict[str, Any]:
     }
 
 
+def health_check_impl() -> Dict[str, Any]:
+    """Implementation of system health check."""
+    result = {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "2.1.0",
+        "models": {
+            "isolation_forest": transaction_analyzer.isolation_forest is not None,
+            "feature_engineer": transaction_analyzer.feature_engineer is not None,
+            "explainer": fraud_explainer is not None,
+            "feature_count": len(transaction_analyzer.feature_engineer.feature_names),
+        },
+        "cache": {
+            "size": prediction_cache.size(),
+            "capacity": prediction_cache.capacity,
+            "hit_rate": (
+                _inference_stats["cache_hits"] / _inference_stats["total_predictions"]
+                if _inference_stats["total_predictions"] > 0 else 0.0
+            ),
+        },
+        "inference": {
+            "total_predictions": _inference_stats["total_predictions"],
+            "batch_predictions": _inference_stats["batch_predictions"],
+        },
+    }
+
+    # Add system metrics if monitoring available
+    if monitor is not None:
+        try:
+            system_health = monitor.health_check()
+            result["system"] = system_health.get("system", {})
+            result["checks"] = system_health.get("checks", {})
+            if system_health.get("status") == "degraded":
+                result["status"] = "degraded"
+        except Exception as e:
+            logger.warning(f"System health check failed: {e}")
+            result["system"] = {"error": str(e)}
+
+    return result
+
+
 # =============================================================================
 # MCP Tool Wrappers (thin delegates to _impl functions)
 # =============================================================================
@@ -1192,6 +1233,17 @@ def get_inference_stats() -> Dict[str, Any]:
         Statistics dict with total_predictions, cache_hit_rate, average_prediction_time_ms, etc.
     """
     return get_inference_stats_impl()
+
+
+@mcp.tool()
+def health_check() -> Dict[str, Any]:
+    """
+    System health check with model status, cache stats, and system metrics.
+
+    Returns:
+        Health status including models loaded, cache performance, and system resource usage
+    """
+    return health_check_impl()
 
 
 if __name__ == "__main__":
