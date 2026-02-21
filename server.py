@@ -1639,6 +1639,130 @@ class AgentBehavioralFingerprint:
 agent_fingerprinter = AgentBehavioralFingerprint()
 
 
+# =============================================================================
+# Mandate Verifier
+# =============================================================================
+
+
+class MandateVerifier:
+    """Stateless mandate compliance checker for agent transactions.
+
+    Verifies whether a transaction falls within an agent's authorized scope.
+    Mandates define constraints: spending limits, merchant whitelists/blacklists,
+    time windows, and geographic restrictions. The mandate is passed per-call
+    by the orchestrating agent.
+    """
+
+    def verify(
+        self, transaction: Dict[str, Any], mandate: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Check transaction against mandate constraints.
+
+        Args:
+            transaction: Transaction data with amount, merchant, location, timestamp.
+            mandate: Constraint dict with optional keys: max_amount, daily_limit,
+                allowed_merchants, blocked_merchants, allowed_locations,
+                time_window (start/end HH:MM).
+
+        Returns:
+            Dict with compliant (bool), violations (list), drift_score (0-1),
+            mandate_utilization (dict), and checks_performed (int).
+        """
+        violations: List[str] = []
+        checks = 0
+        utilization: Dict[str, float] = {}
+
+        amount = float(transaction.get("amount", 0.0))
+        merchant = str(transaction.get("merchant", "")).lower()
+        location = str(transaction.get("location", "")).lower()
+
+        # --- Amount check ---
+        max_amount = mandate.get("max_amount")
+        if max_amount is not None:
+            checks += 1
+            max_amount = float(max_amount)
+            utilization["amount_pct"] = amount / max_amount if max_amount > 0 else 0.0
+            if amount > max_amount:
+                violations.append(f"amount_exceeded: {amount} > {max_amount}")
+
+        # --- Daily limit check ---
+        daily_limit = mandate.get("daily_limit")
+        if daily_limit is not None:
+            checks += 1
+            daily_limit = float(daily_limit)
+            utilization["daily_pct"] = amount / daily_limit if daily_limit > 0 else 0.0
+            if amount > daily_limit:
+                violations.append(f"daily_limit_exceeded: {amount} > {daily_limit}")
+
+        # --- Blocked merchants ---
+        blocked = mandate.get("blocked_merchants")
+        if blocked is not None:
+            checks += 1
+            blocked_lower = [m.lower() for m in blocked]
+            if merchant in blocked_lower:
+                violations.append(f"blocked_merchant: {merchant}")
+
+        # --- Allowed merchants ---
+        allowed_merchants = mandate.get("allowed_merchants")
+        if allowed_merchants is not None:
+            checks += 1
+            allowed_lower = [m.lower() for m in allowed_merchants]
+            if merchant and merchant != "unknown" and merchant not in allowed_lower:
+                violations.append(f"merchant_not_allowed: {merchant}")
+
+        # --- Allowed locations ---
+        allowed_locations = mandate.get("allowed_locations")
+        if allowed_locations is not None:
+            checks += 1
+            allowed_loc_lower = [loc.lower() for loc in allowed_locations]
+            if location and location != "unknown" and location not in allowed_loc_lower:
+                violations.append(f"location_not_allowed: {location}")
+
+        # --- Time window ---
+        time_window = mandate.get("time_window")
+        if time_window is not None and "start" in time_window and "end" in time_window:
+            checks += 1
+            try:
+                ts = transaction.get("timestamp", "")
+                if isinstance(ts, str):
+                    dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                elif isinstance(ts, datetime):
+                    dt = ts
+                else:
+                    dt = datetime.now()
+
+                txn_time = dt.strftime("%H:%M")
+                start = time_window["start"]
+                end = time_window["end"]
+
+                if start <= end:
+                    if not (start <= txn_time <= end):
+                        violations.append(
+                            f"outside_time_window: {txn_time} not in {start}-{end}"
+                        )
+                else:
+                    # Overnight window (e.g., 22:00-06:00)
+                    if end < txn_time < start:
+                        violations.append(
+                            f"outside_time_window: {txn_time} not in {start}-{end}"
+                        )
+            except (ValueError, TypeError):
+                pass  # Skip time check if timestamp unparseable
+
+        drift_score = len(violations) / checks if checks > 0 else 0.0
+
+        return {
+            "compliant": len(violations) == 0,
+            "violations": violations,
+            "drift_score": float(drift_score),
+            "mandate_utilization": utilization,
+            "checks_performed": checks,
+        }
+
+
+mandate_verifier = MandateVerifier()
+
+
 def _monitored(endpoint: str, method: str = "TOOL"):
     """Apply @track_api_call only when monitoring is available."""
     if MONITORING_AVAILABLE and track_api_call is not None:
