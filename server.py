@@ -70,6 +70,14 @@ except ImportError:
     SHAP_AVAILABLE = False
     FraudExplainer = None
 
+# Synthetic data integration (graceful degradation if unavailable)
+try:
+    from integration import SyntheticDataIntegration
+    SYNTHETIC_DATA_AVAILABLE = True
+except ImportError:
+    SYNTHETIC_DATA_AVAILABLE = False
+    SyntheticDataIntegration = None
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -712,6 +720,17 @@ _inference_stats = {
     "total_time_ms": 0.0,
     "batch_predictions": 0,
 }
+
+# Initialize synthetic data integration
+if SYNTHETIC_DATA_AVAILABLE and SyntheticDataIntegration is not None:
+    try:
+        synthetic_data_integration = SyntheticDataIntegration()
+        logger.info("SyntheticDataIntegration initialized successfully")
+    except Exception as e:
+        logger.warning(f"Failed to initialize SyntheticDataIntegration: {e}")
+        synthetic_data_integration = None
+else:
+    synthetic_data_integration = None
 
 # Initialize monitoring
 if MONITORING_AVAILABLE:
