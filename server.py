@@ -1151,6 +1151,7 @@ def health_check_impl() -> Dict[str, Any]:
             "feature_engineer": transaction_analyzer.feature_engineer is not None,
             "explainer": fraud_explainer is not None,
             "feature_count": len(transaction_analyzer.feature_engineer.feature_names),
+            "model_source": transaction_analyzer._model_source,
         },
         "cache": {
             "size": prediction_cache.size(),
