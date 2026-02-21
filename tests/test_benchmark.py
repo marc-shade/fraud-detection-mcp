@@ -1,7 +1,6 @@
 """Tests for Phase 10: Run Benchmark MCP Tool"""
 
 import pytest
-import numpy as np
 
 
 # ---------------------------------------------------------------------------

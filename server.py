@@ -1317,7 +1317,7 @@ def health_check_impl() -> Dict[str, Any]:
     result = {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "version": "2.1.0",
+        "version": "2.2.0",
         "models": {
             "isolation_forest": transaction_analyzer.isolation_forest is not None,
             "feature_engineer": transaction_analyzer.feature_engineer is not None,
