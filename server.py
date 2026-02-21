@@ -10,6 +10,7 @@ import os
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 import hashlib
+import json
 import logging
 import math
 import threading
@@ -1021,6 +1022,83 @@ class TrafficClassifier:
 traffic_classifier = TrafficClassifier()
 
 
+# =============================================================================
+# Agent Identity Registry
+# =============================================================================
+
+class AgentIdentityRegistry:
+    """Thread-safe JSON-backed registry of known AI agent identities.
+
+    Tracks agent identifiers, types, trust scores, and transaction history.
+    """
+
+    def __init__(self, registry_path: Optional[Path] = None):
+        self._path = registry_path or Path("data/agent_registry.json")
+        self._lock = threading.Lock()
+        self._agents: Dict[str, Dict[str, Any]] = {}
+        self._load()
+
+    def _load(self):
+        """Load registry from disk if it exists."""
+        if self._path.exists():
+            try:
+                with open(self._path, "r") as f:
+                    self._agents = json.load(f)
+            except (json.JSONDecodeError, OSError):
+                self._agents = {}
+
+    def _save(self):
+        """Persist registry to disk."""
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        with open(self._path, "w") as f:
+            json.dump(self._agents, f, indent=2, default=str)
+
+    def register(self, agent_id: str, agent_type: Optional[str] = None) -> Dict[str, Any]:
+        """Register a new agent or return existing entry."""
+        with self._lock:
+            if agent_id in self._agents:
+                return self._agents[agent_id]
+            entry = {
+                "agent_id": agent_id,
+                "agent_type": agent_type,
+                "first_seen": datetime.now().isoformat(),
+                "last_seen": datetime.now().isoformat(),
+                "transaction_count": 0,
+                "trust_score": 0.5,
+            }
+            self._agents[agent_id] = entry
+            self._save()
+            return entry
+
+    def lookup(self, agent_id: str) -> Optional[Dict[str, Any]]:
+        """Look up an agent by identifier."""
+        with self._lock:
+            return self._agents.get(agent_id)
+
+    def record_transaction(self, agent_id: str):
+        """Record a transaction for an agent, incrementing count."""
+        with self._lock:
+            if agent_id in self._agents:
+                self._agents[agent_id]["transaction_count"] += 1
+                self._agents[agent_id]["last_seen"] = datetime.now().isoformat()
+                self._save()
+
+    def update_trust(self, agent_id: str, trust_score: float):
+        """Update an agent's trust score (clamped to [0, 1])."""
+        with self._lock:
+            if agent_id in self._agents:
+                self._agents[agent_id]["trust_score"] = max(0.0, min(1.0, trust_score))
+                self._save()
+
+    def list_agents(self) -> Dict[str, Dict[str, Any]]:
+        """Return all registered agents."""
+        with self._lock:
+            return dict(self._agents)
+
+
+agent_registry = AgentIdentityRegistry()
+
+
 def _monitored(endpoint: str, method: str = "TOOL"):
     """Apply @track_api_call only when monitoring is available."""
     if MONITORING_AVAILABLE and track_api_call is not None:
@@ -1038,7 +1116,6 @@ def _generate_cache_key(transaction_data: Dict[str, Any]) -> str:
         "payment_method": transaction_data.get("payment_method"),
         "user_id": transaction_data.get("user_id"),
     }
-    import json
     key_str = json.dumps(key_fields, sort_keys=True, default=str)
     return hashlib.sha256(key_str.encode()).hexdigest()
 
