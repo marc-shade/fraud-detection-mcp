@@ -1531,6 +1531,15 @@ def generate_risk_score_impl(
         traffic_source = classification["source"]
         is_agent_traffic = traffic_source == "agent"
 
+        # Agent identity verification (only for agent traffic with identifier)
+        identity_verification = None
+        if is_agent_traffic and transaction_data.get("agent_identifier"):
+            identity_verification = agent_verifier.verify(
+                agent_identifier=str(transaction_data["agent_identifier"]),
+                api_key=str(transaction_data.get("api_key", "")) or None,
+                token=str(transaction_data.get("token", "")) or None,
+            )
+
         # Perform all analyses
         transaction_analysis = transaction_analyzer.analyze_transaction(transaction_data)
 
@@ -1580,18 +1589,34 @@ def generate_risk_score_impl(
                 network_analysis.get("risk_patterns", [])
             )
 
+        # Identity analysis (agent traffic only)
+        if identity_verification:
+            # Convert trust_score to risk_score: high trust = low risk
+            id_trust = identity_verification.get("trust_score", 0.5)
+            identity_risk_score = 1.0 - id_trust
+            comprehensive_result["component_scores"]["identity"] = identity_risk_score
+            scores.append(identity_risk_score)
+            confidences.append(0.7 if identity_verification.get("verified") else 0.4)
+
+            if not identity_verification.get("verified"):
+                comprehensive_result["detected_anomalies"].append("unverified_agent_identity")
+
+            # Record transaction in registry
+            agent_id = transaction_data.get("agent_identifier")
+            if agent_id:
+                agent_registry.record_transaction(str(agent_id))
+
         # Calculate weighted overall score
-        # Agent traffic: heavier network weight, no behavioral biometrics
+        # Agent traffic: equal weighting across all available components
         # Human traffic: standard weights (transaction 50%, behavioral 30%, network 20%)
         if is_agent_traffic:
-            if len(scores) == 1:
+            n = len(scores)
+            if n == 1:
                 overall_score = scores[0]
-            elif len(scores) == 2:
-                # Transaction + network (no behavioral for agents)
-                overall_score = (scores[0] * 0.55 + scores[1] * 0.45)
             else:
-                # All three present (unusual for agents but handle it)
-                overall_score = (scores[0] * 0.4 + scores[1] * 0.2 + scores[2] * 0.4)
+                # For agent traffic, use equal weighting across all available components
+                # This naturally adapts as more components (identity, network) are added
+                overall_score = sum(scores) / n
         else:
             if len(scores) == 1:
                 overall_score = scores[0]

@@ -282,3 +282,74 @@ class TestVerifyAgentIdentityImpl:
             agent_identifier=12345  # wrong type
         )
         assert "error" in result or "warnings" in result
+
+
+class TestIdentityInRiskScoring:
+    """Tests for identity score integration in generate_risk_score_impl"""
+
+    @pytest.mark.unit
+    def test_agent_with_identity_gets_identity_score(self):
+        """Agent traffic with identifier includes identity score"""
+        from server import generate_risk_score_impl
+        result = generate_risk_score_impl(
+            {"amount": 100.0, "merchant": "Store", "location": "NYC",
+             "timestamp": "2026-02-21T12:00:00", "payment_method": "credit_card",
+             "is_agent": True, "agent_identifier": "test-identity-agent"},
+        )
+        assert result.get("traffic_source") == "agent"
+        assert "identity" in result.get("component_scores", {})
+
+    @pytest.mark.unit
+    def test_agent_without_identity_no_identity_score(self):
+        """Agent traffic without identifier has no identity component"""
+        from server import generate_risk_score_impl
+        result = generate_risk_score_impl(
+            {"amount": 100.0, "merchant": "Store", "location": "NYC",
+             "timestamp": "2026-02-21T12:00:00", "payment_method": "credit_card",
+             "is_agent": True},
+        )
+        assert result.get("traffic_source") == "agent"
+        # No agent_identifier, so identity verification is skipped
+        assert "identity" not in result.get("component_scores", {})
+
+    @pytest.mark.unit
+    def test_human_traffic_no_identity_check(self):
+        """Human traffic doesn't get identity verification"""
+        from server import generate_risk_score_impl
+        result = generate_risk_score_impl(
+            {"amount": 100.0, "merchant": "Store", "location": "NYC",
+             "timestamp": "2026-02-21T12:00:00", "payment_method": "credit_card",
+             "is_agent": False},
+        )
+        assert "identity" not in result.get("component_scores", {})
+
+    @pytest.mark.unit
+    def test_verified_agent_reduces_risk(self):
+        """Verified agent with high trust gets lower risk score"""
+        from server import generate_risk_score_impl, agent_registry
+        agent_registry.register("trusted-risk-agent", agent_type="stripe_acp")
+        agent_registry.update_trust("trusted-risk-agent", 0.9)
+        for _ in range(10):
+            agent_registry.record_transaction("trusted-risk-agent")
+        result = generate_risk_score_impl(
+            {"amount": 100.0, "merchant": "Store", "location": "NYC",
+             "timestamp": "2026-02-21T12:00:00", "payment_method": "credit_card",
+             "is_agent": True, "agent_identifier": "trusted-risk-agent"},
+        )
+        assert "identity" in result.get("component_scores", {})
+        # Identity score should reflect high trust
+        identity_score = result["component_scores"]["identity"]
+        assert identity_score <= 0.5  # Low risk for trusted agent
+
+    @pytest.mark.unit
+    def test_unverified_agent_increases_risk(self):
+        """Unverified agent gets higher risk from identity component"""
+        from server import generate_risk_score_impl
+        result = generate_risk_score_impl(
+            {"amount": 100.0, "merchant": "Store", "location": "NYC",
+             "timestamp": "2026-02-21T12:00:00", "payment_method": "credit_card",
+             "is_agent": True, "agent_identifier": "totally-unknown-agent-xyz"},
+        )
+        assert "identity" in result.get("component_scores", {})
+        identity_score = result["component_scores"]["identity"]
+        assert identity_score >= 0.5  # High risk for unverified agent
