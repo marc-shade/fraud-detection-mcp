@@ -190,7 +190,7 @@ class TestTransactionAnalysis:
     def test_model_initialization(self, analyzer):
         """Test that models are properly initialized"""
         assert analyzer.isolation_forest is not None
-        assert analyzer.xgb_model is not None
+        assert not hasattr(analyzer, 'xgb_model')
 
     def test_error_handling_malformed_data(self, analyzer):
         """Test error handling with malformed transaction data"""

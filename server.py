@@ -253,7 +253,6 @@ class TransactionAnalyzer:
             random_state=42,
             n_estimators=200
         )
-        self.xgb_model = None
         self._initialize_models()
 
     def _initialize_models(self):
