@@ -26,6 +26,7 @@ import networkx as nx
 
 from config import get_config
 from models_validation import TransactionData, PaymentMethod
+from feature_engineering import FeatureEngineer
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -250,6 +251,7 @@ class TransactionAnalyzer:
     """Advanced transaction pattern analysis"""
 
     def __init__(self):
+        self.feature_engineer = FeatureEngineer()
         self.isolation_forest = IsolationForest(
             contamination=0.1,
             random_state=42,
@@ -258,23 +260,33 @@ class TransactionAnalyzer:
         self._initialize_models()
 
     def _initialize_models(self):
-        """Initialize transaction analysis models"""
-        # Fit Isolation Forest with representative transaction data
-        # Features: amount, log_amount, hour, weekday, day, location_hash, merchant_hash, payment_risk
+        """Initialize models with synthetic training data"""
+        from datetime import timedelta
         rng = np.random.RandomState(42)
         n = 200
-        amounts = rng.exponential(500, n)
-        dummy_transaction_features = np.column_stack([
-            amounts,                                         # amount: $0-$2000+
-            np.log1p(amounts),                               # log_amount
-            rng.randint(0, 24, n).astype(float),             # hour: 0-23
-            rng.randint(0, 7, n).astype(float),              # weekday: 0-6
-            rng.randint(1, 32, n).astype(float),             # day: 1-31
-            rng.randint(0, 1000, n).astype(float),           # location_hash: 0-999
-            rng.randint(0, 1000, n).astype(float),           # merchant_hash: 0-999
-            rng.choice([0.1, 0.2, 0.3, 0.5, 0.8], n),       # payment_risk
-        ])
-        self.isolation_forest.fit(dummy_transaction_features)
+        payment_methods = ['credit_card', 'debit_card', 'bank_transfer', 'crypto', 'paypal']
+        locations = ['United States', 'United Kingdom', 'Canada', 'Germany', 'Japan',
+                     'France', 'Australia', 'Brazil', 'India', 'Singapore']
+        merchants = ['Amazon', 'Walmart', 'Target', 'BestBuy', 'Costco',
+                     'Starbucks', 'McDonalds', 'Apple', 'Google', 'Netflix']
+
+        synthetic_transactions = []
+        for i in range(n):
+            amount = round(max(0.01, rng.exponential(500)), 2)
+            txn = TransactionData(
+                transaction_id=f'train-{i:04d}',
+                user_id=f'user-{i % 50:03d}',
+                amount=amount,
+                merchant=merchants[i % len(merchants)],
+                location=locations[i % len(locations)],
+                timestamp=datetime.now() - timedelta(days=int(rng.randint(1, 364))),
+                payment_method=payment_methods[i % len(payment_methods)],
+            )
+            synthetic_transactions.append(txn)
+
+        # Fit feature engineer and isolation forest on 46-feature space
+        feature_matrix, _ = self.feature_engineer.fit_transform(synthetic_transactions)
+        self.isolation_forest.fit(feature_matrix)
 
     def analyze_transaction(self, transaction_data: Dict[str, Any]) -> Dict[str, Any]:
         """Comprehensive transaction fraud analysis"""
@@ -307,47 +319,10 @@ class TransactionAnalyzer:
             logger.error(f"Transaction analysis error: {e}")
             return {"risk_score": 0.0, "confidence": 0.0, "status": "error", "error": str(e)}
 
-    def _extract_transaction_features(self, transaction: Dict[str, Any]) -> List[float]:
-        """Extract numerical features from transaction data"""
-        features = []
-
-        # Amount-based features
-        amount = float(transaction.get('amount', 0))
-        features.append(amount)
-        features.append(np.log1p(amount))  # Log-transformed amount
-
-        # Time-based features
-        timestamp = transaction.get('timestamp')
-        if timestamp:
-            dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-            features.extend([
-                dt.hour,  # Hour of day
-                dt.weekday(),  # Day of week
-                dt.day,  # Day of month
-            ])
-        else:
-            features.extend([0, 0, 0])
-
-        # Location-based features (deterministic hash)
-        location = transaction.get('location', '')
-        features.append(int(hashlib.md5(str(location).encode()).hexdigest(), 16) % 1000)
-
-        # Merchant-based features (deterministic hash)
-        merchant = transaction.get('merchant', '')
-        features.append(int(hashlib.md5(str(merchant).encode()).hexdigest(), 16) % 1000)
-
-        # Payment method features
-        payment_method = transaction.get('payment_method', 'unknown')
-        method_risk = {
-            'credit_card': 0.3,
-            'debit_card': 0.2,
-            'bank_transfer': 0.1,
-            'crypto': 0.8,
-            'unknown': 0.5
-        }
-        features.append(method_risk.get(payment_method, 0.5))
-
-        return features
+    def _extract_transaction_features(self, transaction_data: Dict[str, Any]) -> np.ndarray:
+        """Extract features using FeatureEngineer (46 features)"""
+        txn = _dict_to_transaction_data(transaction_data)
+        return self.feature_engineer.transform(txn)
 
     def _identify_risk_factors(self, transaction: Dict[str, Any], features: List[float]) -> List[str]:
         """Identify specific risk factors in the transaction"""
