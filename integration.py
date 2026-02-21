@@ -396,7 +396,6 @@ class SyntheticDataIntegration:
 
         # Normal keystroke patterns
         base_dwell = 80  # milliseconds
-        base_flight = 120  # milliseconds
 
         for i, key in enumerate("password123"):
             press_time = 1000 + i * 150 + np.random.normal(0, 20)
@@ -423,7 +422,6 @@ class SyntheticDataIntegration:
         if fraud_type in ["high_amount_patterns", "velocity_fraud"]:
             # Simulate different user typing
             base_dwell = 150  # Much slower
-            base_flight = 300  # Much longer gaps
 
             for i, key in enumerate("password123"):
                 press_time = 1000 + i * 400 + np.random.normal(0, 100)  # More variation

@@ -32,7 +32,7 @@ from collections import deque
 import networkx as nx
 
 from config import get_config
-from models_validation import TransactionData, PaymentMethod
+from models_validation import TransactionData
 from feature_engineering import FeatureEngineer
 from async_inference import LRUCache
 
@@ -1691,7 +1691,7 @@ def analyze_dataset_impl(
 
 
 def _calculate_performance_metrics(
-    df: "pd.DataFrame",
+    df: Any,
     flagged_transactions: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
     """Calculate precision, recall, F1, and accuracy when ground truth labels exist."""
