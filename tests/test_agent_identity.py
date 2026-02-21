@@ -233,3 +233,52 @@ class TestAgentIdentityVerifier:
         assert result["verified"] is True
         # 3 signals: registry(0.7) + api_key(0.6) + jwt(0.7) = avg 0.667
         assert result["trust_score"] >= 0.65
+
+
+class TestVerifyAgentIdentityImpl:
+    """Tests for the verify_agent_identity_impl function"""
+
+    @pytest.mark.unit
+    def test_impl_returns_valid_result(self):
+        from server import verify_agent_identity_impl
+        result = verify_agent_identity_impl(
+            agent_identifier="test-impl-agent",
+            api_key="sk_agent_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+        )
+        assert "verified" in result
+        assert "trust_score" in result
+        assert "verification_timestamp" in result
+
+    @pytest.mark.unit
+    def test_impl_no_identifier(self):
+        from server import verify_agent_identity_impl
+        result = verify_agent_identity_impl()
+        assert result["verified"] is False
+        assert "no_identifier" in result["warnings"]
+
+    @pytest.mark.unit
+    def test_impl_with_all_credentials(self):
+        import base64
+        import time
+        from server import verify_agent_identity_impl
+        future_exp = int(time.time()) + 3600
+        header = base64.urlsafe_b64encode(b'{"alg":"HS256","typ":"JWT"}').rstrip(b'=').decode()
+        payload_bytes = json.dumps({"exp": future_exp, "sub": "full-cred-agent"}).encode()
+        payload = base64.urlsafe_b64encode(payload_bytes).rstrip(b'=').decode()
+        sig = base64.urlsafe_b64encode(b'fakesig').rstrip(b'=').decode()
+        token = f"{header}.{payload}.{sig}"
+        result = verify_agent_identity_impl(
+            agent_identifier="full-cred-agent",
+            api_key="sk_agent_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+            token=token
+        )
+        assert result["verified"] is True or result["trust_score"] > 0
+
+    @pytest.mark.unit
+    def test_impl_error_handling(self):
+        from server import verify_agent_identity_impl
+        # Should not crash on bad input
+        result = verify_agent_identity_impl(
+            agent_identifier=12345  # wrong type
+        )
+        assert "error" in result or "warnings" in result

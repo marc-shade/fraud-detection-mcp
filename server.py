@@ -1851,6 +1851,43 @@ def classify_traffic_source_impl(
         }
 
 
+def verify_agent_identity_impl(
+    agent_identifier: Optional[str] = None,
+    api_key: Optional[str] = None,
+    token: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Implementation of agent identity verification.
+
+    Validates agent credentials against the identity registry and
+    checks API key format and JWT token expiry.
+
+    Args:
+        agent_identifier: Agent identifier string.
+        api_key: API key credential.
+        token: JWT-style bearer token.
+
+    Returns:
+        Verification result with verified status, identity, trust_score, warnings.
+    """
+    try:
+        result = agent_verifier.verify(
+            agent_identifier=str(agent_identifier) if agent_identifier is not None else None,
+            api_key=str(api_key) if api_key is not None else None,
+            token=str(token) if token is not None else None,
+        )
+        result["verification_timestamp"] = datetime.now().isoformat()
+        return result
+    except Exception as e:
+        logger.error(f"Agent identity verification failed: {e}")
+        return {
+            "error": str(e),
+            "verified": False,
+            "trust_score": 0.0,
+            "warnings": ["verification_error"],
+            "status": "verification_failed",
+        }
+
+
 def analyze_batch_impl(
     transactions: List[Dict[str, Any]],
     use_cache: bool = True
@@ -2625,6 +2662,31 @@ def classify_traffic_source(
         Classification with source (human/agent/unknown), confidence, agent_type, and signals
     """
     return classify_traffic_source_impl(transaction_data, request_metadata)
+
+
+@_monitored("/verify_agent_identity", "TOOL")
+@mcp.tool()
+def verify_agent_identity(
+    agent_identifier: Optional[str] = None,
+    api_key: Optional[str] = None,
+    token: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Verify an AI agent's identity using available credentials.
+
+    Validates agent credentials against the identity registry, checks API key
+    format, and verifies JWT token expiry. Supports Stripe ACP, Visa TAP,
+    Mastercard Agent Pay, Google AP2, and other agent commerce protocols.
+
+    Args:
+        agent_identifier: Agent identifier (e.g., 'stripe-acp:agent-123')
+        api_key: API key credential for format validation
+        token: JWT-style bearer token for expiry verification
+
+    Returns:
+        Verification result with verified status, identity details, trust score, and warnings
+    """
+    return verify_agent_identity_impl(agent_identifier, api_key, token)
 
 
 @_monitored("/analyze_batch", "TOOL")
