@@ -1324,6 +1324,11 @@ def generate_risk_score_impl(
             return {"error": f"Invalid transaction data: {msg}", "status": "validation_failed",
                     "overall_risk_score": 0.0, "risk_level": "UNKNOWN"}
 
+        # Classify traffic source
+        classification = traffic_classifier.classify(transaction_data)
+        traffic_source = classification["source"]
+        is_agent_traffic = traffic_source == "agent"
+
         # Perform all analyses
         transaction_analysis = transaction_analyzer.analyze_transaction(transaction_data)
 
@@ -1374,12 +1379,24 @@ def generate_risk_score_impl(
             )
 
         # Calculate weighted overall score
-        if len(scores) == 1:
-            overall_score = scores[0]
-        elif len(scores) == 2:
-            overall_score = (scores[0] * 0.6 + scores[1] * 0.4)
+        # Agent traffic: heavier network weight, no behavioral biometrics
+        # Human traffic: standard weights (transaction 50%, behavioral 30%, network 20%)
+        if is_agent_traffic:
+            if len(scores) == 1:
+                overall_score = scores[0]
+            elif len(scores) == 2:
+                # Transaction + network (no behavioral for agents)
+                overall_score = (scores[0] * 0.55 + scores[1] * 0.45)
+            else:
+                # All three present (unusual for agents but handle it)
+                overall_score = (scores[0] * 0.4 + scores[1] * 0.2 + scores[2] * 0.4)
         else:
-            overall_score = (scores[0] * 0.5 + scores[1] * 0.3 + scores[2] * 0.2)
+            if len(scores) == 1:
+                overall_score = scores[0]
+            elif len(scores) == 2:
+                overall_score = (scores[0] * 0.6 + scores[1] * 0.4)
+            else:
+                overall_score = (scores[0] * 0.5 + scores[1] * 0.3 + scores[2] * 0.2)
 
         comprehensive_result["overall_risk_score"] = float(overall_score)
         comprehensive_result["confidence"] = float(np.mean(confidences))
@@ -1425,6 +1442,9 @@ def generate_risk_score_impl(
         comprehensive_result["comprehensive_explanation"] = explanation
         comprehensive_result["analysis_timestamp"] = datetime.now().isoformat()
         comprehensive_result["analysis_components"] = list(comprehensive_result["component_scores"].keys())
+
+        comprehensive_result["traffic_source"] = traffic_source
+        comprehensive_result["agent_classification"] = classification
 
         return comprehensive_result
 

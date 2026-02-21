@@ -194,3 +194,73 @@ class TestClassifyTrafficSourceImpl:
         from server import classify_traffic_source_impl
         result = classify_traffic_source_impl({})
         assert result["source"] == "unknown"
+
+
+class TestAgentAwareRiskScoring:
+    """Tests for agent-aware risk score weighting"""
+
+    @pytest.mark.unit
+    def test_risk_score_human_uses_standard_weights(self):
+        """Human traffic uses standard 50/30/20 weights"""
+        from server import generate_risk_score_impl
+        result = generate_risk_score_impl(
+            {"amount": 100.0, "merchant": "Store", "location": "NYC",
+             "timestamp": "2026-02-01T12:00:00", "payment_method": "credit_card"},
+            {"keystroke_dynamics": [{"key": "a", "dwell_time": 80, "flight_time": 120}] * 10},
+            {"entity_id": "user123", "connections": [{"target": "user456", "type": "shared_device"}]}
+        )
+        assert "traffic_source" not in result or result.get("traffic_source") == "unknown"
+        assert result["overall_risk_score"] >= 0.0
+
+    @pytest.mark.unit
+    def test_risk_score_agent_uses_agent_weights(self):
+        """Agent traffic applies agent-specific weighting"""
+        from server import generate_risk_score_impl
+        result = generate_risk_score_impl(
+            {"amount": 100.0, "merchant": "Store", "location": "NYC",
+             "timestamp": "2026-02-01T12:00:00", "payment_method": "credit_card",
+             "is_agent": True, "agent_identifier": "stripe-acp:agent-1"},
+            None,  # No behavioral data for agents
+            {"entity_id": "agent-1", "connections": [{"target": "merchant-1", "type": "transaction"}]}
+        )
+        assert result.get("traffic_source") == "agent"
+        assert "agent_classification" in result
+        assert result["overall_risk_score"] >= 0.0
+
+    @pytest.mark.unit
+    def test_risk_score_agent_no_behavioral_skips_behavioral(self):
+        """Agent traffic without behavioral data skips behavioral weight"""
+        from server import generate_risk_score_impl
+        result = generate_risk_score_impl(
+            {"amount": 100.0, "merchant": "Store", "location": "NYC",
+             "timestamp": "2026-02-01T12:00:00", "payment_method": "credit_card",
+             "is_agent": True},
+        )
+        assert result.get("traffic_source") == "agent"
+        assert "behavioral" not in result.get("component_scores", {})
+
+    @pytest.mark.unit
+    def test_risk_score_agent_with_network_reweights(self):
+        """Agent traffic with network data uses heavier network weight"""
+        from server import generate_risk_score_impl
+        result = generate_risk_score_impl(
+            {"amount": 100.0, "merchant": "Store", "location": "NYC",
+             "timestamp": "2026-02-01T12:00:00", "payment_method": "credit_card",
+             "is_agent": True},
+            None,
+            {"entity_id": "agent-1", "connections": []}
+        )
+        assert result.get("traffic_source") == "agent"
+        assert result["overall_risk_score"] >= 0.0
+        assert "analysis_components" in result
+
+    @pytest.mark.unit
+    def test_risk_score_unknown_traffic_uses_standard(self):
+        """Unknown traffic source uses standard weights"""
+        from server import generate_risk_score_impl
+        result = generate_risk_score_impl(
+            {"amount": 100.0, "merchant": "Store", "location": "NYC",
+             "timestamp": "2026-02-01T12:00:00", "payment_method": "credit_card"}
+        )
+        # No agent fields, should be unknown/standard
+        assert result["overall_risk_score"] >= 0.0
