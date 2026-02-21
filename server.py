@@ -556,6 +556,13 @@ else:
     monitor = None
 
 
+def _monitored(endpoint: str, method: str = "TOOL"):
+    """Apply @track_api_call only when monitoring is available."""
+    if MONITORING_AVAILABLE and track_api_call is not None:
+        return track_api_call(endpoint=endpoint, method=method)
+    return lambda fn: fn  # no-op decorator
+
+
 def _generate_cache_key(transaction_data: Dict[str, Any]) -> str:
     """Generate a deterministic cache key from transaction data."""
     key_fields = {
@@ -1051,6 +1058,7 @@ def get_inference_stats_impl() -> Dict[str, Any]:
 # MCP Tool Wrappers (thin delegates to _impl functions)
 # =============================================================================
 
+@_monitored("/analyze_transaction", "TOOL")
 @mcp.tool()
 def analyze_transaction(
     transaction_data: Dict[str, Any],
@@ -1071,6 +1079,7 @@ def analyze_transaction(
     return analyze_transaction_impl(transaction_data, include_behavioral, behavioral_data)
 
 
+@_monitored("/detect_behavioral_anomaly", "TOOL")
 @mcp.tool()
 def detect_behavioral_anomaly(behavioral_data: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -1085,6 +1094,7 @@ def detect_behavioral_anomaly(behavioral_data: Dict[str, Any]) -> Dict[str, Any]
     return detect_behavioral_anomaly_impl(behavioral_data)
 
 
+@_monitored("/assess_network_risk", "TOOL")
 @mcp.tool()
 def assess_network_risk(entity_data: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -1099,6 +1109,7 @@ def assess_network_risk(entity_data: Dict[str, Any]) -> Dict[str, Any]:
     return assess_network_risk_impl(entity_data)
 
 
+@_monitored("/generate_risk_score", "TOOL")
 @mcp.tool()
 def generate_risk_score(
     transaction_data: Dict[str, Any],
@@ -1119,6 +1130,7 @@ def generate_risk_score(
     return generate_risk_score_impl(transaction_data, behavioral_data, network_data)
 
 
+@_monitored("/explain_decision", "TOOL")
 @mcp.tool()
 def explain_decision(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -1133,6 +1145,7 @@ def explain_decision(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
     return explain_decision_impl(analysis_result)
 
 
+@_monitored("/analyze_batch", "TOOL")
 @mcp.tool()
 def analyze_batch(
     transactions: List[Dict[str, Any]],
@@ -1151,6 +1164,7 @@ def analyze_batch(
     return analyze_batch_impl(transactions, use_cache)
 
 
+@_monitored("/get_inference_stats", "TOOL")
 @mcp.tool()
 def get_inference_stats() -> Dict[str, Any]:
     """
