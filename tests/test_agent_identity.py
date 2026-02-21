@@ -196,7 +196,7 @@ class TestAgentIdentityVerifier:
     @pytest.mark.unit
     def test_verify_auto_registers_new_agent(self):
         """First-time agent gets auto-registered in registry"""
-        result = self.verifier.verify(agent_identifier="brand-new-agent")
+        self.verifier.verify(agent_identifier="brand-new-agent")
         agent = self.registry.lookup("brand-new-agent")
         assert agent is not None
         assert agent["trust_score"] == 0.3  # new agent starts low
