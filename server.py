@@ -911,6 +911,115 @@ else:
 # Initialize user transaction history tracker
 user_history = UserTransactionHistory(max_history=100, max_users=10000)
 
+# =============================================================================
+# Traffic Source Classifier
+# =============================================================================
+
+# Known AI agent User-Agent patterns
+AGENT_USER_AGENT_PATTERNS = {
+    "stripe_acp": ["stripe-acp", "stripe acp"],
+    "visa_tap": ["visa-tap", "visa tap"],
+    "mastercard_agent": ["mastercard-agent", "mastercard agent"],
+    "openai": ["openai-operator", "openai operator", "openai-agent"],
+    "anthropic": ["anthropic-agent", "anthropic agent", "claude-agent"],
+    "google_ap2": ["google-ap2", "google ap2"],
+    "paypal": ["paypal-agent", "paypal agent"],
+    "x402": ["x402-client", "x402 client"],
+    "coinbase": ["coinbase-agent", "coinbase agent", "agentkit"],
+}
+
+# Browser User-Agent patterns indicating human traffic
+BROWSER_USER_AGENT_PATTERNS = [
+    "mozilla/", "chrome/", "safari/", "firefox/", "edge/", "opera/",
+]
+
+
+class TrafficClassifier:
+    """Classifies transaction traffic as human, agent, or unknown.
+
+    Uses heuristic signals: explicit flags, user_agent patterns, agent
+    identifiers, and absence/presence of behavioral data.
+    """
+
+    def classify(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """Classify a transaction's traffic source.
+
+        Args:
+            metadata: Transaction metadata including optional fields:
+                is_agent, agent_identifier, user_agent, behavioral_data.
+
+        Returns:
+            Dict with source, confidence, agent_type, and signals.
+        """
+        signals = []
+        agent_score = 0.0  # positive = agent, negative = human
+        agent_type = None
+
+        # Signal 1: Explicit is_agent flag (strongest signal)
+        is_agent = metadata.get("is_agent")
+        if is_agent is True:
+            agent_score += 0.8
+            signals.append("explicit_flag")
+        elif is_agent is False:
+            agent_score -= 0.8
+            signals.append("explicit_flag")
+
+        # Signal 2: Agent identifier present
+        agent_id = metadata.get("agent_identifier")
+        if agent_id and isinstance(agent_id, str) and len(agent_id.strip()) > 0:
+            agent_score += 0.6
+            signals.append("agent_identifier_present")
+            # Try to extract agent type from identifier
+            if not agent_type:
+                agent_id_lower = agent_id.lower()
+                for atype, patterns in AGENT_USER_AGENT_PATTERNS.items():
+                    if any(p in agent_id_lower for p in patterns):
+                        agent_type = atype
+                        break
+
+        # Signal 3: User-Agent string analysis
+        user_agent = metadata.get("user_agent")
+        if user_agent and isinstance(user_agent, str):
+            ua_lower = user_agent.lower()
+
+            # Check for known agent patterns
+            for atype, patterns in AGENT_USER_AGENT_PATTERNS.items():
+                if any(p in ua_lower for p in patterns):
+                    agent_score += 0.7
+                    signals.append("user_agent_match")
+                    if not agent_type:
+                        agent_type = atype
+                    break
+            else:
+                # Check for browser patterns (human signal)
+                if any(p in ua_lower for p in BROWSER_USER_AGENT_PATTERNS):
+                    agent_score -= 0.5
+                    signals.append("user_agent_match")
+
+        # Clamp confidence to [0, 1]
+        raw_confidence = min(abs(agent_score), 1.0)
+
+        # Determine classification
+        if agent_score > 0.3:
+            source = "agent"
+            confidence = raw_confidence
+        elif agent_score < -0.3:
+            source = "human"
+            confidence = raw_confidence
+        else:
+            source = "unknown"
+            confidence = raw_confidence  # low confidence in the unknown case
+
+        return {
+            "source": source,
+            "confidence": float(confidence),
+            "agent_type": agent_type,
+            "signals": signals,
+        }
+
+
+traffic_classifier = TrafficClassifier()
+
 
 def _monitored(endpoint: str, method: str = "TOOL"):
     """Apply @track_api_call only when monitoring is available."""
