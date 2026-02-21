@@ -1077,8 +1077,21 @@ def generate_risk_score_impl(
         }
 
 
-def explain_decision_impl(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
-    """Implementation of explainable AI reasoning for fraud decisions"""
+def explain_decision_impl(
+    analysis_result: Dict[str, Any],
+    transaction_data: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Implementation of explainable AI reasoning for fraud decisions.
+
+    Args:
+        analysis_result: Previous analysis result to explain.
+        transaction_data: Optional original transaction data. When provided and
+            the explainability module is available, SHAP-based feature-level
+            explanations are generated on-demand.
+
+    Returns:
+        Detailed explanation of the decision-making process.
+    """
     try:
         explanation = {
             "decision_summary": "",
@@ -1086,6 +1099,7 @@ def explain_decision_impl(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
             "algorithm_contributions": {},
             "confidence_breakdown": {},
             "alternative_scenarios": [],
+            "explainability_method": "rule_based",
             "explanation_timestamp": datetime.now().isoformat()
         }
 
@@ -1150,6 +1164,48 @@ def explain_decision_impl(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
         # Include feature-level analysis if available in input
         if "feature_explanation" in analysis_result:
             explanation["feature_analysis"] = analysis_result["feature_explanation"]
+            explanation["explainability_method"] = (
+                analysis_result["feature_explanation"].get("method", "rule_based")
+            )
+
+        # Generate SHAP-based feature explanation on-demand when transaction_data
+        # is provided and the explainability module is available
+        if (
+            transaction_data is not None
+            and fraud_explainer is not None
+            and "feature_analysis" not in explanation
+        ):
+            try:
+                valid, msg = validate_transaction_data(transaction_data)
+                if valid:
+                    features = transaction_analyzer._extract_transaction_features(
+                        transaction_data
+                    )
+                    feature_explanation = fraud_explainer.explain_prediction(
+                        features, risk_score
+                    )
+                    explanation["feature_analysis"] = feature_explanation
+                    explanation["explainability_method"] = feature_explanation.get(
+                        "method", "Feature Importance"
+                    )
+
+                    # Generate human-readable summary
+                    summary = fraud_explainer.generate_summary(feature_explanation)
+                    explanation["human_readable_summary"] = summary
+            except Exception as e:
+                logger.warning(f"On-demand feature explanation failed: {e}")
+
+        # Generate human-readable summary from pre-existing feature_analysis
+        if (
+            "feature_analysis" in explanation
+            and "human_readable_summary" not in explanation
+            and fraud_explainer is not None
+        ):
+            try:
+                summary = fraud_explainer.generate_summary(explanation["feature_analysis"])
+                explanation["human_readable_summary"] = summary
+            except Exception as e:
+                logger.warning(f"Summary generation failed: {e}")
 
         return explanation
 
@@ -1479,17 +1535,24 @@ def generate_risk_score(
 
 @_monitored("/explain_decision", "TOOL")
 @mcp.tool()
-def explain_decision(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
+def explain_decision(
+    analysis_result: Dict[str, Any],
+    transaction_data: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     """
     Provide explainable AI reasoning for fraud detection decisions.
 
+    When transaction_data is provided, generates SHAP-based feature-level
+    explanations showing which features contributed most to the risk score.
+
     Args:
         analysis_result: Previous analysis result to explain
+        transaction_data: Optional original transaction data for feature-level explanation
 
     Returns:
         Detailed explanation of the decision-making process
     """
-    return explain_decision_impl(analysis_result)
+    return explain_decision_impl(analysis_result, transaction_data)
 
 
 @_monitored("/analyze_batch", "TOOL")
