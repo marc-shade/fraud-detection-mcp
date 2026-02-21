@@ -563,9 +563,12 @@ def _generate_cache_key(transaction_data: Dict[str, Any]) -> str:
 def analyze_transaction_impl(
     transaction_data: Dict[str, Any],
     include_behavioral: bool = False,
-    behavioral_data: Optional[Dict[str, Any]] = None
+    behavioral_data: Optional[Dict[str, Any]] = None,
+    use_cache: bool = True
 ) -> Dict[str, Any]:
     """Implementation of comprehensive transaction fraud analysis"""
+    import time as _time
+    _start = _time.monotonic()
     try:
         # Validate inputs
         valid, msg = validate_transaction_data(transaction_data)
@@ -576,6 +579,21 @@ def analyze_transaction_impl(
             valid, msg = validate_behavioral_data(behavioral_data)
             if not valid:
                 return {"error": f"Invalid behavioral data: {msg}", "status": "validation_failed"}
+
+        # Check prediction cache (only for pure transaction analysis, not behavioral)
+        cache_key = None
+        if use_cache and not include_behavioral:
+            cache_key = _generate_cache_key(transaction_data)
+            cached = prediction_cache.get(cache_key)
+            if cached is not None:
+                _inference_stats["cache_hits"] += 1
+                _inference_stats["total_predictions"] += 1
+                elapsed = (_time.monotonic() - _start) * 1000
+                _inference_stats["total_time_ms"] += elapsed
+                cached["cache_hit"] = True
+                return cached
+
+        _inference_stats["cache_misses"] += 1
 
         # Primary transaction analysis
         transaction_result = transaction_analyzer.analyze_transaction(transaction_data)
@@ -646,6 +664,16 @@ def analyze_transaction_impl(
         results["explanation"] = explanation
         results["analysis_timestamp"] = datetime.now().isoformat()
         results["model_version"] = "v2.1.0"
+        results["cache_hit"] = False
+
+        # Store in prediction cache
+        if cache_key is not None:
+            prediction_cache.put(cache_key, results)
+
+        # Update inference stats
+        _inference_stats["total_predictions"] += 1
+        elapsed = (_time.monotonic() - _start) * 1000
+        _inference_stats["total_time_ms"] += elapsed
 
         return results
 

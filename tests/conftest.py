@@ -316,14 +316,21 @@ def comprehensive_analysis_result():
 
 @pytest.fixture(autouse=True)
 def reset_ml_models():
-    """Reset ML models before each test to ensure isolation"""
-    from server import network_analyzer
+    """Reset ML models and caches before each test to ensure isolation"""
+    from server import network_analyzer, prediction_cache, _inference_stats
     import networkx as nx
     from collections import deque
     yield
     # Reset network graph state after each test
     network_analyzer.transaction_graph = nx.Graph()
     network_analyzer._node_order = deque()
+    # Reset prediction cache and inference stats
+    prediction_cache.clear()
+    _inference_stats["total_predictions"] = 0
+    _inference_stats["cache_hits"] = 0
+    _inference_stats["cache_misses"] = 0
+    _inference_stats["total_time_ms"] = 0.0
+    _inference_stats["batch_predictions"] = 0
 
 
 @pytest.fixture
