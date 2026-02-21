@@ -793,6 +793,21 @@ def analyze_transaction_impl(
     import time as _time
     _start = _time.monotonic()
     try:
+        # --- Security: sanitise inputs & enforce rate limit ---
+        if sanitizer is not None:
+            transaction_data = sanitizer.sanitize_dict(transaction_data)
+            if behavioral_data is not None:
+                behavioral_data = sanitizer.sanitize_dict(behavioral_data)
+        if rate_limiter is not None:
+            user_key = str(transaction_data.get("user_id", "anonymous"))
+            rl = rate_limiter.check_rate_limit(user_key)
+            if not rl["allowed"]:
+                return {
+                    "error": "Rate limit exceeded",
+                    "retry_after": rl["retry_after"],
+                    "status": "rate_limited",
+                }
+
         # Validate inputs
         valid, msg = validate_transaction_data(transaction_data)
         if not valid:
@@ -933,6 +948,10 @@ def analyze_transaction_impl(
 def detect_behavioral_anomaly_impl(behavioral_data: Dict[str, Any]) -> Dict[str, Any]:
     """Implementation of behavioral biometrics anomaly detection"""
     try:
+        # --- Security: sanitise inputs ---
+        if sanitizer is not None:
+            behavioral_data = sanitizer.sanitize_dict(behavioral_data)
+
         valid, msg = validate_behavioral_data(behavioral_data)
         if not valid:
             return {"error": f"Invalid behavioral data: {msg}", "status": "validation_failed"}
