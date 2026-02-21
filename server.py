@@ -487,7 +487,7 @@ network_analyzer = NetworkAnalyzer()
 
 
 # =============================================================================
-# Implementation Functions (testable)
+# Implementation Functions (testable, import these in tests)
 # =============================================================================
 
 def analyze_transaction_impl(
@@ -519,7 +519,7 @@ def analyze_transaction_impl(
             "recommended_actions": []
         }
 
-        # Add transaction risk factors to explanations
+        # Add transaction risk factors
         risk_factors = transaction_result.get("risk_factors", [])
         results["detected_anomalies"].extend(risk_factors)
 
@@ -527,7 +527,6 @@ def analyze_transaction_impl(
         if include_behavioral and behavioral_data:
             behavioral_result = {}
 
-            # Keystroke analysis
             if "keystroke_dynamics" in behavioral_data:
                 keystroke_result = behavioral_analyzer.analyze_keystroke_dynamics(
                     behavioral_data["keystroke_dynamics"]
@@ -576,18 +575,14 @@ def analyze_transaction_impl(
             "status": "analysis_failed"
         }
 
-@mcp.tool()
-def detect_behavioral_anomaly(behavioral_data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Analyze behavioral biometrics for anomaly detection.
 
-    Args:
-        behavioral_data: Behavioral patterns (keystroke dynamics, mouse movements, etc.)
-
-    Returns:
-        Behavioral anomaly analysis results
-    """
+def detect_behavioral_anomaly_impl(behavioral_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Implementation of behavioral biometrics anomaly detection"""
     try:
+        valid, msg = validate_behavioral_data(behavioral_data)
+        if not valid:
+            return {"error": f"Invalid behavioral data: {msg}", "status": "validation_failed"}
+
         results = {
             "overall_anomaly_score": 0.0,
             "behavioral_analyses": {},
@@ -632,36 +627,18 @@ def detect_behavioral_anomaly(behavioral_data: Dict[str, Any]) -> Dict[str, Any]
             "status": "analysis_failed"
         }
 
-@mcp.tool()
-def assess_network_risk(entity_data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Analyze network patterns for fraud ring detection.
 
-    Args:
-        entity_data: Entity information and network connections
-
-    Returns:
-        Network-based risk assessment
-    """
+def assess_network_risk_impl(entity_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Implementation of network-based risk assessment"""
     return network_analyzer.analyze_network_risk(entity_data)
 
-@mcp.tool()
-def generate_risk_score(
+
+def generate_risk_score_impl(
     transaction_data: Dict[str, Any],
     behavioral_data: Optional[Dict[str, Any]] = None,
     network_data: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
-    """
-    Generate comprehensive risk score combining all analysis methods.
-
-    Args:
-        transaction_data: Transaction details
-        behavioral_data: Behavioral biometrics data
-        network_data: Network connection data
-
-    Returns:
-        Comprehensive risk assessment with detailed scoring
-    """
+    """Implementation of comprehensive risk score generation"""
     try:
         # Perform all analyses
         transaction_analysis = transaction_analyzer.analyze_transaction(transaction_data)
@@ -674,7 +651,7 @@ def generate_risk_score(
             },
             "risk_level": "LOW",
             "confidence": 0.0,
-            "all_detected_anomalies": [],
+            "detected_anomalies": [],
             "comprehensive_explanation": "",
             "recommended_actions": []
         }
@@ -683,7 +660,7 @@ def generate_risk_score(
         confidences = [transaction_analysis.get("confidence", 0.0)]
 
         # Add transaction anomalies
-        comprehensive_result["all_detected_anomalies"].extend(
+        comprehensive_result["detected_anomalies"].extend(
             transaction_analysis.get("risk_factors", [])
         )
 
@@ -698,7 +675,7 @@ def generate_risk_score(
             confidences.append(behavioral_analysis.get("confidence", 0.0))
 
             if behavioral_analysis.get("is_anomaly"):
-                comprehensive_result["all_detected_anomalies"].append("behavioral_anomaly")
+                comprehensive_result["detected_anomalies"].append("behavioral_anomaly")
 
         # Network analysis
         if network_data:
@@ -708,19 +685,16 @@ def generate_risk_score(
             scores.append(network_score)
             confidences.append(network_analysis.get("confidence", 0.0))
 
-            comprehensive_result["all_detected_anomalies"].extend(
+            comprehensive_result["detected_anomalies"].extend(
                 network_analysis.get("risk_patterns", [])
             )
 
         # Calculate weighted overall score
         if len(scores) == 1:
-            # Only transaction analysis
             overall_score = scores[0]
         elif len(scores) == 2:
-            # Transaction + one other
             overall_score = (scores[0] * 0.6 + scores[1] * 0.4)
         else:
-            # All three analyses
             overall_score = (scores[0] * 0.5 + scores[1] * 0.3 + scores[2] * 0.2)
 
         comprehensive_result["overall_risk_score"] = float(overall_score)
@@ -752,10 +726,10 @@ def generate_risk_score(
             comprehensive_result["recommended_actions"] = ["allow_transaction"]
 
         # Generate comprehensive explanation
-        if comprehensive_result["all_detected_anomalies"]:
+        if comprehensive_result["detected_anomalies"]:
             explanation = (
-                f"Risk assessment detected {len(comprehensive_result['all_detected_anomalies'])} "
-                f"anomalies: {', '.join(comprehensive_result['all_detected_anomalies'])}. "
+                f"Risk assessment detected {len(comprehensive_result['detected_anomalies'])} "
+                f"anomalies: {', '.join(comprehensive_result['detected_anomalies'])}. "
                 f"Combined analysis suggests {comprehensive_result['risk_level']} risk level."
             )
         else:
@@ -779,17 +753,9 @@ def generate_risk_score(
             "status": "analysis_failed"
         }
 
-@mcp.tool()
-def explain_decision(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Provide explainable AI reasoning for fraud detection decisions.
 
-    Args:
-        analysis_result: Previous analysis result to explain
-
-    Returns:
-        Detailed explanation of the decision-making process
-    """
+def explain_decision_impl(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
+    """Implementation of explainable AI reasoning for fraud decisions"""
     try:
         explanation = {
             "decision_summary": "",
@@ -802,7 +768,7 @@ def explain_decision(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
 
         risk_score = analysis_result.get("overall_risk_score", 0.0)
         risk_level = analysis_result.get("risk_level", "UNKNOWN")
-        detected_anomalies = analysis_result.get("all_detected_anomalies", [])
+        detected_anomalies = analysis_result.get("detected_anomalies", [])
 
         # Decision summary
         explanation["decision_summary"] = (
@@ -825,7 +791,6 @@ def explain_decision(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
         # Algorithm contributions
         component_scores = analysis_result.get("component_scores", {})
         if component_scores:
-            total_weight = 0
             for component, score in component_scores.items():
                 if component == "transaction":
                     weight = 0.6 if len(component_scores) > 1 else 1.0
@@ -869,6 +834,92 @@ def explain_decision(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
             "status": "explanation_failed"
         }
 
+
+# =============================================================================
+# MCP Tool Wrappers (thin delegates to _impl functions)
+# =============================================================================
+
+@mcp.tool()
+def analyze_transaction(
+    transaction_data: Dict[str, Any],
+    include_behavioral: bool = False,
+    behavioral_data: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Comprehensive transaction fraud analysis with optional behavioral biometrics.
+
+    Args:
+        transaction_data: Transaction details (amount, merchant, location, timestamp, etc.)
+        include_behavioral: Whether to include behavioral analysis
+        behavioral_data: Behavioral biometrics data (keystroke dynamics, mouse movements)
+
+    Returns:
+        Fraud analysis results with risk score, level, anomalies, and recommendations
+    """
+    return analyze_transaction_impl(transaction_data, include_behavioral, behavioral_data)
+
+
+@mcp.tool()
+def detect_behavioral_anomaly(behavioral_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Analyze behavioral biometrics for anomaly detection.
+
+    Args:
+        behavioral_data: Behavioral patterns (keystroke dynamics, mouse movements, etc.)
+
+    Returns:
+        Behavioral anomaly analysis results
+    """
+    return detect_behavioral_anomaly_impl(behavioral_data)
+
+
+@mcp.tool()
+def assess_network_risk(entity_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Analyze network patterns for fraud ring detection.
+
+    Args:
+        entity_data: Entity information and network connections
+
+    Returns:
+        Network-based risk assessment
+    """
+    return assess_network_risk_impl(entity_data)
+
+
+@mcp.tool()
+def generate_risk_score(
+    transaction_data: Dict[str, Any],
+    behavioral_data: Optional[Dict[str, Any]] = None,
+    network_data: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Generate comprehensive risk score combining all analysis methods.
+
+    Args:
+        transaction_data: Transaction details
+        behavioral_data: Behavioral biometrics data
+        network_data: Network connection data
+
+    Returns:
+        Comprehensive risk assessment with detailed scoring
+    """
+    return generate_risk_score_impl(transaction_data, behavioral_data, network_data)
+
+
+@mcp.tool()
+def explain_decision(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Provide explainable AI reasoning for fraud detection decisions.
+
+    Args:
+        analysis_result: Previous analysis result to explain
+
+    Returns:
+        Detailed explanation of the decision-making process
+    """
+    return explain_decision_impl(analysis_result)
+
+
 if __name__ == "__main__":
-    # Run the MCP server
     mcp.run()
