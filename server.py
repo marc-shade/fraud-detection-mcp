@@ -1499,6 +1499,213 @@ def get_model_status_impl() -> Dict[str, Any]:
     }
 
 
+def generate_synthetic_dataset_impl(
+    num_transactions: int = 10000,
+    fraud_percentage: float = 5.0,
+    include_behavioral: bool = True,
+    include_network: bool = True,
+    output_format: str = "csv",
+) -> Dict[str, Any]:
+    """Generate a synthetic fraud detection dataset for testing and evaluation.
+
+    Args:
+        num_transactions: Total number of transactions to generate.
+        fraud_percentage: Percentage of transactions that should be fraudulent (0-100).
+        include_behavioral: Include behavioral biometrics data in the dataset.
+        include_network: Include network relationship data in the dataset.
+        output_format: Output file format, either 'csv' or 'json'.
+
+    Returns:
+        Dataset generation results with file paths, fraud distribution, and schema compliance.
+    """
+    if not SYNTHETIC_DATA_AVAILABLE or synthetic_data_integration is None:
+        return {
+            "error": "Synthetic data integration not available. "
+                     "Install pandas and numpy to enable synthetic data generation.",
+            "status": "unavailable",
+            "synthetic_data_available": False,
+        }
+
+    # Validate inputs
+    if num_transactions < 1:
+        return {"error": "num_transactions must be at least 1", "status": "validation_failed"}
+    if num_transactions > 1_000_000:
+        return {"error": "num_transactions exceeds maximum of 1,000,000", "status": "validation_failed"}
+    if fraud_percentage < 0 or fraud_percentage > 100:
+        return {"error": "fraud_percentage must be between 0 and 100", "status": "validation_failed"}
+    if output_format not in ("csv", "json"):
+        return {"error": "output_format must be 'csv' or 'json'", "status": "validation_failed"}
+
+    try:
+        result = synthetic_data_integration.generate_comprehensive_test_dataset(
+            num_transactions=num_transactions,
+            fraud_percentage=fraud_percentage,
+            include_behavioral=include_behavioral,
+            include_network=include_network,
+            output_format=output_format,
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Synthetic dataset generation failed: {e}")
+        return {
+            "error": str(e),
+            "status": "generation_failed",
+        }
+
+
+def analyze_dataset_impl(
+    dataset_path: str,
+    fraud_threshold: float = 0.6,
+) -> Dict[str, Any]:
+    """Analyze a stored dataset (CSV or JSON) for fraud patterns.
+
+    Reads each transaction from the file and runs it through the active
+    TransactionAnalyzer, aggregating risk distribution and flagging
+    high-risk transactions.
+
+    Args:
+        dataset_path: Path to the dataset file (CSV or JSON).
+        fraud_threshold: Risk score threshold for flagging transactions (0.0-1.0).
+
+    Returns:
+        Analysis results with risk distribution, flagged transactions,
+        and optional performance metrics when ground truth labels exist.
+    """
+    import pandas as pd
+
+    # Validate inputs
+    if not dataset_path:
+        return {"error": "dataset_path is required", "status": "validation_failed"}
+    if fraud_threshold < 0.0 or fraud_threshold > 1.0:
+        return {"error": "fraud_threshold must be between 0.0 and 1.0", "status": "validation_failed"}
+
+    data_file = Path(dataset_path)
+    if not data_file.exists():
+        return {
+            "error": f"Dataset file not found: {dataset_path}",
+            "status": "file_not_found",
+        }
+
+    try:
+        # Load dataset
+        suffix = data_file.suffix.lower()
+        if suffix == ".csv":
+            df = pd.read_csv(dataset_path)
+        elif suffix == ".json":
+            df = pd.read_json(dataset_path)
+        else:
+            return {
+                "error": "Unsupported file format. Use CSV or JSON.",
+                "status": "unsupported_format",
+            }
+
+        if df.empty:
+            return {
+                "error": "Dataset is empty",
+                "status": "empty_dataset",
+            }
+
+        total_transactions = len(df)
+        flagged_transactions: List[Dict[str, Any]] = []
+        risk_distribution = {"low": 0, "medium": 0, "high": 0, "critical": 0}
+
+        # Analyze each transaction
+        for idx, row in df.iterrows():
+            txn_data = row.to_dict()
+
+            result = transaction_analyzer.analyze_transaction(txn_data)
+            risk_score = result.get("risk_score", 0.0)
+
+            # Categorize risk
+            if risk_score >= 0.8:
+                risk_level = "critical"
+            elif risk_score >= 0.6:
+                risk_level = "high"
+            elif risk_score >= 0.4:
+                risk_level = "medium"
+            else:
+                risk_level = "low"
+
+            risk_distribution[risk_level] += 1
+
+            # Flag high-risk transactions
+            if risk_score >= fraud_threshold:
+                flagged_transactions.append({
+                    "transaction_id": txn_data.get("transaction_id", f"txn_{idx}"),
+                    "risk_score": float(risk_score),
+                    "risk_level": risk_level,
+                    "risk_factors": result.get("risk_factors", []),
+                    "actual_fraud": txn_data.get("is_fraud", None),
+                })
+
+        # Calculate performance metrics if ground truth is available
+        performance_metrics = None
+        if "is_fraud" in df.columns and "transaction_id" in df.columns:
+            performance_metrics = _calculate_performance_metrics(
+                df, flagged_transactions,
+            )
+
+        return {
+            "dataset_info": {
+                "file_path": dataset_path,
+                "total_transactions": total_transactions,
+                "analysis_timestamp": datetime.now().isoformat(),
+            },
+            "fraud_analysis": {
+                "flagged_transactions": len(flagged_transactions),
+                "fraud_rate_percent": (
+                    round(len(flagged_transactions) / total_transactions * 100, 2)
+                    if total_transactions > 0 else 0.0
+                ),
+                "fraud_threshold": fraud_threshold,
+            },
+            "risk_distribution": risk_distribution,
+            "flagged_transactions": flagged_transactions,
+            "performance_metrics": performance_metrics,
+            "analysis_status": "success",
+        }
+
+    except Exception as e:
+        logger.error(f"Dataset analysis failed: {e}")
+        return {
+            "error": str(e),
+            "status": "analysis_failed",
+            "dataset_path": dataset_path,
+        }
+
+
+def _calculate_performance_metrics(
+    df: "pd.DataFrame",
+    flagged_transactions: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Calculate precision, recall, F1, and accuracy when ground truth labels exist."""
+    flagged_ids = set(t["transaction_id"] for t in flagged_transactions)
+
+    predictions = df["transaction_id"].isin(flagged_ids)
+    actual = df["is_fraud"].astype(bool)
+
+    tp = int(((predictions) & (actual)).sum())
+    fp = int(((predictions) & (~actual)).sum())
+    tn = int(((~predictions) & (~actual)).sum())
+    fn = int(((~predictions) & (actual)).sum())
+
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+    accuracy = (tp + tn) / len(df) if len(df) > 0 else 0.0
+
+    return {
+        "precision": round(precision, 4),
+        "recall": round(recall, 4),
+        "f1_score": round(f1, 4),
+        "accuracy": round(accuracy, 4),
+        "true_positives": tp,
+        "false_positives": fp,
+        "true_negatives": tn,
+        "false_negatives": fn,
+    }
+
+
 # =============================================================================
 # MCP Tool Wrappers (thin delegates to _impl functions)
 # =============================================================================
@@ -1675,6 +1882,61 @@ def train_models(
         Training results with model metrics, or error if dependencies unavailable
     """
     return train_models_impl(data_path, test_size, use_smote, optimize_hyperparams)
+
+
+@_monitored("/generate_synthetic_dataset", "TOOL")
+@mcp.tool()
+def generate_synthetic_dataset(
+    num_transactions: int = 10000,
+    fraud_percentage: float = 5.0,
+    include_behavioral: bool = True,
+    include_network: bool = True,
+    output_format: str = "csv",
+) -> Dict[str, Any]:
+    """
+    Generate a synthetic fraud detection dataset for testing and evaluation.
+
+    Creates realistic transaction, behavioral, and network data with configurable
+    fraud percentages and pattern distributions.
+
+    Args:
+        num_transactions: Total number of transactions to generate (1 - 1,000,000)
+        fraud_percentage: Percentage of fraudulent transactions (0-100)
+        include_behavioral: Include behavioral biometrics data
+        include_network: Include network relationship data
+        output_format: File format, 'csv' or 'json'
+
+    Returns:
+        Generation results with file paths, fraud distribution, and schema compliance
+    """
+    return generate_synthetic_dataset_impl(
+        num_transactions, fraud_percentage, include_behavioral,
+        include_network, output_format,
+    )
+
+
+@_monitored("/analyze_dataset", "TOOL")
+@mcp.tool()
+def analyze_dataset(
+    dataset_path: str,
+    fraud_threshold: float = 0.6,
+) -> Dict[str, Any]:
+    """
+    Analyze a stored dataset (CSV or JSON) for fraud patterns.
+
+    Reads each transaction and runs it through the fraud detection models,
+    aggregating risk distribution and flagging high-risk transactions.
+    When ground truth labels exist, calculates precision, recall, F1, and accuracy.
+
+    Args:
+        dataset_path: Path to the dataset file (CSV or JSON)
+        fraud_threshold: Risk score threshold for flagging transactions (0.0-1.0)
+
+    Returns:
+        Analysis results with risk distribution, flagged transactions,
+        and optional performance metrics
+    """
+    return analyze_dataset_impl(dataset_path, fraud_threshold)
 
 
 if __name__ == "__main__":
