@@ -15,7 +15,7 @@ import logging
 import math
 import threading
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 import numpy as np
@@ -1761,6 +1761,186 @@ class MandateVerifier:
 
 
 mandate_verifier = MandateVerifier()
+
+
+# =============================================================================
+# Collusion Detector
+# =============================================================================
+
+
+class CollusionDetector:
+    """Graph-based detection of coordinated agent behavior.
+
+    Maintains a directed graph of agent-to-agent transaction flows.
+    Detects: circular money flows, temporal clustering (burst of agents
+    hitting same target), and volume anomalies (coordinated spikes).
+    """
+
+    def __init__(self, max_nodes: int = 5000):
+        self.graph = nx.DiGraph()
+        self._node_order: deque = deque()
+        self.max_nodes = max_nodes
+        self._interactions: List[Dict[str, Any]] = []
+        self._max_interactions = 50000
+
+    def record_interaction(
+        self,
+        source: str,
+        target: str,
+        amount: float,
+        timestamp: Optional[datetime] = None,
+    ) -> None:
+        """Record an agent-to-agent or agent-to-merchant interaction.
+
+        Args:
+            source: Source agent ID.
+            target: Target agent or merchant ID.
+            amount: Transaction amount.
+            timestamp: When the interaction occurred (defaults to now).
+        """
+        ts = timestamp or datetime.now()
+
+        # Track node insertion order for eviction
+        for node in (source, target):
+            if node not in self.graph:
+                self._node_order.append(node)
+                self.graph.add_node(node)
+
+        if self.graph.has_edge(source, target):
+            edge = self.graph[source][target]
+            edge["transaction_count"] += 1
+            edge["total_amount"] += amount
+            edge["timestamps"].append(ts)
+        else:
+            self.graph.add_edge(
+                source,
+                target,
+                transaction_count=1,
+                total_amount=amount,
+                timestamps=[ts],
+            )
+
+        self._interactions.append(
+            {"source": source, "target": target, "amount": amount, "timestamp": ts}
+        )
+
+        # Bound interaction history
+        if len(self._interactions) > self._max_interactions:
+            self._interactions = self._interactions[-self._max_interactions :]
+
+        # Evict oldest nodes if over cap
+        while len(self.graph.nodes) > self.max_nodes * 2:
+            oldest = self._node_order.popleft()
+            if oldest in self.graph:
+                self.graph.remove_node(oldest)
+
+    def detect(
+        self, agent_ids: List[str], window_seconds: int = 3600
+    ) -> Dict[str, Any]:
+        """Detect collusion patterns among a set of agents.
+
+        Args:
+            agent_ids: Agent identifiers to analyze.
+            window_seconds: Time window in seconds for temporal analysis.
+
+        Returns:
+            Dict with collusion_score (0-1), suspected_ring, evidence, graph_metrics.
+        """
+        if not agent_ids:
+            return {
+                "collusion_score": 0.0,
+                "suspected_ring": [],
+                "evidence": [],
+                "graph_metrics": self._graph_metrics(),
+            }
+
+        evidence: List[str] = []
+        suspected: set = set()
+        score_components: List[float] = []
+
+        # --- Circular flow detection ---
+        subgraph_nodes = [a for a in agent_ids if a in self.graph]
+        if len(subgraph_nodes) >= 2:
+            subgraph = self.graph.subgraph(subgraph_nodes)
+            try:
+                cycles = list(nx.simple_cycles(subgraph))
+                # Filter to cycles of length >= 3 (A->B->C->A)
+                real_cycles = [c for c in cycles if len(c) >= 3]
+                if real_cycles:
+                    for cycle in real_cycles[:5]:  # Cap at 5 reported cycles
+                        evidence.append(
+                            f"circular_flow: {' -> '.join(cycle)} -> {cycle[0]}"
+                        )
+                        suspected.update(cycle)
+                    score_components.append(min(1.0, len(real_cycles) * 0.3))
+            except Exception:
+                pass  # Cycle detection can fail on certain graph shapes
+
+        # --- Temporal clustering ---
+        cutoff = datetime.now() - timedelta(seconds=window_seconds)
+        recent = [
+            i
+            for i in self._interactions
+            if i["timestamp"] >= cutoff and i["source"] in agent_ids
+        ]
+
+        # Group by target
+        target_hits: Dict[str, List[str]] = {}
+        for interaction in recent:
+            t = interaction["target"]
+            s = interaction["source"]
+            if t not in target_hits:
+                target_hits[t] = []
+            if s not in target_hits[t]:
+                target_hits[t].append(s)
+
+        for target, sources in target_hits.items():
+            if len(sources) >= 3:
+                evidence.append(
+                    f"temporal_cluster: {len(sources)} agents targeted {target} "
+                    f"within {window_seconds}s"
+                )
+                suspected.update(sources)
+                score_components.append(min(1.0, len(sources) * 0.15))
+
+        # --- Volume anomaly ---
+        for interaction in recent:
+            src, tgt = interaction["source"], interaction["target"]
+            if self.graph.has_edge(src, tgt):
+                edge = self.graph[src][tgt]
+                if edge["transaction_count"] >= 10:
+                    recent_ts = [t for t in edge["timestamps"] if t >= cutoff]
+                    if len(recent_ts) >= 10:
+                        evidence.append(
+                            f"volume_anomaly: {src} -> {tgt} had "
+                            f"{len(recent_ts)} transactions in window"
+                        )
+                        suspected.add(src)
+                        suspected.add(tgt)
+                        score_components.append(min(1.0, len(recent_ts) * 0.05))
+                        break  # One volume anomaly per detect call
+
+        collusion_score = 0.0
+        if score_components:
+            collusion_score = float(min(1.0, max(score_components)))
+
+        return {
+            "collusion_score": collusion_score,
+            "suspected_ring": sorted(suspected & set(agent_ids)),
+            "evidence": evidence,
+            "graph_metrics": self._graph_metrics(),
+        }
+
+    def _graph_metrics(self) -> Dict[str, Any]:
+        """Return basic graph metrics."""
+        return {
+            "total_nodes": len(self.graph.nodes),
+            "total_edges": len(self.graph.edges),
+            "interaction_count": len(self._interactions),
+        }
+
+
+collusion_detector = CollusionDetector()
 
 
 def _monitored(endpoint: str, method: str = "TOOL"):
