@@ -2835,6 +2835,109 @@ def analyze_agent_transaction_impl(
         }
 
 
+def verify_transaction_mandate_impl(
+    transaction_data: Dict[str, Any],
+    mandate: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Check whether a transaction falls within an agent's authorized scope.
+
+    Args:
+        transaction_data: Transaction details (amount, merchant, location, timestamp).
+        mandate: Constraint dict with optional keys: max_amount, daily_limit,
+            allowed_merchants, blocked_merchants, allowed_locations,
+            time_window (start/end HH:MM).
+
+    Returns:
+        Dict with compliant, violations, drift_score, mandate_utilization, and status.
+    """
+    try:
+        if not isinstance(transaction_data, dict):
+            return {
+                "error": "transaction_data must be a dictionary",
+                "status": "validation_failed",
+            }
+
+        if not isinstance(mandate, dict):
+            return {
+                "error": "mandate must be a dictionary",
+                "status": "validation_failed",
+            }
+
+        result = mandate_verifier.verify(transaction_data, mandate)
+        result["status"] = "verified"
+        result["analysis_timestamp"] = datetime.now().isoformat()
+        return result
+
+    except Exception as e:
+        logger.error(f"Mandate verification failed: {e}")
+        return {
+            "error": str(e),
+            "status": "error",
+            "compliant": False,
+            "violations": [],
+            "drift_score": 0.0,
+        }
+
+
+def detect_agent_collusion_impl(
+    agent_ids: Any,
+    window_seconds: int = 3600,
+    transactions: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    """Detect coordinated agent behavior using graph analysis.
+
+    Args:
+        agent_ids: List of agent identifiers to analyze.
+        window_seconds: Time window in seconds for temporal analysis.
+        transactions: Optional list of transaction dicts to record before analysis.
+            Each dict should have source, target, amount, and optional timestamp.
+
+    Returns:
+        Dict with collusion_score, suspected_ring, evidence, graph_metrics, and status.
+    """
+    try:
+        if not isinstance(agent_ids, list):
+            return {
+                "error": "agent_ids must be a list",
+                "status": "validation_failed",
+            }
+
+        # Record any provided transactions first
+        if transactions:
+            for txn in transactions:
+                if isinstance(txn, dict):
+                    ts = txn.get("timestamp")
+                    if isinstance(ts, str):
+                        try:
+                            ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                        except ValueError:
+                            ts = None
+                    collusion_detector.record_interaction(
+                        source=str(txn.get("source", "")),
+                        target=str(txn.get("target", "")),
+                        amount=float(txn.get("amount", 0.0)),
+                        timestamp=ts,
+                    )
+
+        result = collusion_detector.detect(
+            agent_ids=[str(a) for a in agent_ids],
+            window_seconds=int(window_seconds),
+        )
+        result["status"] = "analyzed"
+        result["analysis_timestamp"] = datetime.now().isoformat()
+        return result
+
+    except Exception as e:
+        logger.error(f"Collusion detection failed: {e}")
+        return {
+            "error": str(e),
+            "status": "error",
+            "collusion_score": 0.0,
+            "suspected_ring": [],
+            "evidence": [],
+        }
+
+
 def analyze_batch_impl(
     transactions: List[Dict[str, Any]], use_cache: bool = True
 ) -> Dict[str, Any]:
@@ -3739,6 +3842,59 @@ def analyze_agent_transaction(
         identity_verified status, and per-component scores
     """
     return analyze_agent_transaction_impl(transaction_data, agent_behavior)
+
+
+@_monitored("/verify_transaction_mandate", "TOOL")
+@mcp.tool()
+def verify_transaction_mandate(
+    transaction_data: Dict[str, Any],
+    mandate: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Check whether a transaction falls within an agent's authorized scope.
+
+    Validates transaction against mandate constraints including spending limits,
+    merchant whitelists/blacklists, time windows, and geographic restrictions.
+    Returns compliance status, violations list, and drift score.
+
+    Args:
+        transaction_data: Transaction details with amount, merchant, location, timestamp.
+        mandate: Constraint dict with optional keys: max_amount, daily_limit,
+            allowed_merchants, blocked_merchants, allowed_locations,
+            time_window (with start/end in HH:MM format).
+
+    Returns:
+        Compliance result with compliant (bool), violations (list),
+        drift_score (0-1, higher means more violations), and mandate_utilization
+    """
+    return verify_transaction_mandate_impl(transaction_data, mandate)
+
+
+@_monitored("/detect_agent_collusion", "TOOL")
+@mcp.tool()
+def detect_agent_collusion(
+    agent_ids: List[str],
+    window_seconds: int = 3600,
+    transactions: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    """
+    Detect coordinated agent behavior using graph analysis.
+
+    Analyzes agent-to-agent transaction flows to detect collusion patterns:
+    circular money flows (A->B->C->A), temporal clustering (multiple agents
+    hitting same target in burst), and volume anomalies (sudden coordinated spikes).
+
+    Args:
+        agent_ids: List of agent identifiers to analyze for collusion.
+        window_seconds: Time window in seconds for temporal analysis (default 3600).
+        transactions: Optional list of transaction dicts to record before analysis.
+            Each dict should have source, target, amount, and optional timestamp fields.
+
+    Returns:
+        Detection result with collusion_score (0-1), suspected_ring (list of agent IDs),
+        evidence (list of findings), and graph_metrics
+    """
+    return detect_agent_collusion_impl(agent_ids, window_seconds, transactions)
 
 
 @_monitored("/analyze_batch", "TOOL")
