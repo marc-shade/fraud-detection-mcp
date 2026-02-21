@@ -300,13 +300,13 @@ class TransactionAnalyzer:
         else:
             features.extend([0, 0, 0])
 
-        # Location-based features (simplified)
+        # Location-based features (deterministic hash)
         location = transaction.get('location', '')
-        features.append(hash(location) % 1000)  # Location hash
+        features.append(int(hashlib.md5(str(location).encode()).hexdigest(), 16) % 1000)
 
-        # Merchant-based features
+        # Merchant-based features (deterministic hash)
         merchant = transaction.get('merchant', '')
-        features.append(hash(merchant) % 1000)  # Merchant hash
+        features.append(int(hashlib.md5(str(merchant).encode()).hexdigest(), 16) % 1000)
 
         # Payment method features
         payment_method = transaction.get('payment_method', 'unknown')

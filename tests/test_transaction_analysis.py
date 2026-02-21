@@ -273,6 +273,13 @@ class TestTransactionAnalysis:
         assert 'high_risk_geographic_location' in risk_factors1
         assert 'high_risk_geographic_location' in risk_factors2
 
+    def test_feature_extraction_deterministic(self, analyzer):
+        """Features must be identical across calls (hash must be deterministic)."""
+        txn = {"amount": 100, "location": "USA", "merchant": "Amazon", "payment_method": "credit_card"}
+        f1 = analyzer._extract_transaction_features(txn)
+        f2 = analyzer._extract_transaction_features(txn)
+        assert f1 == f2, "Feature extraction must be deterministic"
+
     def test_complete_transaction_analysis(self, analyzer):
         """Test complete transaction with all fields"""
         transaction = {
