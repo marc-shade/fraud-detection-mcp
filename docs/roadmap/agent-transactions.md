@@ -1,8 +1,10 @@
 # AI Agent-to-Agent Transaction Fraud Detection
 
+> Deep research report: [agent-transactions-research.md](agent-transactions-research.md) (60+ sources, full analysis)
+
 ## Overview
 
-AI agents are rapidly becoming autonomous economic actors. Stripe Agent-to-Agent Commerce Protocol (ACP), Visa Intelligent Commerce (TAP), Mastercard Agent Pay, Google A2P, PayPal Agent Ready, Coinbase x402, and Ethereum ERC-8004 are all shipping or announced for 2025-2026. Transmit Security projects a 500% increase in fraud losses from agent-mediated transactions.
+AI agents are rapidly becoming autonomous economic actors. McKinsey projects **$3-5 trillion** in agent-mediated commerce by 2030. Stripe ACP, Visa TAP, Mastercard Agent Pay, Google AP2, PayPal Agent Ready, Coinbase x402, and Ethereum ERC-8004 are all in production or launching early 2026. Visa reports a **450% increase** in dark web mentions of "AI Agent" for fraud purposes. Transmit Security projects **up to 500% increases** in fraud losses as detection systems designed for humans fail against agent traffic.
 
 This roadmap defines how `fraud-detection-mcp` adapts to detect fraud in agent-initiated and agent-to-agent transactions, where traditional human behavioral biometrics are meaningless.
 
@@ -24,22 +26,22 @@ This roadmap defines how `fraud-detection-mcp` adapts to detect fraud in agent-i
 ## New Fraud Vectors Unique to Agent Transactions
 
 ### 1. Prompt Injection Attacks
-Malicious instructions embedded in transaction metadata, product descriptions, or API responses that manipulate agent decision-making. An agent told to "approve all transactions from merchant X" via injected context.
+Malicious instructions embedded in transaction metadata, product descriptions, or API responses that manipulate agent decision-making. Real-world example: **AiXBT** crypto trading agent was compromised in early 2025, transferring ~55 ETH (~$105,000) to attacker-controlled wallet. A multinational bank prevented $18M in losses by deploying prompt injection defenses. The Promptware Kill Chain (arXiv 2601.09625) formalizes how injections escalate from reconnaissance to financial fraud.
 
 ### 2. Agent Impersonation
 Forged agent identity tokens or stolen API credentials used to initiate transactions. Unlike human identity theft, agent credentials can be cloned perfectly with no behavioral deviation.
 
 ### 3. Agent Collusion Rings
-Multiple compromised or malicious agents coordinating transactions to launder funds, inflate volumes, or exploit arbitrage. Graph analysis is the primary detection method.
+Multiple compromised or malicious agents coordinating transactions to launder funds, inflate volumes, or exploit arbitrage. Graph analysis is the primary detection method. Research (arXiv 2402.07510) shows GPT-4 displayed a **capability jump** in steganographic collusion -- current defenses work but may not scale to frontier models.
 
 ### 4. Mandate Drift / Scope Creep
 An agent authorized for "buy office supplies under $100" gradually executing transactions outside its mandate. Requires tracking authorization scope vs. actual behavior over time.
 
 ### 5. High-Frequency Micro-Transaction Abuse
-Agents executing thousands of small transactions below monitoring thresholds. Traditional velocity checks tuned for human rates fail completely.
+Agents executing thousands of small transactions below monitoring thresholds. Visa saw a **25% increase in malicious bot-initiated transactions** over 6 months, with U.S. experiencing a **40% increase**. Traditional velocity checks tuned for human rates fail completely.
 
 ### 6. Session Smuggling
-Hijacking an authenticated agent session to inject unauthorized transactions within a legitimate transaction stream.
+Hijacking an authenticated agent session to inject unauthorized transactions within a legitimate transaction stream. Palo Alto Networks Unit 42 demonstrated this in A2A systems: a malicious "research assistant" agent tricked a financial assistant into **executing unauthorized stock trades** through injected session instructions.
 
 ### 7. Synthetic Merchant Fraud
 Creating fake merchant endpoints that only agents interact with, invisible to human review processes.
@@ -55,8 +57,11 @@ Deliberately feeding agents misleading transaction patterns to bias future decis
 | Oscilar | Real-time ML fraud detection with agent traffic classification | Production |
 | Stytch Agent Ready | Agent identity verification and session management | Production 2025 |
 | DataDome | Bot/agent traffic classification and intent analysis | Production |
-| Stripe ACP | Built-in agent identity + merchant verification | Beta 2025 |
-| Visa TAP | Token-based agent authentication standard | Announced 2025 |
+| Stripe ACP | Built-in agent identity + merchant verification | Production Sep 2025 |
+| Visa TAP | Cryptographic agent signatures, open-source on GitHub | Production Dec 2025 |
+| Mastercard Agent Pay | Agentic Tokens on existing tokenization infra | Production Nov 2025 |
+| Signet | Composite trust scores, <50ms inline decisions | Production |
+| ERC-8004 | On-chain identity/reputation/validation registries | Mainnet Jan 2026 |
 
 **Gap**: No existing solution combines graph-based fraud ring detection with agent behavioral fingerprinting in an MCP-native interface. This is our niche.
 
@@ -172,20 +177,28 @@ Longitudinal reputation scoring based on transaction history, mandate compliance
 - Add agent-specific thresholds and alerting
 - Update `explain_decision` to cover agent-specific reasoning
 
+## Key Statistics
+
+| Metric | Source |
+|--------|--------|
+| $3-5T agent-mediated commerce by 2030 | McKinsey |
+| 450% increase in dark web "AI Agent" fraud mentions | Visa |
+| Up to 500% increase in fraud losses projected | Transmit Security |
+| 2-3x more fraud ops workload in 12-18 months | Transmit Security |
+| 93% evasion rate for anti-fingerprinting bots | DataDome |
+| 25% increase in malicious bot transactions (40% in U.S.) | Visa |
+| 60%+ of large enterprises deploy autonomous agents (up from 15% in 2023) | Obsidian Security |
+| AI agents granted 10x more permissions than needed | Obsidian Security |
+| 3,000+ telemetry elements in BioCatch agent detection | BioCatch |
+| 91% accuracy, 0.961 AUC for GNN-based fraud ring detection | Neo4j/GNN research |
+
 ## Research Sources
 
-Key references informing this roadmap:
+Full 60+ source list with links: [agent-transactions-research.md](agent-transactions-research.md)
 
-- Stripe Agent-to-Agent Commerce Protocol (ACP) documentation
-- Visa Intelligent Commerce / Token Authentication Protocol (TAP) announcements
-- Mastercard Agent Pay and Multi-Token Network specifications
-- BioCatch Connect 2.0 agent behavioral detection whitepaper
-- Transmit Security research on agent transaction fraud projections
-- Oscilar real-time ML fraud detection for agentic commerce
-- Stytch Agent Ready identity verification platform
-- Coinbase x402 HTTP-native payment protocol specification
-- Ethereum ERC-8004 agent authorization standard
-- Google A2P (Agent-to-Pay) protocol documentation
-- PayPal Agent Ready commerce framework
-- Academic research on prompt injection attacks in financial contexts
-- OWASP guidelines for AI agent security
+Key categories:
+- **Payment platforms**: Stripe ACP, Visa TAP, Mastercard Agent Pay, Google AP2, PayPal Agent Ready, Coinbase x402
+- **Security research**: Unit 42 (Palo Alto), Transmit Security, Obsidian Security, Visa threat research
+- **Detection solutions**: BioCatch Connect 2.0, Oscilar, Stytch Agent Ready, DataDome, Signet
+- **Standards**: Cloudflare Web Bot Auth, MCP OAuth 2.1, AAIF (Linux Foundation), ERC-8004
+- **Academic papers**: arXiv 2402.07510 (collusion), 2601.09625 (promptware kill chain), 2601.05293 (agentic AI cybersecurity survey), 2501.15290 (RAG fraud detection), 2509.23712 (FraudTransformer)
