@@ -47,7 +47,7 @@ class AppConfig(BaseSettings):
 
     # High-risk indicators
     HIGH_RISK_LOCATIONS: list = Field(
-        default_factory=lambda: ["unknown", "high risk country", "sanctioned region"]
+        default_factory=lambda: ["unknown"]
     )
     HIGH_RISK_PAYMENT_METHODS: list = Field(
         default_factory=lambda: ["crypto", "prepaid_card", "money_order"]

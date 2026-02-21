@@ -18,8 +18,12 @@ from fastmcp import FastMCP
 from sklearn.ensemble import IsolationForest
 from sklearn.svm import OneClassSVM
 from sklearn.neighbors import LocalOutlierFactor
+from collections import deque
+
 # Graph analysis
 import networkx as nx
+
+from config import get_config
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -342,10 +346,10 @@ class TransactionAnalyzer:
         if transaction.get('payment_method') == 'crypto':
             risk_factors.append("high_risk_payment_method")
 
-        # Geographic risk (simplified)
-        location = transaction.get('location', '').lower()
-        high_risk_locations = ['nigeria', 'russia', 'china', 'unknown']
-        if any(loc in location for loc in high_risk_locations):
+        # Geographic risk - config-driven exact match
+        location = transaction.get('location', '').lower().strip()
+        app_config = get_config()
+        if location in app_config.HIGH_RISK_LOCATIONS:
             risk_factors.append("high_risk_geographic_location")
 
         return risk_factors

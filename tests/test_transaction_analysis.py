@@ -132,10 +132,11 @@ class TestTransactionAnalysis:
         assert 'high_risk_payment_method' in risk_factors
 
     def test_identify_geographic_risk(self, analyzer):
-        """Test identification of high-risk geographic location"""
-        high_risk_locations = ['nigeria', 'russia', 'china', 'unknown']
+        """Test identification of high-risk geographic location from config"""
+        from config import get_config
+        app_config = get_config()
 
-        for location in high_risk_locations:
+        for location in app_config.HIGH_RISK_LOCATIONS:
             transaction = {'location': location, 'amount': 100}
             features = analyzer._extract_transaction_features(transaction)
             risk_factors = analyzer._identify_risk_factors(transaction, features)
@@ -260,8 +261,8 @@ class TestTransactionAnalysis:
 
     def test_case_insensitive_location_matching(self, analyzer):
         """Test that location risk matching is case-insensitive"""
-        transaction1 = {'location': 'NIGERIA', 'amount': 100}
-        transaction2 = {'location': 'nigeria', 'amount': 100}
+        transaction1 = {'location': 'UNKNOWN', 'amount': 100}
+        transaction2 = {'location': 'unknown', 'amount': 100}
 
         features1 = analyzer._extract_transaction_features(transaction1)
         features2 = analyzer._extract_transaction_features(transaction2)
@@ -272,6 +273,20 @@ class TestTransactionAnalysis:
         # Both should identify same risk
         assert 'high_risk_geographic_location' in risk_factors1
         assert 'high_risk_geographic_location' in risk_factors2
+
+    def test_geographic_risk_exact_match_not_substring(self, analyzer):
+        """'China Palace Restaurant' should NOT trigger geographic risk."""
+        txn = {"amount": 100, "location": "China Palace Restaurant, Seattle"}
+        features = analyzer._extract_transaction_features(txn)
+        risk_factors = analyzer._identify_risk_factors(txn, features)
+        assert "high_risk_geographic_location" not in risk_factors
+
+    def test_geographic_risk_exact_match_triggers(self, analyzer):
+        """Exact match on 'unknown' should trigger."""
+        txn = {"amount": 100, "location": "unknown"}
+        features = analyzer._extract_transaction_features(txn)
+        risk_factors = analyzer._identify_risk_factors(txn, features)
+        assert "high_risk_geographic_location" in risk_factors
 
     def test_feature_extraction_deterministic(self, analyzer):
         """Features must be identical across calls (hash must be deterministic)."""
