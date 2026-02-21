@@ -10,8 +10,7 @@ os.environ.setdefault("OMP_NUM_THREADS", "1")
 import pytest
 import numpy as np
 from datetime import datetime, timedelta
-from typing import Dict, List, Any
-from unittest.mock import Mock, AsyncMock, MagicMock
+from unittest.mock import Mock, MagicMock
 
 
 @pytest.fixture
@@ -342,7 +341,6 @@ def reset_ml_models():
 def mock_logger(monkeypatch):
     """Mock logger to capture log messages"""
     mock_log = Mock()
-    import logging
 
     # Patch the logger
     monkeypatch.setattr('server.logger', mock_log)

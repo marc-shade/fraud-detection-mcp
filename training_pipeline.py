@@ -19,11 +19,11 @@ except ImportError:
     mlflow = None
 from datetime import datetime
 from typing import Dict, Any, Optional, Tuple, List
-from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import IsolationForest
 from sklearn.metrics import (
-    classification_report, confusion_matrix, roc_auc_score,
+    confusion_matrix, roc_auc_score,
     precision_recall_curve, average_precision_score, f1_score
 )
 import xgboost as xgb
@@ -31,7 +31,6 @@ from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.pipeline import Pipeline as ImbPipeline
 import optuna
-from optuna.integration import XGBoostPruningCallback
 from tqdm import tqdm
 import logging
 
@@ -485,7 +484,7 @@ class ModelTrainer:
 
         from sklearn.metrics import (
             accuracy_score, precision_score, recall_score,
-            f1_score, roc_auc_score, average_precision_score
+            average_precision_score
         )
 
         metrics = {

@@ -6,12 +6,10 @@ Covers: model save/load, train_models_impl, get_model_status_impl,
 
 import pytest
 import os
-import shutil
 from pathlib import Path
 from datetime import datetime
 from unittest.mock import patch, MagicMock
 
-import numpy as np
 
 
 # =============================================================================

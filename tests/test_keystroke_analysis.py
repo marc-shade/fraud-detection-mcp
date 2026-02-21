@@ -3,7 +3,6 @@ Tests for keystroke dynamics analysis
 """
 
 import pytest
-import numpy as np
 from server import BehavioralBiometrics
 
 

@@ -4,11 +4,10 @@ Security Layer Integration Example
 Demonstrates how to integrate the security layer with FastAPI endpoints
 """
 
-from fastapi import FastAPI, Request, HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional
 import uvicorn
 
 # Import security components

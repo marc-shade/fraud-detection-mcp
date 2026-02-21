@@ -23,18 +23,16 @@ from enum import Enum
 from functools import wraps
 
 # Cryptography and authentication
-import bcrypt
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 # FastAPI and validation
-from fastapi import HTTPException, Request, Response, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel, validator, Field
+from fastapi import HTTPException, Request, status
+from fastapi.security import HTTPBearer
+from pydantic import BaseModel, Field
 
 # Rate limiting and caching
 import redis.asyncio as redis
-from datetime import datetime as dt
 
 # Configuration
 from config import get_config

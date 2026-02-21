@@ -6,7 +6,7 @@ High-performance async prediction with caching and batch support
 
 import asyncio
 import numpy as np
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import hashlib
 import json
@@ -17,7 +17,6 @@ from models_validation import (
     TransactionData,
     BehavioralData,
     NetworkData,
-    AnalysisResponse,
     RiskLevel
 )
 from feature_engineering import FeatureEngineer
@@ -528,7 +527,7 @@ class AsyncFraudDetector:
         self.has_isolation_forest = 'isolation_forest' in fraud_pipeline.models
         self.has_xgboost = 'xgboost' in fraud_pipeline.models
 
-        logger.info(f"AsyncFraudDetector initialized:")
+        logger.info("AsyncFraudDetector initialized:")
         logger.info(f"  - Isolation Forest: {self.has_isolation_forest}")
         logger.info(f"  - XGBoost: {self.has_xgboost}")
         logger.info(f"  - Autoencoder: {self.has_autoencoder}")

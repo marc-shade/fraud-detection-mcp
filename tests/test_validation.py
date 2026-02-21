@@ -2,8 +2,6 @@
 Tests for input validation functions
 """
 
-import math
-import pytest
 from server import validate_transaction_data, validate_behavioral_data
 
 

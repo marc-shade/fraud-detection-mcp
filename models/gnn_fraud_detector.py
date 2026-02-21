@@ -5,7 +5,7 @@ Detects fraud patterns in transaction networks using GNN
 """
 
 import numpy as np
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional
 import logging
 
 logger = logging.getLogger(__name__)

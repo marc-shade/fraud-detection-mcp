@@ -2,7 +2,6 @@
 Integration tests for complete fraud detection workflows
 """
 
-import pytest
 from datetime import datetime
 from server import (
     analyze_transaction_impl as analyze_transaction,

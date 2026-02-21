@@ -5,8 +5,7 @@ Extracts 40+ features from transaction data with proper encoding
 """
 
 import numpy as np
-from typing import List, Tuple, Dict, Any
-from datetime import datetime
+from typing import List, Tuple, Dict
 from models_validation import TransactionData, BehavioralData, NetworkData
 import logging
 

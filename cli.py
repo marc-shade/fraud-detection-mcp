@@ -11,13 +11,10 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 import pandas as pd
 from datetime import datetime
-import asyncio
 
 # Import fraud detection components
 from server import (
-    transaction_analyzer,
-    behavioral_analyzer,
-    network_analyzer
+    transaction_analyzer
 )
 from integration import SyntheticDataIntegration
 
@@ -117,7 +114,7 @@ class FraudDetectionCLI:
             # Calculate performance metrics if ground truth available
             if "is_fraud" in df.columns:
                 metrics = self._calculate_performance_metrics(df, flagged_transactions, args.threshold)
-                print(f"\n📈 Performance Metrics:")
+                print("\n📈 Performance Metrics:")
                 print(f"  Precision: {metrics['precision']:.4f}")
                 print(f"  Recall:    {metrics['recall']:.4f}")
                 print(f"  F1-Score:  {metrics['f1_score']:.4f}")
@@ -135,7 +132,7 @@ class FraudDetectionCLI:
     def generate_test_data(self, args) -> None:
         """Generate synthetic test data for fraud detection"""
         try:
-            print(f"🔧 Generating synthetic dataset...")
+            print("🔧 Generating synthetic dataset...")
             print(f"📊 Transactions: {args.count:,}")
             print(f"🚨 Fraud percentage: {args.fraud_rate}%")
             print(f"🧠 Include behavioral: {args.behavioral}")
@@ -160,13 +157,13 @@ class FraudDetectionCLI:
                 if result['dataset_paths']['network']:
                     print(f"🕸️  Network: {result['dataset_paths']['network']}")
 
-                print(f"\n📊 Generation Statistics:")
+                print("\n📊 Generation Statistics:")
                 info = result['generation_info']
                 print(f"  Total transactions: {info['total_transactions']:,}")
                 print(f"  Legitimate: {info['legitimate_transactions']:,}")
                 print(f"  Fraudulent: {info['fraudulent_transactions']:,}")
 
-                print(f"\n🚨 Fraud Distribution:")
+                print("\n🚨 Fraud Distribution:")
                 for fraud_type, count in result['fraud_distribution'].items():
                     if count > 0:
                         print(f"  {fraud_type}: {count}")
@@ -305,7 +302,7 @@ class FraudDetectionCLI:
 
     def _show_dataset_info(self, df: pd.DataFrame) -> None:
         """Show dataset information"""
-        print(f"\n📊 Dataset Information:")
+        print("\n📊 Dataset Information:")
         print(f"  Transactions: {len(df):,}")
         print(f"  Columns: {list(df.columns)}")
         print(f"  Date range: {df.get('timestamp', pd.Series()).min()} to {df.get('timestamp', pd.Series()).max()}")
@@ -344,8 +341,8 @@ class FraudDetectionCLI:
         print(f"  Dataset loaded: {'Yes' if current_dataset is not None else 'No'}")
         if current_dataset is not None:
             print(f"  Transactions: {len(current_dataset):,}")
-        print(f"  Models initialized: Yes")
-        print(f"  Integration ready: Yes")
+        print("  Models initialized: Yes")
+        print("  Integration ready: Yes")
 
     def _calculate_performance_metrics(
         self, df: pd.DataFrame, flagged_transactions: List[Dict[str, Any]], threshold: float

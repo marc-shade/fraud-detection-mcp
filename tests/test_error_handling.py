@@ -2,7 +2,6 @@
 Tests for error handling and edge cases
 """
 
-import pytest
 from datetime import datetime
 from server import (
     BehavioralBiometrics,

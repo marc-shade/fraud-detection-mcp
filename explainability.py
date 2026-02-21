@@ -5,7 +5,7 @@ Provides SHAP-based explanations with graceful degradation
 """
 
 import numpy as np
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any
 import logging
 
 logger = logging.getLogger(__name__)

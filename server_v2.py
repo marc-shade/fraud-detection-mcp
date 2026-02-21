@@ -4,41 +4,34 @@ Production Fraud Detection MCP Server v2.0
 Integrates all advanced components with proper configuration and security
 """
 
-import asyncio
-import json
 import logging
 from datetime import datetime
 from typing import Dict, List, Any, Optional
-from pathlib import Path
 import numpy as np
 
 # FastMCP for high-performance MCP server
 from fastmcp import FastMCP
 
 # Local imports - Configuration
-from config import get_config, get_model_config
+from config import get_config
 
 # Input validation
 from models_validation import (
     TransactionData,
     BehavioralData,
     NetworkData,
-    AnalysisRequest,
-    AnalysisResponse,
-    RiskLevel
+    AnalysisRequest
 )
 
 # ML Components
 from training_pipeline import FraudDetectionPipeline
 from feature_engineering import FeatureEngineer
-from models.autoencoder import AutoencoderFraudDetector
-from models.gnn_fraud_detector import GNNFraudDetector
 
 # Explainability
 from explainability import ExplainabilityEngine
 
 # Security
-from security import AuthManager, RateLimiter, SecurityMiddleware
+from security import AuthManager, RateLimiter
 
 # Async inference
 from async_inference import AsyncFraudDetector

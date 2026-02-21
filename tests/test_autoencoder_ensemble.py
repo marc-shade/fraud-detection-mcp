@@ -4,7 +4,6 @@ Tests for autoencoder ensemble integration in TransactionAnalyzer.
 
 import pytest
 import numpy as np
-from datetime import datetime
 
 
 class TestAutoencoderAvailability:

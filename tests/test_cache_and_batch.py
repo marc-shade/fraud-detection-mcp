@@ -3,8 +3,6 @@ Tests for prediction caching, batch prediction, and inference statistics.
 Phase 4: LRUCache integration, analyze_batch, get_inference_stats.
 """
 
-import pytest
-from datetime import datetime
 
 
 # =============================================================================

@@ -18,9 +18,8 @@ import logging
 import sys
 import psutil
 import platform
-from typing import Dict, Any, Callable, Optional, List
+from typing import Dict, Any, Callable, Optional
 from datetime import datetime, timezone
-from pathlib import Path
 
 import structlog
 from prometheus_client import (
@@ -30,7 +29,6 @@ from prometheus_client import (
     Info,
     CollectorRegistry,
     generate_latest,
-    CONTENT_TYPE_LATEST,
 )
 
 

@@ -364,7 +364,7 @@ async def example_fraud_investigation():
 
     print(f"   Comprehensive Risk Score: {comprehensive_result.get('overall_risk_score', 0):.2f}")
     print(f"   Final Risk Level: {comprehensive_result.get('risk_level', 'UNKNOWN')}")
-    print(f"   Recommended Actions:")
+    print("   Recommended Actions:")
 
     for action in comprehensive_result.get("recommended_actions", []):
         print(f"     • {action.replace('_', ' ').title()}")

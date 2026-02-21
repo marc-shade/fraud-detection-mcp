@@ -5,7 +5,7 @@ PyTorch-based autoencoder with sklearn-compatible API
 """
 
 import numpy as np
-from typing import Optional, Tuple
+from typing import Optional
 import logging
 
 logger = logging.getLogger(__name__)

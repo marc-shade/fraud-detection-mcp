@@ -4,7 +4,6 @@ Comprehensive benchmarking suite for fraud detection system
 Validates performance claims with real datasets and empirical testing
 """
 
-import os
 import time
 import numpy as np
 import pandas as pd
@@ -18,21 +17,18 @@ warnings.filterwarnings('ignore')
 
 # ML libraries
 from sklearn.metrics import (
-    confusion_matrix, classification_report, roc_auc_score,
+    confusion_matrix, roc_auc_score,
     precision_recall_curve, roc_curve, average_precision_score,
     f1_score, accuracy_score, recall_score, precision_score
 )
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import seaborn as sns
-import joblib
 
 # Local imports
 from config import get_config
-from training_pipeline import ModelTrainer, FraudDetectionPipeline
+from training_pipeline import ModelTrainer
 from feature_engineering import FeatureEngineer
-from models.autoencoder import AutoencoderFraudDetector
-from models.gnn_fraud_detector import GNNFraudDetector
 from integration import FraudDataGenerator
 
 # Configure logging
@@ -135,7 +131,7 @@ class PerformanceBenchmark:
                 try:
                     trans = TransactionData(**row.to_dict())
                     transactions.append(trans)
-                except Exception as e:
+                except Exception:
                     continue
 
             # Engineer features

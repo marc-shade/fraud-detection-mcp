@@ -3,7 +3,6 @@ Tests for network-based fraud ring detection
 """
 
 import pytest
-import networkx as nx
 from server import NetworkAnalyzer
 
 
