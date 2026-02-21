@@ -41,6 +41,7 @@ from async_inference import LRUCache
 # Monitoring (graceful degradation if deps unavailable)
 try:
     from monitoring import MonitoringManager, track_api_call
+
     MONITORING_AVAILABLE = True
 except ImportError:
     MONITORING_AVAILABLE = False
@@ -50,6 +51,7 @@ except ImportError:
 # Training pipeline (graceful degradation if deps unavailable)
 try:
     from training_pipeline import ModelTrainer
+
     TRAINING_AVAILABLE = True
 except ImportError:
     TRAINING_AVAILABLE = False
@@ -58,6 +60,7 @@ except ImportError:
 # Autoencoder ensemble (graceful degradation if unavailable)
 try:
     from models.autoencoder import AutoencoderFraudDetector
+
     AUTOENCODER_AVAILABLE = True
 except ImportError:
     AUTOENCODER_AVAILABLE = False
@@ -66,6 +69,7 @@ except ImportError:
 # Explainability module (graceful degradation if unavailable)
 try:
     from explainability import FraudExplainer, SHAP_AVAILABLE
+
     EXPLAINABILITY_AVAILABLE = True
 except ImportError:
     EXPLAINABILITY_AVAILABLE = False
@@ -75,6 +79,7 @@ except ImportError:
 # Synthetic data integration (graceful degradation if unavailable)
 try:
     from integration import SyntheticDataIntegration
+
     SYNTHETIC_DATA_AVAILABLE = True
 except ImportError:
     SYNTHETIC_DATA_AVAILABLE = False
@@ -83,6 +88,7 @@ except ImportError:
 # Security utilities (graceful degradation if unavailable)
 try:
     from security_utils import InputSanitizer, InMemoryRateLimiter
+
     SECURITY_UTILS_AVAILABLE = True
 except ImportError:
     SECURITY_UTILS_AVAILABLE = False
@@ -100,6 +106,7 @@ mcp = FastMCP("Advanced Fraud Detection")
 # =============================================================================
 # Input Validation Functions
 # =============================================================================
+
 
 def validate_transaction_data(data: Dict[str, Any]) -> Tuple[bool, str]:
     """Validate transaction data structure and values."""
@@ -125,7 +132,7 @@ def validate_transaction_data(data: Dict[str, Any]) -> Tuple[bool, str]:
         ts = data["timestamp"]
         if isinstance(ts, str):
             try:
-                datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                datetime.fromisoformat(ts.replace("Z", "+00:00"))
             except ValueError:
                 return False, "invalid timestamp format"
 
@@ -177,9 +184,7 @@ class BehavioralBiometrics:
         """Initialize behavioral analysis models"""
         # Isolation Forest for keystroke dynamics
         self.keystroke_model = IsolationForest(
-            contamination=0.1,
-            random_state=42,
-            n_estimators=100
+            contamination=0.1, random_state=42, n_estimators=100
         )
 
         # Fit with dummy training data (10 features: 5 dwell + 5 flight)
@@ -187,11 +192,7 @@ class BehavioralBiometrics:
         self.keystroke_model.fit(dummy_keystroke_data)
 
         # One-Class SVM for mouse patterns
-        self.mouse_model = OneClassSVM(
-            kernel='rbf',
-            gamma='scale',
-            nu=0.1
-        )
+        self.mouse_model = OneClassSVM(kernel="rbf", gamma="scale", nu=0.1)
 
         # Fit with dummy mouse data
         dummy_mouse_data = np.random.randn(100, 5) * 20 + 50
@@ -199,9 +200,7 @@ class BehavioralBiometrics:
 
         # Local Outlier Factor for touch patterns
         self.touch_model = LocalOutlierFactor(
-            n_neighbors=20,
-            contamination=0.1,
-            novelty=True
+            n_neighbors=20, contamination=0.1, novelty=True
         )
 
         # Fit with dummy touch data
@@ -215,15 +214,23 @@ class BehavioralBiometrics:
                 return {"risk_score": 0.0, "confidence": 0.0, "status": "no_data"}
 
             if not isinstance(keystroke_data, list):
-                return {"risk_score": 0.0, "confidence": 0.0, "status": "error",
-                        "error": f"keystroke_data must be a list, got {type(keystroke_data).__name__}"}
+                return {
+                    "risk_score": 0.0,
+                    "confidence": 0.0,
+                    "status": "error",
+                    "error": f"keystroke_data must be a list, got {type(keystroke_data).__name__}",
+                }
 
             # Extract features from keystroke data
             features = self._extract_keystroke_features(keystroke_data)
 
             if features is None:
-                return {"risk_score": 0.0, "confidence": 0.0, "status": "error",
-                        "error": "could not extract valid features from keystroke data"}
+                return {
+                    "risk_score": 0.0,
+                    "confidence": 0.0,
+                    "status": "error",
+                    "error": "could not extract valid features from keystroke data",
+                }
 
             # Predict anomaly
             anomaly_score = self.keystroke_model.decision_function([features])[0]
@@ -237,14 +244,23 @@ class BehavioralBiometrics:
                 "is_anomaly": bool(is_anomaly),
                 "confidence": 0.85,
                 "analysis_type": "keystroke_dynamics",
-                "features_analyzed": len(features) if hasattr(features, '__len__') else 1
+                "features_analyzed": len(features)
+                if hasattr(features, "__len__")
+                else 1,
             }
 
         except Exception as e:
             logger.error(f"Keystroke analysis error: {e}")
-            return {"risk_score": 0.0, "confidence": 0.0, "status": "error", "error": str(e)}
+            return {
+                "risk_score": 0.0,
+                "confidence": 0.0,
+                "status": "error",
+                "error": str(e),
+            }
 
-    def _extract_keystroke_features(self, keystroke_data: List[Dict]) -> Optional[List[float]]:
+    def _extract_keystroke_features(
+        self, keystroke_data: List[Dict]
+    ) -> Optional[List[float]]:
         """Extract numerical features from keystroke timing data"""
         try:
             if len(keystroke_data) < 2:
@@ -257,19 +273,23 @@ class BehavioralBiometrics:
 
             for i, keystroke in enumerate(keystroke_data):
                 # Dwell time
-                if 'press_time' in keystroke and 'release_time' in keystroke:
+                if "press_time" in keystroke and "release_time" in keystroke:
                     try:
-                        dwell = float(keystroke['release_time']) - float(keystroke['press_time'])
+                        dwell = float(keystroke["release_time"]) - float(
+                            keystroke["press_time"]
+                        )
                         dwell_times.append(dwell)
                     except (TypeError, ValueError):
                         pass  # Skip non-numeric timing values
 
                 # Flight time
                 if i > 0:
-                    prev_keystroke = keystroke_data[i-1]
-                    if 'release_time' in prev_keystroke and 'press_time' in keystroke:
+                    prev_keystroke = keystroke_data[i - 1]
+                    if "release_time" in prev_keystroke and "press_time" in keystroke:
                         try:
-                            flight = float(keystroke['press_time']) - float(prev_keystroke['release_time'])
+                            flight = float(keystroke["press_time"]) - float(
+                                prev_keystroke["release_time"]
+                            )
                             flight_times.append(flight)
                         except (TypeError, ValueError):
                             pass  # Skip non-numeric timing values
@@ -281,24 +301,28 @@ class BehavioralBiometrics:
             features = []
 
             if dwell_times:
-                features.extend([
-                    np.mean(dwell_times),
-                    np.std(dwell_times),
-                    np.median(dwell_times),
-                    np.max(dwell_times),
-                    np.min(dwell_times)
-                ])
+                features.extend(
+                    [
+                        np.mean(dwell_times),
+                        np.std(dwell_times),
+                        np.median(dwell_times),
+                        np.max(dwell_times),
+                        np.min(dwell_times),
+                    ]
+                )
             else:
                 features.extend([0.0, 0.0, 0.0, 0.0, 0.0])
 
             if flight_times:
-                features.extend([
-                    np.mean(flight_times),
-                    np.std(flight_times),
-                    np.median(flight_times),
-                    np.max(flight_times),
-                    np.min(flight_times)
-                ])
+                features.extend(
+                    [
+                        np.mean(flight_times),
+                        np.std(flight_times),
+                        np.median(flight_times),
+                        np.max(flight_times),
+                        np.min(flight_times),
+                    ]
+                )
             else:
                 features.extend([0.0, 0.0, 0.0, 0.0, 0.0])
 
@@ -307,6 +331,7 @@ class BehavioralBiometrics:
         except Exception as e:
             logger.error(f"Feature extraction error: {e}")
             return None
+
 
 class TransactionAnalyzer:
     """Advanced transaction pattern analysis"""
@@ -320,9 +345,7 @@ class TransactionAnalyzer:
         self._model_dir = model_dir or self.DEFAULT_MODEL_DIR
         self.feature_engineer = FeatureEngineer()
         self.isolation_forest = IsolationForest(
-            contamination=0.1,
-            random_state=42,
-            n_estimators=200
+            contamination=0.1, random_state=42, n_estimators=200
         )
         # Try to load saved models first; fall back to synthetic training
         if not self.load_models():
@@ -331,20 +354,47 @@ class TransactionAnalyzer:
     def _initialize_models(self):
         """Initialize models with synthetic training data"""
         from datetime import timedelta
+
         rng = np.random.RandomState(42)
         n = 200
-        payment_methods = ['credit_card', 'debit_card', 'bank_transfer', 'crypto', 'paypal']
-        locations = ['United States', 'United Kingdom', 'Canada', 'Germany', 'Japan',
-                     'France', 'Australia', 'Brazil', 'India', 'Singapore']
-        merchants = ['Amazon', 'Walmart', 'Target', 'BestBuy', 'Costco',
-                     'Starbucks', 'McDonalds', 'Apple', 'Google', 'Netflix']
+        payment_methods = [
+            "credit_card",
+            "debit_card",
+            "bank_transfer",
+            "crypto",
+            "paypal",
+        ]
+        locations = [
+            "United States",
+            "United Kingdom",
+            "Canada",
+            "Germany",
+            "Japan",
+            "France",
+            "Australia",
+            "Brazil",
+            "India",
+            "Singapore",
+        ]
+        merchants = [
+            "Amazon",
+            "Walmart",
+            "Target",
+            "BestBuy",
+            "Costco",
+            "Starbucks",
+            "McDonalds",
+            "Apple",
+            "Google",
+            "Netflix",
+        ]
 
         synthetic_transactions = []
         for i in range(n):
             amount = round(max(0.01, rng.exponential(500)), 2)
             txn = TransactionData(
-                transaction_id=f'train-{i:04d}',
-                user_id=f'user-{i % 50:03d}',
+                transaction_id=f"train-{i:04d}",
+                user_id=f"user-{i % 50:03d}",
                 amount=amount,
                 merchant=merchants[i % len(merchants)],
                 location=locations[i % len(locations)],
@@ -398,8 +448,15 @@ class TransactionAnalyzer:
                 try:
                     ae_scores = self.autoencoder.decision_function(np.array([features]))
                     # Normalize autoencoder score to 0-1 range
-                    if self.autoencoder.threshold is not None and self.autoencoder.threshold > 0:
-                        ae_risk = float(np.clip(ae_scores[0] / (self.autoencoder.threshold * 3), 0, 1))
+                    if (
+                        self.autoencoder.threshold is not None
+                        and self.autoencoder.threshold > 0
+                    ):
+                        ae_risk = float(
+                            np.clip(
+                                ae_scores[0] / (self.autoencoder.threshold * 3), 0, 1
+                            )
+                        )
                     else:
                         ae_risk = 0.0
                     model_scores["autoencoder"] = ae_risk
@@ -431,36 +488,45 @@ class TransactionAnalyzer:
 
         except Exception as e:
             logger.error(f"Transaction analysis error: {e}")
-            return {"risk_score": 0.0, "confidence": 0.0, "status": "error", "error": str(e)}
+            return {
+                "risk_score": 0.0,
+                "confidence": 0.0,
+                "status": "error",
+                "error": str(e),
+            }
 
-    def _extract_transaction_features(self, transaction_data: Dict[str, Any]) -> np.ndarray:
+    def _extract_transaction_features(
+        self, transaction_data: Dict[str, Any]
+    ) -> np.ndarray:
         """Extract features using FeatureEngineer (46 features)"""
         txn = _dict_to_transaction_data(transaction_data)
         return self.feature_engineer.transform(txn)
 
-    def _identify_risk_factors(self, transaction: Dict[str, Any], features: List[float]) -> List[str]:
+    def _identify_risk_factors(
+        self, transaction: Dict[str, Any], features: List[float]
+    ) -> List[str]:
         """Identify specific risk factors in the transaction"""
         risk_factors = []
 
-        amount = float(transaction.get('amount', 0))
+        amount = float(transaction.get("amount", 0))
 
         # High amount risk
         if amount > 10000:
             risk_factors.append("high_amount_transaction")
 
         # Unusual time risk
-        timestamp = transaction.get('timestamp')
+        timestamp = transaction.get("timestamp")
         if timestamp:
-            dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+            dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
             if dt.hour < 6 or dt.hour > 23:
                 risk_factors.append("unusual_time_pattern")
 
         # Crypto payment risk
-        if transaction.get('payment_method') == 'crypto':
+        if transaction.get("payment_method") == "crypto":
             risk_factors.append("high_risk_payment_method")
 
         # Geographic risk - config-driven exact match
-        location = transaction.get('location', '').lower().strip()
+        location = transaction.get("location", "").lower().strip()
         app_config = get_config()
         if location in app_config.HIGH_RISK_LOCATIONS:
             risk_factors.append("high_risk_geographic_location")
@@ -554,6 +620,7 @@ class UserTransactionHistory:
     def record(self, user_id: str, transaction: Dict[str, Any]) -> None:
         """Record a transaction for a user."""
         import time as _time
+
         entry = {
             "amount": float(transaction.get("amount", 0)),
             "merchant": str(transaction.get("merchant", "")),
@@ -577,7 +644,9 @@ class UserTransactionHistory:
                 return list(self._history[user_id])
             return []
 
-    def check_velocity(self, user_id: str, window_seconds: int = 3600) -> Dict[str, Any]:
+    def check_velocity(
+        self, user_id: str, window_seconds: int = 3600
+    ) -> Dict[str, Any]:
         """Check transaction velocity (count in time window).
 
         Args:
@@ -588,6 +657,7 @@ class UserTransactionHistory:
             Dict with count, window, and is_suspicious flag.
         """
         import time as _time
+
         cutoff = _time.monotonic() - window_seconds
         history = self.get_history(user_id)
         recent = [h for h in history if h["recorded_at"] > cutoff]
@@ -598,7 +668,9 @@ class UserTransactionHistory:
             "is_suspicious": count >= 10,
         }
 
-    def check_amount_deviation(self, user_id: str, current_amount: float) -> Dict[str, Any]:
+    def check_amount_deviation(
+        self, user_id: str, current_amount: float
+    ) -> Dict[str, Any]:
         """Check if current amount deviates from user's historical pattern.
 
         Returns:
@@ -643,7 +715,9 @@ class UserTransactionHistory:
             }
         last = history[-1]
         prev = history[-2]
-        same_location = last["location"].lower().strip() == prev["location"].lower().strip()
+        same_location = (
+            last["location"].lower().strip() == prev["location"].lower().strip()
+        )
         time_between = last["recorded_at"] - prev["recorded_at"]
         return {
             "location_changes": 0 if same_location else 1,
@@ -652,13 +726,16 @@ class UserTransactionHistory:
             "insufficient_history": False,
         }
 
-    def check_merchant_diversity(self, user_id: str, window_seconds: int = 3600) -> Dict[str, Any]:
+    def check_merchant_diversity(
+        self, user_id: str, window_seconds: int = 3600
+    ) -> Dict[str, Any]:
         """Check merchant diversity in time window (card testing signal).
 
         Returns:
             Dict with unique_merchants, total, and is_suspicious flag.
         """
         import time as _time
+
         cutoff = _time.monotonic() - window_seconds
         history = self.get_history(user_id)
         recent = [h for h in history if h["recorded_at"] > cutoff]
@@ -702,8 +779,8 @@ class NetworkAnalyzer:
     def analyze_network_risk(self, entity_data: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze network patterns for fraud ring detection"""
         try:
-            entity_id = entity_data.get('entity_id')
-            connections = entity_data.get('connections', [])
+            entity_id = entity_data.get("entity_id")
+            connections = entity_data.get("connections", [])
 
             if not entity_id:
                 return {"risk_score": 0.0, "confidence": 0.0, "status": "no_entity_id"}
@@ -718,19 +795,26 @@ class NetworkAnalyzer:
             risk_patterns = self._detect_risk_patterns(entity_id, network_metrics)
 
             # Calculate network risk score
-            risk_score = self._calculate_network_risk_score(network_metrics, risk_patterns)
+            risk_score = self._calculate_network_risk_score(
+                network_metrics, risk_patterns
+            )
 
             return {
                 "risk_score": float(risk_score),
                 "network_metrics": network_metrics,
                 "risk_patterns": risk_patterns,
                 "confidence": 0.82,
-                "analysis_type": "network_analysis"
+                "analysis_type": "network_analysis",
             }
 
         except Exception as e:
             logger.error(f"Network analysis error: {e}")
-            return {"risk_score": 0.0, "confidence": 0.0, "status": "error", "error": str(e)}
+            return {
+                "risk_score": 0.0,
+                "confidence": 0.0,
+                "status": "error",
+                "error": str(e),
+            }
 
     def _update_graph(self, entity_id: str, connections: List[Dict]):
         """Update the transaction graph with new entity and connections"""
@@ -739,15 +823,15 @@ class NetworkAnalyzer:
         self.transaction_graph.add_node(entity_id)
 
         for connection in connections:
-            connected_entity = connection.get('entity_id')
+            connected_entity = connection.get("entity_id")
             if connected_entity:
                 if connected_entity not in self.transaction_graph:
                     self._node_order.append(connected_entity)
                 self.transaction_graph.add_edge(
                     entity_id,
                     connected_entity,
-                    weight=connection.get('strength', 1.0),
-                    transaction_count=connection.get('transaction_count', 1)
+                    weight=connection.get("strength", 1.0),
+                    transaction_count=connection.get("transaction_count", 1),
                 )
 
         # Evict oldest nodes if over cap
@@ -767,8 +851,12 @@ class NetworkAnalyzer:
 
         # Centrality measures
         try:
-            betweenness = nx.betweenness_centrality(self.transaction_graph).get(entity_id, 0)
-            closeness = nx.closeness_centrality(self.transaction_graph).get(entity_id, 0)
+            betweenness = nx.betweenness_centrality(self.transaction_graph).get(
+                entity_id, 0
+            )
+            closeness = nx.closeness_centrality(self.transaction_graph).get(
+                entity_id, 0
+            )
         except Exception as e:
             logger.error(f"Centrality calculation error: {e}")
             betweenness = 0
@@ -778,10 +866,12 @@ class NetworkAnalyzer:
             "degree": float(degree),
             "clustering_coefficient": float(clustering),
             "betweenness_centrality": float(betweenness),
-            "closeness_centrality": float(closeness)
+            "closeness_centrality": float(closeness),
         }
 
-    def _detect_risk_patterns(self, entity_id: str, metrics: Dict[str, float]) -> List[str]:
+    def _detect_risk_patterns(
+        self, entity_id: str, metrics: Dict[str, float]
+    ) -> List[str]:
         """Detect suspicious network patterns"""
         patterns = []
 
@@ -799,7 +889,9 @@ class NetworkAnalyzer:
 
         return patterns
 
-    def _calculate_network_risk_score(self, metrics: Dict[str, float], patterns: List[str]) -> float:
+    def _calculate_network_risk_score(
+        self, metrics: Dict[str, float], patterns: List[str]
+    ) -> float:
         """Calculate overall network risk score"""
         base_score = 0.0
 
@@ -816,6 +908,7 @@ class NetworkAnalyzer:
 
         return min(1.0, base_score + pattern_score)
 
+
 # Initialize analyzers
 behavioral_analyzer = BehavioralBiometrics()
 transaction_analyzer = TransactionAnalyzer()
@@ -823,37 +916,37 @@ network_analyzer = NetworkAnalyzer()
 
 # Payment method mapping for dict-to-Pydantic conversion
 _PAYMENT_METHOD_MAP = {
-    'credit_card': 'credit_card',
-    'debit_card': 'debit_card',
-    'bank_transfer': 'bank_transfer',
-    'crypto': 'crypto',
-    'paypal': 'paypal',
-    'wire_transfer': 'wire_transfer',
-    'check': 'check',
-    'cash': 'cash',
-    'unknown': 'other',
+    "credit_card": "credit_card",
+    "debit_card": "debit_card",
+    "bank_transfer": "bank_transfer",
+    "crypto": "crypto",
+    "paypal": "paypal",
+    "wire_transfer": "wire_transfer",
+    "check": "check",
+    "cash": "cash",
+    "unknown": "other",
 }
 
 
 def _dict_to_transaction_data(data: Dict[str, Any]) -> TransactionData:
     """Convert a validated transaction dict to TransactionData for FeatureEngineer."""
     # Parse timestamp
-    ts = data.get('timestamp')
+    ts = data.get("timestamp")
     if isinstance(ts, str):
-        ts = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+        ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
     elif not isinstance(ts, datetime):
         ts = datetime.now()
 
     # Map payment method to enum value
-    pm = data.get('payment_method', 'other')
-    pm = _PAYMENT_METHOD_MAP.get(pm, 'other')
+    pm = data.get("payment_method", "other")
+    pm = _PAYMENT_METHOD_MAP.get(pm, "other")
 
     return TransactionData(
-        transaction_id=data.get('transaction_id', f'txn-{uuid.uuid4().hex[:12]}'),
-        user_id=data.get('user_id', 'anonymous'),
-        amount=max(0.01, float(data.get('amount', 0.01))),
-        merchant=data.get('merchant') or 'unknown',
-        location=data.get('location') or 'unknown',
+        transaction_id=data.get("transaction_id", f"txn-{uuid.uuid4().hex[:12]}"),
+        user_id=data.get("user_id", "anonymous"),
+        amount=max(0.01, float(data.get("amount", 0.01))),
+        merchant=data.get("merchant") or "unknown",
+        location=data.get("location") or "unknown",
         timestamp=ts,
         payment_method=pm,
     )
@@ -864,7 +957,7 @@ if EXPLAINABILITY_AVAILABLE and FraudExplainer is not None:
     try:
         fraud_explainer = FraudExplainer(
             model=transaction_analyzer.isolation_forest,
-            feature_names=transaction_analyzer.feature_engineer.feature_names
+            feature_names=transaction_analyzer.feature_engineer.feature_names,
         )
         logger.info("FraudExplainer initialized successfully")
     except Exception as e:
@@ -931,7 +1024,12 @@ AGENT_USER_AGENT_PATTERNS = {
 
 # Browser User-Agent patterns indicating human traffic
 BROWSER_USER_AGENT_PATTERNS = [
-    "mozilla/", "chrome/", "safari/", "firefox/", "edge/", "opera/",
+    "mozilla/",
+    "chrome/",
+    "safari/",
+    "firefox/",
+    "edge/",
+    "opera/",
 ]
 
 
@@ -1026,6 +1124,7 @@ traffic_classifier = TrafficClassifier()
 # Agent Identity Registry
 # =============================================================================
 
+
 class AgentIdentityRegistry:
     """Thread-safe JSON-backed registry of known AI agent identities.
 
@@ -1053,7 +1152,9 @@ class AgentIdentityRegistry:
         with open(self._path, "w") as f:
             json.dump(self._agents, f, indent=2, default=str)
 
-    def register(self, agent_id: str, agent_type: Optional[str] = None) -> Dict[str, Any]:
+    def register(
+        self, agent_id: str, agent_type: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Register a new agent or return existing entry."""
         with self._lock:
             if agent_id in self._agents:
@@ -1224,6 +1325,320 @@ class AgentIdentityVerifier:
 agent_verifier = AgentIdentityVerifier(agent_registry)
 
 
+# =============================================================================
+# Agent Behavioral Fingerprinting
+# =============================================================================
+
+
+class AgentBehavioralFingerprint:
+    """Behavioral fingerprinting for AI agent transactions.
+
+    Tracks per-agent behavioral baselines: API call timing patterns,
+    decision consistency, and request structure fingerprints.  Uses
+    Isolation Forest to detect deviations from established patterns.
+
+    Replaces BehavioralBiometrics for agent traffic -- agents have no
+    keystroke/mouse signals but *do* exhibit measurable behavioral
+    consistency that changes when compromised or impersonated.
+    """
+
+    # Maximum observations to keep per agent (bounded memory)
+    MAX_HISTORY = 1000
+    # Minimum observations before training the anomaly model
+    MIN_OBSERVATIONS_FOR_MODEL = 10
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        # Per-agent observation history: agent_id -> deque of feature dicts
+        self._history: Dict[str, deque] = {}
+        # Per-agent trained Isolation Forest models
+        self._models: Dict[str, Any] = {}
+
+    # ------------------------------------------------------------------
+    # Record
+    # ------------------------------------------------------------------
+
+    def record(
+        self,
+        agent_id: str,
+        api_timing_ms: float = 0.0,
+        decision_pattern: Optional[str] = None,
+        request_structure_hash: Optional[str] = None,
+    ) -> None:
+        """Record a single behavioral observation for an agent.
+
+        Args:
+            agent_id: Unique agent identifier.
+            api_timing_ms: API response time in milliseconds.
+            decision_pattern: Categorical decision (e.g. "approve", "reject").
+            request_structure_hash: Hash of the request structure/shape.
+        """
+        obs = {
+            "api_timing_ms": float(api_timing_ms),
+            "decision_pattern": decision_pattern or "",
+            "request_structure_hash": request_structure_hash or "",
+            "timestamp": datetime.now().isoformat(),
+        }
+        with self._lock:
+            if agent_id not in self._history:
+                self._history[agent_id] = deque(maxlen=self.MAX_HISTORY)
+            self._history[agent_id].append(obs)
+
+    # ------------------------------------------------------------------
+    # Get baseline
+    # ------------------------------------------------------------------
+
+    def get_baseline(self, agent_id: str) -> Optional[Dict[str, Any]]:
+        """Return summary statistics for an agent's behavioral baseline.
+
+        Returns None if the agent has no recorded observations.
+        """
+        with self._lock:
+            history = self._history.get(agent_id)
+            if not history:
+                return None
+            timings = [o["api_timing_ms"] for o in history]
+            patterns = set(
+                o["decision_pattern"] for o in history if o["decision_pattern"]
+            )
+            structures = set(
+                o["request_structure_hash"]
+                for o in history
+                if o["request_structure_hash"]
+            )
+            return {
+                "agent_id": agent_id,
+                "observation_count": len(history),
+                "timing_mean": float(np.mean(timings)) if timings else 0.0,
+                "timing_std": float(np.std(timings)) if len(timings) > 1 else 0.0,
+                "unique_decision_patterns": list(patterns),
+                "unique_request_structures": list(structures),
+            }
+
+    # ------------------------------------------------------------------
+    # Feature extraction
+    # ------------------------------------------------------------------
+
+    def _extract_features(
+        self,
+        api_timing_ms: float,
+        decision_pattern: Optional[str],
+        request_structure_hash: Optional[str],
+        baseline: Optional[Dict[str, Any]],
+    ) -> np.ndarray:
+        """Extract a numeric feature vector for anomaly detection.
+
+        Features (6 dimensions):
+            0: api_timing_ms (raw)
+            1: timing z-score vs baseline (0 if no baseline)
+            2: log(1 + api_timing_ms)
+            3: decision_pattern_novel (1 if unseen, 0 otherwise)
+            4: request_structure_novel (1 if unseen, 0 otherwise)
+            5: timing_ratio (current / baseline_mean, 1.0 if no baseline)
+        """
+        timing = max(0.0, api_timing_ms)  # clamp negatives
+
+        # Z-score
+        if baseline and baseline["timing_std"] > 0:
+            z_score = (timing - baseline["timing_mean"]) / baseline["timing_std"]
+        else:
+            z_score = 0.0
+
+        # Log timing
+        log_timing = float(np.log1p(timing))
+
+        # Novelty flags
+        dp_novel = 0.0
+        if decision_pattern and baseline:
+            if decision_pattern not in baseline["unique_decision_patterns"]:
+                dp_novel = 1.0
+
+        rs_novel = 0.0
+        if request_structure_hash and baseline:
+            if request_structure_hash not in baseline["unique_request_structures"]:
+                rs_novel = 1.0
+
+        # Timing ratio
+        if baseline and baseline["timing_mean"] > 0:
+            timing_ratio = timing / baseline["timing_mean"]
+        else:
+            timing_ratio = 1.0
+
+        return np.array(
+            [[timing, z_score, log_timing, dp_novel, rs_novel, timing_ratio]]
+        )
+
+    # ------------------------------------------------------------------
+    # Model training (per-agent)
+    # ------------------------------------------------------------------
+
+    def _train_model_unlocked(self, agent_id: str, baseline: Dict[str, Any]) -> None:
+        """Train (or re-train) an Isolation Forest on the agent's history.
+
+        MUST be called while self._lock is already held.  Accepts a
+        pre-computed *baseline* dict so it never re-acquires the lock.
+        """
+        history = self._history.get(agent_id)
+        if not history or len(history) < self.MIN_OBSERVATIONS_FOR_MODEL:
+            return
+
+        rows = []
+        for obs in history:
+            feat = self._extract_features(
+                obs["api_timing_ms"],
+                obs["decision_pattern"],
+                obs["request_structure_hash"],
+                baseline,
+            )
+            rows.append(feat[0])
+
+        X = np.array(rows)
+        model = IsolationForest(
+            contamination=0.1,
+            random_state=42,
+            n_estimators=100,
+        )
+        model.fit(X)
+        self._models[agent_id] = model
+
+    # ------------------------------------------------------------------
+    # Analyze
+    # ------------------------------------------------------------------
+
+    def analyze(
+        self,
+        agent_id: str,
+        api_timing_ms: float = 0.0,
+        decision_pattern: Optional[str] = None,
+        request_structure_hash: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Analyze a single agent action against its behavioral baseline.
+
+        Args:
+            agent_id: Unique agent identifier.
+            api_timing_ms: API response time in milliseconds.
+            decision_pattern: Categorical decision label.
+            request_structure_hash: Hash of the request structure.
+
+        Returns:
+            Dict with risk_score, confidence, is_anomaly, and details.
+        """
+        with self._lock:
+            baseline = None
+            if agent_id in self._history and self._history[agent_id]:
+                # Compute baseline inside lock
+                history = self._history[agent_id]
+                timings = [o["api_timing_ms"] for o in history]
+                patterns = set(
+                    o["decision_pattern"] for o in history if o["decision_pattern"]
+                )
+                structures = set(
+                    o["request_structure_hash"]
+                    for o in history
+                    if o["request_structure_hash"]
+                )
+                baseline = {
+                    "agent_id": agent_id,
+                    "observation_count": len(history),
+                    "timing_mean": float(np.mean(timings)) if timings else 0.0,
+                    "timing_std": float(np.std(timings)) if len(timings) > 1 else 0.0,
+                    "unique_decision_patterns": list(patterns),
+                    "unique_request_structures": list(structures),
+                }
+
+            detail_flags: List[str] = []
+            risk_score = 0.5  # default: moderate when no info
+            confidence = 0.3  # default: low confidence
+
+            # No baseline at all -> elevated risk
+            if baseline is None:
+                detail_flags.append("no_baseline")
+                risk_score = 0.5
+                confidence = 0.2
+            else:
+                n_obs = baseline["observation_count"]
+                # Confidence scales with observation count
+                confidence = min(
+                    0.9, 0.3 + (n_obs / self.MIN_OBSERVATIONS_FOR_MODEL) * 0.3
+                )
+
+                # --- Heuristic signals ---
+                # Timing deviation
+                if baseline["timing_std"] > 0:
+                    z = (
+                        abs(api_timing_ms - baseline["timing_mean"])
+                        / baseline["timing_std"]
+                    )
+                    if z > 3:
+                        detail_flags.append("timing_deviation_extreme")
+                    elif z > 2:
+                        detail_flags.append("timing_deviation_high")
+
+                # Novel decision pattern
+                dp = decision_pattern or ""
+                if dp and dp not in baseline["unique_decision_patterns"]:
+                    detail_flags.append("decision_pattern_novel")
+
+                # Novel request structure
+                rs = request_structure_hash or ""
+                if rs and rs not in baseline["unique_request_structures"]:
+                    detail_flags.append("request_structure_novel")
+
+                # --- ML scoring (Isolation Forest) ---
+                features = self._extract_features(
+                    api_timing_ms, decision_pattern, request_structure_hash, baseline
+                )
+
+                # Train model if enough data and no model yet (or retrain periodically)
+                if n_obs >= self.MIN_OBSERVATIONS_FOR_MODEL:
+                    if agent_id not in self._models:
+                        self._train_model_unlocked(agent_id, baseline)
+
+                    model = self._models.get(agent_id)
+                    if model is not None:
+                        try:
+                            anomaly_score = model.decision_function(features)[0]
+                            # Convert: lower anomaly_score -> higher risk
+                            risk_score = float(
+                                max(0.0, min(1.0, (0.5 - anomaly_score) * 2))
+                            )
+                        except Exception:
+                            # Fallback: heuristic scoring
+                            risk_score = 0.3 + 0.15 * len(detail_flags)
+                    else:
+                        risk_score = 0.3 + 0.15 * len(detail_flags)
+                else:
+                    # Not enough data for ML, use heuristics
+                    risk_score = 0.3 + 0.15 * len(detail_flags)
+
+            # Clamp risk score
+            risk_score = float(max(0.0, min(1.0, risk_score)))
+            is_anomaly = risk_score >= 0.6
+
+            # Record this observation for future baseline
+            # (must be done outside the lock context above since record acquires lock)
+            pass  # will record after releasing
+
+        # Record outside lock (record acquires its own lock)
+        self.record(
+            agent_id=agent_id,
+            api_timing_ms=api_timing_ms,
+            decision_pattern=decision_pattern,
+            request_structure_hash=request_structure_hash,
+        )
+
+        return {
+            "risk_score": risk_score,
+            "confidence": float(confidence),
+            "is_anomaly": is_anomaly,
+            "details": detail_flags,
+            "agent_id": agent_id,
+        }
+
+
+agent_fingerprinter = AgentBehavioralFingerprint()
+
+
 def _monitored(endpoint: str, method: str = "TOOL"):
     """Apply @track_api_call only when monitoring is available."""
     if MONITORING_AVAILABLE and track_api_call is not None:
@@ -1249,14 +1664,16 @@ def _generate_cache_key(transaction_data: Dict[str, Any]) -> str:
 # Implementation Functions (testable, import these in tests)
 # =============================================================================
 
+
 def analyze_transaction_impl(
     transaction_data: Dict[str, Any],
     include_behavioral: bool = False,
     behavioral_data: Optional[Dict[str, Any]] = None,
-    use_cache: bool = True
+    use_cache: bool = True,
 ) -> Dict[str, Any]:
     """Implementation of comprehensive transaction fraud analysis"""
     import time as _time
+
     _start = _time.monotonic()
     try:
         # --- Security: sanitise inputs & enforce rate limit ---
@@ -1277,12 +1694,18 @@ def analyze_transaction_impl(
         # Validate inputs
         valid, msg = validate_transaction_data(transaction_data)
         if not valid:
-            return {"error": f"Invalid transaction data: {msg}", "status": "validation_failed"}
+            return {
+                "error": f"Invalid transaction data: {msg}",
+                "status": "validation_failed",
+            }
 
         if behavioral_data:
             valid, msg = validate_behavioral_data(behavioral_data)
             if not valid:
-                return {"error": f"Invalid behavioral data: {msg}", "status": "validation_failed"}
+                return {
+                    "error": f"Invalid behavioral data: {msg}",
+                    "status": "validation_failed",
+                }
 
         # Check prediction cache (only for pure transaction analysis, not behavioral)
         cache_key = None
@@ -1348,7 +1771,9 @@ def analyze_transaction_impl(
         feature_explanation = None
         if fraud_explainer is not None:
             try:
-                features = transaction_analyzer._extract_transaction_features(transaction_data)
+                features = transaction_analyzer._extract_transaction_features(
+                    transaction_data
+                )
                 feature_explanation = fraud_explainer.explain_prediction(
                     features, transaction_result.get("risk_score", 0.0)
                 )
@@ -1361,7 +1786,7 @@ def analyze_transaction_impl(
             "risk_level": "LOW",
             "detected_anomalies": [],
             "explanations": [],
-            "recommended_actions": []
+            "recommended_actions": [],
         }
 
         if feature_explanation:
@@ -1385,7 +1810,9 @@ def analyze_transaction_impl(
 
                 if keystroke_result.get("is_anomaly"):
                     results["detected_anomalies"].append("abnormal_keystroke_dynamics")
-                    results["overall_risk_score"] = min(1.0, results["overall_risk_score"] + 0.2)
+                    results["overall_risk_score"] = min(
+                        1.0, results["overall_risk_score"] + 0.2
+                    )
 
             results["behavioral_analysis"] = behavioral_result
 
@@ -1393,13 +1820,22 @@ def analyze_transaction_impl(
         risk_score = results["overall_risk_score"]
         if risk_score >= 0.8:
             results["risk_level"] = "CRITICAL"
-            results["recommended_actions"] = ["block_transaction", "require_manual_review"]
+            results["recommended_actions"] = [
+                "block_transaction",
+                "require_manual_review",
+            ]
         elif risk_score >= 0.6:
             results["risk_level"] = "HIGH"
-            results["recommended_actions"] = ["require_additional_verification", "flag_for_review"]
+            results["recommended_actions"] = [
+                "require_additional_verification",
+                "flag_for_review",
+            ]
         elif risk_score >= 0.4:
             results["risk_level"] = "MEDIUM"
-            results["recommended_actions"] = ["monitor_closely", "collect_additional_data"]
+            results["recommended_actions"] = [
+                "monitor_closely",
+                "collect_additional_data",
+            ]
         else:
             results["risk_level"] = "LOW"
             results["recommended_actions"] = ["allow_transaction"]
@@ -1408,7 +1844,9 @@ def analyze_transaction_impl(
         if results["detected_anomalies"]:
             explanation = f"Transaction flagged due to: {', '.join(results['detected_anomalies'])}"
         else:
-            explanation = "Transaction appears normal with no significant risk factors detected"
+            explanation = (
+                "Transaction appears normal with no significant risk factors detected"
+            )
 
         results["explanation"] = explanation
         results["analysis_timestamp"] = datetime.now().isoformat()
@@ -1416,7 +1854,7 @@ def analyze_transaction_impl(
 
         # Record monitoring metrics
         if monitor is not None:
-            elapsed_s = (_time.monotonic() - _start)
+            elapsed_s = _time.monotonic() - _start
             monitor.record_prediction(
                 model_type="isolation_forest",
                 feature_count=46,
@@ -1448,7 +1886,7 @@ def analyze_transaction_impl(
             "error": str(e),
             "overall_risk_score": 0.0,
             "risk_level": "UNKNOWN",
-            "status": "analysis_failed"
+            "status": "analysis_failed",
         }
 
 
@@ -1461,13 +1899,16 @@ def detect_behavioral_anomaly_impl(behavioral_data: Dict[str, Any]) -> Dict[str,
 
         valid, msg = validate_behavioral_data(behavioral_data)
         if not valid:
-            return {"error": f"Invalid behavioral data: {msg}", "status": "validation_failed"}
+            return {
+                "error": f"Invalid behavioral data: {msg}",
+                "status": "validation_failed",
+            }
 
         results = {
             "overall_anomaly_score": 0.0,
             "behavioral_analyses": {},
             "detected_anomalies": [],
-            "confidence": 0.0
+            "confidence": 0.0,
         }
 
         total_confidence = 0.0
@@ -1485,7 +1926,7 @@ def detect_behavioral_anomaly_impl(behavioral_data: Dict[str, Any]) -> Dict[str,
 
             results["overall_anomaly_score"] = max(
                 results["overall_anomaly_score"],
-                keystroke_result.get("risk_score", 0.0)
+                keystroke_result.get("risk_score", 0.0),
             )
 
             total_confidence += keystroke_result.get("confidence", 0.0)
@@ -1504,7 +1945,7 @@ def detect_behavioral_anomaly_impl(behavioral_data: Dict[str, Any]) -> Dict[str,
         return {
             "error": str(e),
             "overall_anomaly_score": 0.0,
-            "status": "analysis_failed"
+            "status": "analysis_failed",
         }
 
 
@@ -1516,15 +1957,19 @@ def assess_network_risk_impl(entity_data: Dict[str, Any]) -> Dict[str, Any]:
 def generate_risk_score_impl(
     transaction_data: Dict[str, Any],
     behavioral_data: Optional[Dict[str, Any]] = None,
-    network_data: Optional[Dict[str, Any]] = None
+    network_data: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Implementation of comprehensive risk score generation"""
     try:
         # Validate transaction data
         valid, msg = validate_transaction_data(transaction_data)
         if not valid:
-            return {"error": f"Invalid transaction data: {msg}", "status": "validation_failed",
-                    "overall_risk_score": 0.0, "risk_level": "UNKNOWN"}
+            return {
+                "error": f"Invalid transaction data: {msg}",
+                "status": "validation_failed",
+                "overall_risk_score": 0.0,
+                "risk_level": "UNKNOWN",
+            }
 
         # Classify traffic source
         classification = traffic_classifier.classify(transaction_data)
@@ -1541,7 +1986,9 @@ def generate_risk_score_impl(
             )
 
         # Perform all analyses
-        transaction_analysis = transaction_analyzer.analyze_transaction(transaction_data)
+        transaction_analysis = transaction_analyzer.analyze_transaction(
+            transaction_data
+        )
 
         # Initialize comprehensive results
         comprehensive_result = {
@@ -1553,7 +2000,7 @@ def generate_risk_score_impl(
             "confidence": 0.0,
             "detected_anomalies": [],
             "comprehensive_explanation": "",
-            "recommended_actions": []
+            "recommended_actions": [],
         }
 
         scores = [transaction_analysis.get("risk_score", 0.0)]
@@ -1599,7 +2046,9 @@ def generate_risk_score_impl(
             confidences.append(0.7 if identity_verification.get("verified") else 0.4)
 
             if not identity_verification.get("verified"):
-                comprehensive_result["detected_anomalies"].append("unverified_agent_identity")
+                comprehensive_result["detected_anomalies"].append(
+                    "unverified_agent_identity"
+                )
 
             # Record transaction in registry
             agent_id = transaction_data.get("agent_identifier")
@@ -1621,9 +2070,9 @@ def generate_risk_score_impl(
             if len(scores) == 1:
                 overall_score = scores[0]
             elif len(scores) == 2:
-                overall_score = (scores[0] * 0.6 + scores[1] * 0.4)
+                overall_score = scores[0] * 0.6 + scores[1] * 0.4
             else:
-                overall_score = (scores[0] * 0.5 + scores[1] * 0.3 + scores[2] * 0.2)
+                overall_score = scores[0] * 0.5 + scores[1] * 0.3 + scores[2] * 0.2
 
         comprehensive_result["overall_risk_score"] = float(overall_score)
         comprehensive_result["confidence"] = float(np.mean(confidences))
@@ -1634,20 +2083,20 @@ def generate_risk_score_impl(
             comprehensive_result["recommended_actions"] = [
                 "block_transaction",
                 "require_manual_review",
-                "investigate_account"
+                "investigate_account",
             ]
         elif overall_score >= 0.6:
             comprehensive_result["risk_level"] = "HIGH"
             comprehensive_result["recommended_actions"] = [
                 "require_additional_verification",
                 "flag_for_review",
-                "monitor_account"
+                "monitor_account",
             ]
         elif overall_score >= 0.4:
             comprehensive_result["risk_level"] = "MEDIUM"
             comprehensive_result["recommended_actions"] = [
                 "monitor_closely",
-                "collect_additional_data"
+                "collect_additional_data",
             ]
         else:
             comprehensive_result["risk_level"] = "LOW"
@@ -1668,7 +2117,9 @@ def generate_risk_score_impl(
 
         comprehensive_result["comprehensive_explanation"] = explanation
         comprehensive_result["analysis_timestamp"] = datetime.now().isoformat()
-        comprehensive_result["analysis_components"] = list(comprehensive_result["component_scores"].keys())
+        comprehensive_result["analysis_components"] = list(
+            comprehensive_result["component_scores"].keys()
+        )
 
         comprehensive_result["traffic_source"] = traffic_source
         comprehensive_result["agent_classification"] = classification
@@ -1681,7 +2132,7 @@ def generate_risk_score_impl(
             "error": str(e),
             "overall_risk_score": 0.0,
             "risk_level": "UNKNOWN",
-            "status": "analysis_failed"
+            "status": "analysis_failed",
         }
 
 
@@ -1708,7 +2159,7 @@ def explain_decision_impl(
             "confidence_breakdown": {},
             "alternative_scenarios": [],
             "explainability_method": "rule_based",
-            "explanation_timestamp": datetime.now().isoformat()
+            "explanation_timestamp": datetime.now().isoformat(),
         }
 
         risk_score = analysis_result.get("overall_risk_score", 0.0)
@@ -1728,7 +2179,7 @@ def explain_decision_impl(
                 {
                     "factor": anomaly,
                     "impact": "high" if "high" in anomaly else "medium",
-                    "description": f"Detected pattern: {anomaly.replace('_', ' ')}"
+                    "description": f"Detected pattern: {anomaly.replace('_', ' ')}",
                 }
                 for anomaly in detected_anomalies
             ]
@@ -1738,7 +2189,11 @@ def explain_decision_impl(
         if component_scores:
             for component, score in component_scores.items():
                 if component == "transaction":
-                    weight = 0.5 if len(component_scores) == 3 else (0.6 if len(component_scores) == 2 else 1.0)
+                    weight = (
+                        0.5
+                        if len(component_scores) == 3
+                        else (0.6 if len(component_scores) == 2 else 1.0)
+                    )
                 elif component == "behavioral":
                     weight = 0.3 if len(component_scores) == 3 else 0.4
                 else:  # network
@@ -1747,14 +2202,20 @@ def explain_decision_impl(
                 explanation["algorithm_contributions"][component] = {
                     "score": float(score),
                     "weight": float(weight),
-                    "contribution": f"{weight * 100:.1f}% of final decision"
+                    "contribution": f"{weight * 100:.1f}% of final decision",
                 }
 
         # Confidence breakdown
         explanation["confidence_breakdown"] = {
-            "model_confidence": "High" if risk_score > 0.7 else "Medium" if risk_score > 0.3 else "Low",
+            "model_confidence": "High"
+            if risk_score > 0.7
+            else "Medium"
+            if risk_score > 0.3
+            else "Low",
             "data_quality": "Good" if len(detected_anomalies) > 0 else "Limited",
-            "recommendation_strength": "Strong" if risk_score > 0.8 or risk_score < 0.2 else "Moderate"
+            "recommendation_strength": "Strong"
+            if risk_score > 0.8 or risk_score < 0.2
+            else "Moderate",
         }
 
         # Alternative scenarios
@@ -1772,9 +2233,9 @@ def explain_decision_impl(
         # Include feature-level analysis if available in input
         if "feature_explanation" in analysis_result:
             explanation["feature_analysis"] = analysis_result["feature_explanation"]
-            explanation["explainability_method"] = (
-                analysis_result["feature_explanation"].get("method", "rule_based")
-            )
+            explanation["explainability_method"] = analysis_result[
+                "feature_explanation"
+            ].get("method", "rule_based")
 
         # Generate SHAP-based feature explanation on-demand when transaction_data
         # is provided and the explainability module is available
@@ -1810,7 +2271,9 @@ def explain_decision_impl(
             and fraud_explainer is not None
         ):
             try:
-                summary = fraud_explainer.generate_summary(explanation["feature_analysis"])
+                summary = fraud_explainer.generate_summary(
+                    explanation["feature_analysis"]
+                )
                 explanation["human_readable_summary"] = summary
             except Exception as e:
                 logger.warning(f"Summary generation failed: {e}")
@@ -1822,13 +2285,12 @@ def explain_decision_impl(
         return {
             "error": str(e),
             "decision_summary": "Unable to generate explanation",
-            "status": "explanation_failed"
+            "status": "explanation_failed",
         }
 
 
 def classify_traffic_source_impl(
-    transaction_data: Dict[str, Any],
-    request_metadata: Optional[Dict[str, Any]] = None
+    transaction_data: Dict[str, Any], request_metadata: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """Implementation of traffic source classification.
 
@@ -1896,7 +2358,9 @@ def verify_agent_identity_impl(
     """
     try:
         result = agent_verifier.verify(
-            agent_identifier=str(agent_identifier) if agent_identifier is not None else None,
+            agent_identifier=str(agent_identifier)
+            if agent_identifier is not None
+            else None,
             api_key=str(api_key) if api_key is not None else None,
             token=str(token) if token is not None else None,
         )
@@ -1914,11 +2378,11 @@ def verify_agent_identity_impl(
 
 
 def analyze_batch_impl(
-    transactions: List[Dict[str, Any]],
-    use_cache: bool = True
+    transactions: List[Dict[str, Any]], use_cache: bool = True
 ) -> Dict[str, Any]:
     """Analyze a batch of transactions and return aggregated results."""
     import time as _time
+
     _start = _time.monotonic()
 
     if not isinstance(transactions, list):
@@ -1928,7 +2392,10 @@ def analyze_batch_impl(
         return {"error": "transactions list is empty", "status": "validation_failed"}
 
     if len(transactions) > 1000:
-        return {"error": "batch size exceeds maximum of 1000", "status": "validation_failed"}
+        return {
+            "error": "batch size exceeds maximum of 1000",
+            "status": "validation_failed",
+        }
 
     results = []
     risk_scores = []
@@ -2008,7 +2475,8 @@ def health_check_impl() -> Dict[str, Any]:
             "explainer_loaded": fraud_explainer is not None,
             "fallback_mode": (
                 getattr(fraud_explainer, "fallback_mode", None)
-                if fraud_explainer is not None else None
+                if fraud_explainer is not None
+                else None
             ),
         },
         "cache": {
@@ -2016,7 +2484,8 @@ def health_check_impl() -> Dict[str, Any]:
             "capacity": prediction_cache.capacity,
             "hit_rate": (
                 _inference_stats["cache_hits"] / _inference_stats["total_predictions"]
-                if _inference_stats["total_predictions"] > 0 else 0.0
+                if _inference_stats["total_predictions"] > 0
+                else 0.0
             ),
         },
         "inference": {
@@ -2028,15 +2497,15 @@ def health_check_impl() -> Dict[str, Any]:
             "integration_loaded": synthetic_data_integration is not None,
             "output_dir": (
                 str(synthetic_data_integration.output_dir)
-                if synthetic_data_integration is not None else None
+                if synthetic_data_integration is not None
+                else None
             ),
         },
         "security_utils": {
             "available": SECURITY_UTILS_AVAILABLE,
             "sanitizer_loaded": sanitizer is not None,
             "rate_limiter": (
-                rate_limiter.get_status()
-                if rate_limiter is not None else None
+                rate_limiter.get_status() if rate_limiter is not None else None
             ),
         },
         "user_history": user_history.get_stats(),
@@ -2077,7 +2546,7 @@ def train_models_impl(
     if not TRAINING_AVAILABLE:
         return {
             "error": "Training dependencies not available. Install imbalanced-learn, "
-                     "xgboost, and optuna to enable model training.",
+            "xgboost, and optuna to enable model training.",
             "status": "unavailable",
             "training_available": False,
         }
@@ -2149,10 +2618,13 @@ def get_model_status_impl() -> Dict[str, Any]:
                 "loaded": transaction_analyzer.feature_engineer is not None,
                 "feature_count": len(
                     transaction_analyzer.feature_engineer.feature_names
-                ) if transaction_analyzer.feature_engineer else 0,
+                )
+                if transaction_analyzer.feature_engineer
+                else 0,
                 "feature_names": (
                     transaction_analyzer.feature_engineer.feature_names
-                    if transaction_analyzer.feature_engineer else []
+                    if transaction_analyzer.feature_engineer
+                    else []
                 ),
             },
             "autoencoder": {
@@ -2160,11 +2632,13 @@ def get_model_status_impl() -> Dict[str, Any]:
                 "available": AUTOENCODER_AVAILABLE,
                 "fallback_mode": (
                     getattr(transaction_analyzer.autoencoder, "fallback_mode", None)
-                    if transaction_analyzer.autoencoder else None
+                    if transaction_analyzer.autoencoder
+                    else None
                 ),
                 "contamination": (
                     getattr(transaction_analyzer.autoencoder, "contamination", None)
-                    if transaction_analyzer.autoencoder else None
+                    if transaction_analyzer.autoencoder
+                    else None
                 ),
             },
             "explainer": {
@@ -2173,11 +2647,17 @@ def get_model_status_impl() -> Dict[str, Any]:
                 "shap_available": SHAP_AVAILABLE,
                 "fallback_mode": (
                     getattr(fraud_explainer, "fallback_mode", None)
-                    if fraud_explainer is not None else None
+                    if fraud_explainer is not None
+                    else None
                 ),
                 "method": (
-                    "SHAP" if (fraud_explainer is not None and not getattr(fraud_explainer, "fallback_mode", True))
-                    else "Feature Importance" if fraud_explainer is not None
+                    "SHAP"
+                    if (
+                        fraud_explainer is not None
+                        and not getattr(fraud_explainer, "fallback_mode", True)
+                    )
+                    else "Feature Importance"
+                    if fraud_explainer is not None
                     else "unavailable"
                 ),
             },
@@ -2188,7 +2668,8 @@ def get_model_status_impl() -> Dict[str, Any]:
             "integration_loaded": synthetic_data_integration is not None,
             "output_dir": (
                 str(synthetic_data_integration.output_dir)
-                if synthetic_data_integration is not None else None
+                if synthetic_data_integration is not None
+                else None
             ),
         },
         "saved_models": {
@@ -2222,20 +2703,32 @@ def generate_synthetic_dataset_impl(
     if not SYNTHETIC_DATA_AVAILABLE or synthetic_data_integration is None:
         return {
             "error": "Synthetic data integration not available. "
-                     "Install pandas and numpy to enable synthetic data generation.",
+            "Install pandas and numpy to enable synthetic data generation.",
             "status": "unavailable",
             "synthetic_data_available": False,
         }
 
     # Validate inputs
     if num_transactions < 1:
-        return {"error": "num_transactions must be at least 1", "status": "validation_failed"}
+        return {
+            "error": "num_transactions must be at least 1",
+            "status": "validation_failed",
+        }
     if num_transactions > 1_000_000:
-        return {"error": "num_transactions exceeds maximum of 1,000,000", "status": "validation_failed"}
+        return {
+            "error": "num_transactions exceeds maximum of 1,000,000",
+            "status": "validation_failed",
+        }
     if fraud_percentage < 0 or fraud_percentage > 100:
-        return {"error": "fraud_percentage must be between 0 and 100", "status": "validation_failed"}
+        return {
+            "error": "fraud_percentage must be between 0 and 100",
+            "status": "validation_failed",
+        }
     if output_format not in ("csv", "json"):
-        return {"error": "output_format must be 'csv' or 'json'", "status": "validation_failed"}
+        return {
+            "error": "output_format must be 'csv' or 'json'",
+            "status": "validation_failed",
+        }
 
     try:
         result = synthetic_data_integration.generate_comprehensive_test_dataset(
@@ -2278,7 +2771,10 @@ def analyze_dataset_impl(
     if not dataset_path:
         return {"error": "dataset_path is required", "status": "validation_failed"}
     if fraud_threshold < 0.0 or fraud_threshold > 1.0:
-        return {"error": "fraud_threshold must be between 0.0 and 1.0", "status": "validation_failed"}
+        return {
+            "error": "fraud_threshold must be between 0.0 and 1.0",
+            "status": "validation_failed",
+        }
 
     data_file = Path(dataset_path)
     if not data_file.exists():
@@ -2331,19 +2827,22 @@ def analyze_dataset_impl(
 
             # Flag high-risk transactions
             if risk_score >= fraud_threshold:
-                flagged_transactions.append({
-                    "transaction_id": txn_data.get("transaction_id", f"txn_{idx}"),
-                    "risk_score": float(risk_score),
-                    "risk_level": risk_level,
-                    "risk_factors": result.get("risk_factors", []),
-                    "actual_fraud": txn_data.get("is_fraud", None),
-                })
+                flagged_transactions.append(
+                    {
+                        "transaction_id": txn_data.get("transaction_id", f"txn_{idx}"),
+                        "risk_score": float(risk_score),
+                        "risk_level": risk_level,
+                        "risk_factors": result.get("risk_factors", []),
+                        "actual_fraud": txn_data.get("is_fraud", None),
+                    }
+                )
 
         # Calculate performance metrics if ground truth is available
         performance_metrics = None
         if "is_fraud" in df.columns and "transaction_id" in df.columns:
             performance_metrics = _calculate_performance_metrics(
-                df, flagged_transactions,
+                df,
+                flagged_transactions,
             )
 
         return {
@@ -2356,7 +2855,8 @@ def analyze_dataset_impl(
                 "flagged_transactions": len(flagged_transactions),
                 "fraud_rate_percent": (
                     round(len(flagged_transactions) / total_transactions * 100, 2)
-                    if total_transactions > 0 else 0.0
+                    if total_transactions > 0
+                    else 0.0
                 ),
                 "fraud_threshold": fraud_threshold,
             },
@@ -2392,7 +2892,11 @@ def _calculate_performance_metrics(
 
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+    f1 = (
+        2 * precision * recall / (precision + recall)
+        if (precision + recall) > 0
+        else 0.0
+    )
     accuracy = (tp + tn) / len(df) if len(df) > 0 else 0.0
 
     return {
@@ -2430,9 +2934,15 @@ def run_benchmark_impl(
 
     # Validate inputs
     if not 10 <= num_transactions <= 5000:
-        return {"error": "num_transactions must be between 10 and 5000", "status": "validation_failed"}
+        return {
+            "error": "num_transactions must be between 10 and 5000",
+            "status": "validation_failed",
+        }
     if not 0 <= fraud_percentage <= 100:
-        return {"error": "fraud_percentage must be between 0 and 100", "status": "validation_failed"}
+        return {
+            "error": "fraud_percentage must be between 0 and 100",
+            "status": "validation_failed",
+        }
 
     if not SYNTHETIC_DATA_AVAILABLE or synthetic_data_integration is None:
         return {
@@ -2500,7 +3010,9 @@ def run_benchmark_impl(
         total_elapsed = (_time.monotonic() - total_start) * 1000
 
         # Throughput
-        throughput_tps = num_transactions / (total_elapsed / 1000) if total_elapsed > 0 else 0.0
+        throughput_tps = (
+            num_transactions / (total_elapsed / 1000) if total_elapsed > 0 else 0.0
+        )
 
         # Latency stats
         latency_array = np.array(latencies_ms)
@@ -2516,14 +3028,32 @@ def run_benchmark_impl(
 
         # Accuracy metrics (ground truth available)
         flagged_set = set(flagged)
-        tp = sum(1 for i in range(num_transactions) if i in flagged_set and ground_truth[i])
-        fp = sum(1 for i in range(num_transactions) if i in flagged_set and not ground_truth[i])
-        tn = sum(1 for i in range(num_transactions) if i not in flagged_set and not ground_truth[i])
-        fn = sum(1 for i in range(num_transactions) if i not in flagged_set and ground_truth[i])
+        tp = sum(
+            1 for i in range(num_transactions) if i in flagged_set and ground_truth[i]
+        )
+        fp = sum(
+            1
+            for i in range(num_transactions)
+            if i in flagged_set and not ground_truth[i]
+        )
+        tn = sum(
+            1
+            for i in range(num_transactions)
+            if i not in flagged_set and not ground_truth[i]
+        )
+        fn = sum(
+            1
+            for i in range(num_transactions)
+            if i not in flagged_set and ground_truth[i]
+        )
 
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+        f1 = (
+            2 * precision * recall / (precision + recall)
+            if (precision + recall) > 0
+            else 0.0
+        )
 
         # Pipeline config
         pipeline_config = {
@@ -2571,12 +3101,13 @@ def run_benchmark_impl(
 # MCP Tool Wrappers (thin delegates to _impl functions)
 # =============================================================================
 
+
 @_monitored("/analyze_transaction", "TOOL")
 @mcp.tool()
 def analyze_transaction(
     transaction_data: Dict[str, Any],
     include_behavioral: bool = False,
-    behavioral_data: Optional[Dict[str, Any]] = None
+    behavioral_data: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Comprehensive transaction fraud analysis with optional behavioral biometrics.
@@ -2589,7 +3120,9 @@ def analyze_transaction(
     Returns:
         Fraud analysis results with risk score, level, anomalies, and recommendations
     """
-    return analyze_transaction_impl(transaction_data, include_behavioral, behavioral_data)
+    return analyze_transaction_impl(
+        transaction_data, include_behavioral, behavioral_data
+    )
 
 
 @_monitored("/detect_behavioral_anomaly", "TOOL")
@@ -2627,7 +3160,7 @@ def assess_network_risk(entity_data: Dict[str, Any]) -> Dict[str, Any]:
 def generate_risk_score(
     transaction_data: Dict[str, Any],
     behavioral_data: Optional[Dict[str, Any]] = None,
-    network_data: Optional[Dict[str, Any]] = None
+    network_data: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Generate comprehensive risk score combining all analysis methods.
@@ -2668,8 +3201,7 @@ def explain_decision(
 @_monitored("/classify_traffic_source", "TOOL")
 @mcp.tool()
 def classify_traffic_source(
-    transaction_data: Dict[str, Any],
-    request_metadata: Optional[Dict[str, Any]] = None
+    transaction_data: Dict[str, Any], request_metadata: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Classify whether a transaction originates from a human, AI agent, or unknown source.
@@ -2717,8 +3249,7 @@ def verify_agent_identity(
 @_monitored("/analyze_batch", "TOOL")
 @mcp.tool()
 def analyze_batch(
-    transactions: List[Dict[str, Any]],
-    use_cache: bool = True
+    transactions: List[Dict[str, Any]], use_cache: bool = True
 ) -> Dict[str, Any]:
     """
     Analyze a batch of transactions for fraud detection.
@@ -2820,8 +3351,11 @@ def generate_synthetic_dataset(
         Generation results with file paths, fraud distribution, and schema compliance
     """
     return generate_synthetic_dataset_impl(
-        num_transactions, fraud_percentage, include_behavioral,
-        include_network, output_format,
+        num_transactions,
+        fraud_percentage,
+        include_behavioral,
+        include_network,
+        output_format,
     )
 
 
@@ -2872,7 +3406,9 @@ def run_benchmark(
         Benchmark results with throughput (txn/sec), latency (avg/p50/p95/p99),
         accuracy (precision/recall/F1), risk distribution, and pipeline config
     """
-    return run_benchmark_impl(num_transactions, fraud_percentage, include_latency_percentiles)
+    return run_benchmark_impl(
+        num_transactions, fraud_percentage, include_latency_percentiles
+    )
 
 
 if __name__ == "__main__":
