@@ -1596,6 +1596,7 @@ def health_check_impl() -> Dict[str, Any]:
                 if rate_limiter is not None else None
             ),
         },
+        "user_history": user_history.get_stats(),
     }
 
     # Add system metrics if monitoring available
