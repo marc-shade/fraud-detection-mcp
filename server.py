@@ -2377,6 +2377,138 @@ def verify_agent_identity_impl(
         }
 
 
+def analyze_agent_transaction_impl(
+    transaction_data: Dict[str, Any],
+    agent_behavior: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Specialized transaction analysis for agent-initiated transactions.
+
+    Combines traffic classification, agent identity verification, behavioral
+    fingerprinting, and standard transaction analysis into a single pipeline
+    optimized for AI agent traffic.
+
+    Args:
+        transaction_data: Transaction details. Should include ``is_agent`` and
+            ``agent_identifier`` fields.  May also include ``api_key`` and
+            ``token`` for identity verification.
+        agent_behavior: Optional behavioral observation data with keys:
+            ``api_timing_ms``, ``decision_pattern``, ``request_structure_hash``.
+
+    Returns:
+        Dict with risk_score, anomalies, fingerprint_match,
+        mandate_compliance, identity_verified, traffic_source, and
+        analysis_timestamp.
+    """
+    try:
+        # --- Input validation ---
+        if not isinstance(transaction_data, dict):
+            return {
+                "error": "transaction_data must be a dictionary",
+                "status": "validation_failed",
+            }
+
+        valid, msg = validate_transaction_data(transaction_data)
+        if not valid:
+            return {
+                "error": f"Invalid transaction data: {msg}",
+                "status": "validation_failed",
+            }
+
+        anomalies: List[str] = []
+
+        # --- Traffic classification ---
+        classification = traffic_classifier.classify(transaction_data)
+        traffic_source = classification["source"]
+
+        # --- Identity verification ---
+        agent_id = transaction_data.get("agent_identifier")
+        identity_verified = False
+        identity_trust = 0.0
+
+        if agent_id:
+            id_result = agent_verifier.verify(
+                agent_identifier=str(agent_id),
+                api_key=str(transaction_data.get("api_key", "")) or None,
+                token=str(transaction_data.get("token", "")) or None,
+            )
+            identity_verified = id_result.get("verified", False)
+            identity_trust = id_result.get("trust_score", 0.0)
+            if not identity_verified:
+                anomalies.append("unverified_agent_identity")
+        else:
+            anomalies.append("missing_agent_identifier")
+
+        # --- Behavioral fingerprint ---
+        fingerprint_score = 0.5  # neutral default
+        fingerprint_confidence = 0.0
+        behavior = agent_behavior or {}
+        api_timing = float(behavior.get("api_timing_ms", 0.0))
+        decision_pattern = behavior.get("decision_pattern")
+        request_hash = behavior.get("request_structure_hash")
+
+        if agent_id:
+            fp_result = agent_fingerprinter.analyze(
+                agent_id=str(agent_id),
+                api_timing_ms=api_timing,
+                decision_pattern=decision_pattern,
+                request_structure_hash=request_hash,
+            )
+            fingerprint_score = fp_result.get("risk_score", 0.5)
+            fingerprint_confidence = fp_result.get("confidence", 0.0)
+            if fp_result.get("is_anomaly"):
+                anomalies.append("behavioral_fingerprint_anomaly")
+            anomalies.extend(f"fingerprint_{d}" for d in fp_result.get("details", []))
+
+        # --- Standard transaction analysis ---
+        txn_result = transaction_analyzer.analyze_transaction(transaction_data)
+        txn_risk = txn_result.get("risk_score", 0.0)
+        anomalies.extend(txn_result.get("risk_factors", []))
+
+        # --- Composite risk score ---
+        # Weights: transaction 35%, identity 25%, fingerprint 25%, base 15%
+        identity_risk = 1.0 - identity_trust  # high trust -> low risk
+        base_risk = 0.2 if traffic_source == "agent" else 0.0
+
+        risk_score = (
+            txn_risk * 0.35
+            + identity_risk * 0.25
+            + fingerprint_score * 0.25
+            + base_risk * 0.15
+        )
+        risk_score = float(max(0.0, min(1.0, risk_score)))
+
+        # Fingerprint match = 1 - fingerprint_score (high match = low risk)
+        fingerprint_match = float(max(0.0, min(1.0, 1.0 - fingerprint_score)))
+
+        return {
+            "risk_score": risk_score,
+            "anomalies": anomalies,
+            "fingerprint_match": fingerprint_match,
+            "fingerprint_confidence": fingerprint_confidence,
+            "mandate_compliance": 1.0,  # placeholder until Phase D
+            "identity_verified": identity_verified,
+            "identity_trust_score": identity_trust,
+            "traffic_source": traffic_source,
+            "component_scores": {
+                "transaction": txn_risk,
+                "identity": identity_risk,
+                "fingerprint": fingerprint_score,
+            },
+            "analysis_timestamp": datetime.now().isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"Agent transaction analysis failed: {e}")
+        return {
+            "error": str(e),
+            "risk_score": 0.0,
+            "anomalies": [],
+            "fingerprint_match": 0.0,
+            "mandate_compliance": 0.0,
+            "status": "analysis_failed",
+        }
+
+
 def analyze_batch_impl(
     transactions: List[Dict[str, Any]], use_cache: bool = True
 ) -> Dict[str, Any]:
@@ -3244,6 +3376,35 @@ def verify_agent_identity(
         Verification result with verified status, identity details, trust score, and warnings
     """
     return verify_agent_identity_impl(agent_identifier, api_key, token)
+
+
+@_monitored("/analyze_agent_transaction", "TOOL")
+@mcp.tool()
+def analyze_agent_transaction(
+    transaction_data: Dict[str, Any],
+    agent_behavior: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Analyze an AI-agent-initiated transaction for fraud.
+
+    Specialized analysis pipeline for agent transactions that combines traffic
+    classification, agent identity verification (API key / JWT), and behavioral
+    fingerprinting (API timing consistency, decision patterns, request structure).
+    Replaces human behavioral biometrics with agent-specific signals.
+
+    Args:
+        transaction_data: Transaction details including amount, merchant, location,
+            timestamp, payment_method. Should include is_agent=True and
+            agent_identifier for best results.  May also include api_key and token.
+        agent_behavior: Optional agent behavioral data with api_timing_ms,
+            decision_pattern, and request_structure_hash fields.
+
+    Returns:
+        Analysis result with risk_score (0-1), anomalies list,
+        fingerprint_match (0-1, higher is more consistent), mandate_compliance,
+        identity_verified status, and per-component scores
+    """
+    return analyze_agent_transaction_impl(transaction_data, agent_behavior)
 
 
 @_monitored("/analyze_batch", "TOOL")
