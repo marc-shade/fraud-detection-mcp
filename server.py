@@ -48,6 +48,14 @@ except ImportError:
     TRAINING_AVAILABLE = False
     ModelTrainer = None
 
+# Autoencoder ensemble (graceful degradation if unavailable)
+try:
+    from models.autoencoder import AutoencoderFraudDetector
+    AUTOENCODER_AVAILABLE = True
+except ImportError:
+    AUTOENCODER_AVAILABLE = False
+    AutoencoderFraudDetector = None
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
