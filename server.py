@@ -590,8 +590,9 @@ def analyze_transaction_impl(
                 _inference_stats["total_predictions"] += 1
                 elapsed = (_time.monotonic() - _start) * 1000
                 _inference_stats["total_time_ms"] += elapsed
-                cached["cache_hit"] = True
-                return cached
+                result = dict(cached)
+                result["cache_hit"] = True
+                return result
 
         _inference_stats["cache_misses"] += 1
 
