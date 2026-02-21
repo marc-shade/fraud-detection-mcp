@@ -1722,6 +1722,166 @@ def _calculate_performance_metrics(
     }
 
 
+def run_benchmark_impl(
+    num_transactions: int = 100,
+    fraud_percentage: float = 10.0,
+    include_latency_percentiles: bool = True,
+) -> Dict[str, Any]:
+    """Run a performance benchmark of the fraud detection pipeline.
+
+    Generates synthetic transactions, runs each through the full analysis
+    pipeline (Isolation Forest + Autoencoder + SHAP), and reports throughput,
+    latency, and accuracy metrics.
+
+    Args:
+        num_transactions: Number of transactions to benchmark (10-5000).
+        fraud_percentage: Percentage of fraudulent transactions (0-100).
+        include_latency_percentiles: Include p50/p95/p99 latency stats.
+
+    Returns:
+        Dict with throughput, latency, accuracy, and pipeline configuration.
+    """
+    import time as _time
+
+    # Validate inputs
+    if not 10 <= num_transactions <= 5000:
+        return {"error": "num_transactions must be between 10 and 5000", "status": "validation_failed"}
+    if not 0 <= fraud_percentage <= 100:
+        return {"error": "fraud_percentage must be between 0 and 100", "status": "validation_failed"}
+
+    if not SYNTHETIC_DATA_AVAILABLE or synthetic_data_integration is None:
+        return {
+            "error": "Synthetic data generation not available (pandas required)",
+            "status": "unavailable",
+        }
+
+    try:
+        # Generate synthetic transactions in-memory
+        integration = SyntheticDataIntegration()
+        fraud_count = max(0, int(num_transactions * fraud_percentage / 100))
+        legit_count = num_transactions - fraud_count
+
+        transactions = []
+        ground_truth = []
+
+        for i in range(legit_count):
+            txn = integration._generate_legitimate_transaction(i)
+            transactions.append(txn)
+            ground_truth.append(False)
+
+        for i in range(fraud_count):
+            fraud_patterns = integration.generate_fraud_patterns()
+            fraud_types = list(fraud_patterns["transaction_fraud"].keys())
+            fraud_type = fraud_types[i % len(fraud_types)]
+            pattern = fraud_patterns["transaction_fraud"][fraud_type]
+            txn = integration._generate_fraudulent_transaction(
+                i + legit_count, fraud_type, pattern
+            )
+            transactions.append(txn)
+            ground_truth.append(True)
+
+        # Benchmark the pipeline
+        latencies_ms = []
+        risk_scores = []
+        risk_distribution = {"LOW": 0, "MEDIUM": 0, "HIGH": 0, "CRITICAL": 0}
+        flagged = []
+
+        total_start = _time.monotonic()
+
+        for idx, txn in enumerate(transactions):
+            t0 = _time.monotonic()
+            result = transaction_analyzer.analyze_transaction(txn)
+            t1 = _time.monotonic()
+
+            elapsed_ms = (t1 - t0) * 1000
+            latencies_ms.append(elapsed_ms)
+
+            score = result.get("risk_score", 0.0)
+            risk_scores.append(score)
+
+            if score >= 0.8:
+                level = "CRITICAL"
+            elif score >= 0.6:
+                level = "HIGH"
+            elif score >= 0.4:
+                level = "MEDIUM"
+            else:
+                level = "LOW"
+            risk_distribution[level] += 1
+
+            if score >= 0.6:
+                flagged.append(idx)
+
+        total_elapsed = (_time.monotonic() - total_start) * 1000
+
+        # Throughput
+        throughput_tps = num_transactions / (total_elapsed / 1000) if total_elapsed > 0 else 0.0
+
+        # Latency stats
+        latency_array = np.array(latencies_ms)
+        latency_stats = {
+            "avg_ms": round(float(np.mean(latency_array)), 3),
+            "min_ms": round(float(np.min(latency_array)), 3),
+            "max_ms": round(float(np.max(latency_array)), 3),
+        }
+        if include_latency_percentiles:
+            latency_stats["p50_ms"] = round(float(np.percentile(latency_array, 50)), 3)
+            latency_stats["p95_ms"] = round(float(np.percentile(latency_array, 95)), 3)
+            latency_stats["p99_ms"] = round(float(np.percentile(latency_array, 99)), 3)
+
+        # Accuracy metrics (ground truth available)
+        flagged_set = set(flagged)
+        tp = sum(1 for i in range(num_transactions) if i in flagged_set and ground_truth[i])
+        fp = sum(1 for i in range(num_transactions) if i in flagged_set and not ground_truth[i])
+        tn = sum(1 for i in range(num_transactions) if i not in flagged_set and not ground_truth[i])
+        fn = sum(1 for i in range(num_transactions) if i not in flagged_set and ground_truth[i])
+
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+
+        # Pipeline config
+        pipeline_config = {
+            "isolation_forest": transaction_analyzer.isolation_forest is not None,
+            "autoencoder": transaction_analyzer.autoencoder is not None,
+            "explainer": EXPLAINABILITY_AVAILABLE and fraud_explainer is not None,
+            "model_source": transaction_analyzer._model_source,
+            "ensemble_weights": transaction_analyzer._ensemble_weights,
+        }
+
+        return {
+            "benchmark_config": {
+                "num_transactions": num_transactions,
+                "fraud_percentage": fraud_percentage,
+                "actual_fraud_count": fraud_count,
+                "actual_legit_count": legit_count,
+            },
+            "throughput": {
+                "transactions_per_second": round(throughput_tps, 1),
+                "total_time_ms": round(total_elapsed, 1),
+            },
+            "latency": latency_stats,
+            "accuracy": {
+                "precision": round(precision, 4),
+                "recall": round(recall, 4),
+                "f1_score": round(f1, 4),
+                "accuracy": round((tp + tn) / num_transactions, 4),
+                "true_positives": tp,
+                "false_positives": fp,
+                "true_negatives": tn,
+                "false_negatives": fn,
+            },
+            "risk_distribution": risk_distribution,
+            "pipeline": pipeline_config,
+            "timestamp": datetime.now().isoformat(),
+            "status": "success",
+        }
+
+    except Exception as e:
+        logger.error(f"Benchmark failed: {e}")
+        return {"error": str(e), "status": "benchmark_failed"}
+
+
 # =============================================================================
 # MCP Tool Wrappers (thin delegates to _impl functions)
 # =============================================================================
