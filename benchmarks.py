@@ -16,20 +16,20 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # ML libraries
-from sklearn.metrics import (
+from sklearn.metrics import (  # noqa: E402
     confusion_matrix, roc_auc_score,
     precision_recall_curve, roc_curve, average_precision_score,
     f1_score, accuracy_score, recall_score, precision_score
 )
-from sklearn.model_selection import train_test_split
-import matplotlib.pyplot as plt
-import seaborn as sns
+from sklearn.model_selection import train_test_split  # noqa: E402
+import matplotlib.pyplot as plt  # noqa: E402
+import seaborn as sns  # noqa: E402
 
 # Local imports
-from config import get_config
-from training_pipeline import ModelTrainer
-from feature_engineering import FeatureEngineer
-from integration import FraudDataGenerator
+from config import get_config  # noqa: E402
+from training_pipeline import ModelTrainer  # noqa: E402
+from feature_engineering import FeatureEngineer  # noqa: E402
+from integration import FraudDataGenerator  # noqa: E402
 
 # Configure logging
 logging.basicConfig(
