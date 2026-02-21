@@ -1181,6 +1181,69 @@ def health_check_impl() -> Dict[str, Any]:
     return result
 
 
+def train_models_impl(
+    data_path: str,
+    test_size: float = 0.2,
+    use_smote: bool = True,
+    optimize_hyperparams: bool = False,
+) -> Dict[str, Any]:
+    """Train fraud detection models using the training pipeline.
+
+    Args:
+        data_path: Path to training data CSV or JSON file.
+        test_size: Proportion of data to use for testing (0.0-1.0).
+        use_smote: Whether to apply SMOTE for class balancing.
+        optimize_hyperparams: Whether to use Optuna for hyperparameter tuning.
+
+    Returns:
+        Training results with metrics, or error if training deps unavailable.
+    """
+    if not TRAINING_AVAILABLE:
+        return {
+            "error": "Training dependencies not available. Install imbalanced-learn, "
+                     "xgboost, and optuna to enable model training.",
+            "status": "unavailable",
+            "training_available": False,
+        }
+
+    try:
+        data_file = Path(data_path)
+        if not data_file.exists():
+            return {
+                "error": f"Data file not found: {data_path}",
+                "status": "file_not_found",
+            }
+
+        trainer = ModelTrainer(
+            model_dir=transaction_analyzer._model_dir,
+            enable_mlflow=False,
+        )
+        results = trainer.train_all_models(
+            data_path=data_path,
+            test_size=test_size,
+            use_smote=use_smote,
+            optimize_hyperparams=optimize_hyperparams,
+            train_autoencoder=False,
+            train_gnn=False,
+        )
+
+        # Reload the newly trained models into the active analyzer
+        if transaction_analyzer.load_models():
+            results["hot_reload"] = True
+            results["model_source"] = transaction_analyzer._model_source
+        else:
+            results["hot_reload"] = False
+
+        return results
+
+    except Exception as e:
+        logger.error(f"Model training failed: {e}")
+        return {
+            "error": str(e),
+            "status": "training_failed",
+        }
+
+
 # =============================================================================
 # MCP Tool Wrappers (thin delegates to _impl functions)
 # =============================================================================
@@ -1312,6 +1375,32 @@ def health_check() -> Dict[str, Any]:
         Health status including models loaded, cache performance, and system resource usage
     """
     return health_check_impl()
+
+
+@_monitored("/train_models", "TOOL")
+@mcp.tool()
+def train_models(
+    data_path: str,
+    test_size: float = 0.2,
+    use_smote: bool = True,
+    optimize_hyperparams: bool = False,
+) -> Dict[str, Any]:
+    """
+    Train fraud detection models using the ML training pipeline.
+
+    Requires training dependencies (imbalanced-learn, xgboost, optuna).
+    After training, models are saved to disk and hot-reloaded into the server.
+
+    Args:
+        data_path: Path to training data CSV or JSON file with 'is_fraud' column
+        test_size: Proportion of data for testing (default: 0.2)
+        use_smote: Apply SMOTE for class balancing (default: True)
+        optimize_hyperparams: Use Optuna for hyperparameter tuning (default: False)
+
+    Returns:
+        Training results with model metrics, or error if dependencies unavailable
+    """
+    return train_models_impl(data_path, test_size, use_smote, optimize_hyperparams)
 
 
 if __name__ == "__main__":
