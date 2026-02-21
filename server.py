@@ -341,7 +341,7 @@ class TransactionAnalyzer:
         self._model_source = "synthetic"
 
     def analyze_transaction(self, transaction_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Comprehensive transaction fraud analysis"""
+        """Comprehensive transaction fraud analysis with ensemble scoring"""
         try:
             # Extract features
             features = self._extract_transaction_features(transaction_data)
@@ -350,13 +350,41 @@ class TransactionAnalyzer:
             anomaly_score = self.isolation_forest.decision_function([features])[0]
             is_anomaly = self.isolation_forest.predict([features])[0] == -1
 
+            # Calculate IF risk score (original formula preserved)
+            if_risk = max(0, min(1, 0.5 - anomaly_score))
+
             # Calculate risk factors
             risk_factors = self._identify_risk_factors(transaction_data, features)
 
-            # Calculate overall risk score
-            base_risk = max(0, min(1, 0.5 - anomaly_score))
+            # Ensemble scoring
+            model_scores = {
+                "isolation_forest": float(if_risk),
+            }
+
+            if self.autoencoder is not None:
+                try:
+                    ae_scores = self.autoencoder.decision_function(np.array([features]))
+                    # Normalize autoencoder score to 0-1 range
+                    if self.autoencoder.threshold is not None and self.autoencoder.threshold > 0:
+                        ae_risk = float(np.clip(ae_scores[0] / (self.autoencoder.threshold * 3), 0, 1))
+                    else:
+                        ae_risk = 0.0
+                    model_scores["autoencoder"] = ae_risk
+
+                    # Weighted ensemble
+                    w_if = self._ensemble_weights["isolation_forest"]
+                    w_ae = self._ensemble_weights["autoencoder"]
+                    base_risk = w_if * if_risk + w_ae * ae_risk
+                except Exception as e:
+                    logger.warning(f"Autoencoder scoring failed: {e}")
+                    base_risk = if_risk
+            else:
+                base_risk = if_risk
+
+            # Apply risk factor multiplier
             risk_multiplier = 1 + len(risk_factors) * 0.1
             final_risk = min(1.0, base_risk * risk_multiplier)
+            model_scores["ensemble"] = float(final_risk)
 
             return {
                 "risk_score": float(final_risk),
@@ -364,7 +392,8 @@ class TransactionAnalyzer:
                 "risk_factors": risk_factors,
                 "confidence": 0.88,
                 "analysis_type": "transaction_pattern",
-                "anomaly_score": float(anomaly_score)
+                "anomaly_score": float(anomaly_score),
+                "model_scores": model_scores,
             }
 
         except Exception as e:
