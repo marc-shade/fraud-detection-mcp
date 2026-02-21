@@ -4,8 +4,6 @@ Advanced Fraud Detection MCP Server
 Sophisticated fraud detection using cutting-edge 2024-2025 algorithms
 """
 
-import asyncio
-import json
 import hashlib
 import logging
 import math
@@ -20,12 +18,6 @@ from fastmcp import FastMCP
 from sklearn.ensemble import IsolationForest
 from sklearn.svm import OneClassSVM
 from sklearn.neighbors import LocalOutlierFactor
-import xgboost as xgb
-
-# Deep learning for autoencoders
-import torch
-import torch.nn as nn
-
 # Graph analysis
 import networkx as nx
 
@@ -251,23 +243,10 @@ class TransactionAnalyzer:
 
     def _initialize_models(self):
         """Initialize transaction analysis models"""
-        # XGBoost model would be loaded from trained model file
-        # For demo, we'll create a simple structure
-        self.xgb_model = xgb.XGBClassifier(
-            n_estimators=100,
-            max_depth=6,
-            learning_rate=0.1,
-            random_state=42
-        )
-
-        # Fit models with dummy transaction data
+        # Fit Isolation Forest with dummy transaction data
         # Transaction features: amount, log_amount, hour, weekday, day, location_hash, merchant_hash, payment_risk
         dummy_transaction_features = np.random.randn(100, 8) * 100 + 500
         self.isolation_forest.fit(dummy_transaction_features)
-
-        # Fit XGBoost with dummy labels
-        dummy_labels = np.random.randint(0, 2, 100)
-        self.xgb_model.fit(dummy_transaction_features, dummy_labels)
 
     def analyze_transaction(self, transaction_data: Dict[str, Any]) -> Dict[str, Any]:
         """Comprehensive transaction fraud analysis"""
