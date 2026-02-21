@@ -270,15 +270,20 @@ class BehavioralBiometrics:
 class TransactionAnalyzer:
     """Advanced transaction pattern analysis"""
 
-    def __init__(self):
+    DEFAULT_MODEL_DIR = Path("models/saved")
+
+    def __init__(self, model_dir: Optional[Path] = None):
         self._model_source = "none"
+        self._model_dir = model_dir or self.DEFAULT_MODEL_DIR
         self.feature_engineer = FeatureEngineer()
         self.isolation_forest = IsolationForest(
             contamination=0.1,
             random_state=42,
             n_estimators=200
         )
-        self._initialize_models()
+        # Try to load saved models first; fall back to synthetic training
+        if not self.load_models():
+            self._initialize_models()
 
     def _initialize_models(self):
         """Initialize models with synthetic training data"""
@@ -374,6 +379,57 @@ class TransactionAnalyzer:
             risk_factors.append("high_risk_geographic_location")
 
         return risk_factors
+
+    def save_models(self, model_dir: Optional[Path] = None) -> Dict[str, str]:
+        """Save trained models and feature engineer to disk via joblib.
+
+        Args:
+            model_dir: Directory to save models to. Defaults to self._model_dir.
+
+        Returns:
+            Dict mapping model name to saved file path.
+        """
+        save_dir = Path(model_dir) if model_dir else self._model_dir
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+        paths = {}
+        iso_path = save_dir / "isolation_forest.joblib"
+        joblib.dump(self.isolation_forest, iso_path)
+        paths["isolation_forest"] = str(iso_path)
+
+        fe_path = save_dir / "feature_engineer.joblib"
+        joblib.dump(self.feature_engineer, fe_path)
+        paths["feature_engineer"] = str(fe_path)
+
+        logger.info(f"Models saved to {save_dir}")
+        return paths
+
+    def load_models(self, model_dir: Optional[Path] = None) -> bool:
+        """Load previously saved models from disk.
+
+        Args:
+            model_dir: Directory to load models from. Defaults to self._model_dir.
+
+        Returns:
+            True if models were loaded successfully, False otherwise.
+        """
+        load_dir = Path(model_dir) if model_dir else self._model_dir
+        iso_path = load_dir / "isolation_forest.joblib"
+        fe_path = load_dir / "feature_engineer.joblib"
+
+        if not iso_path.exists() or not fe_path.exists():
+            return False
+
+        try:
+            self.isolation_forest = joblib.load(iso_path)
+            self.feature_engineer = joblib.load(fe_path)
+            self._model_source = "saved"
+            logger.info(f"Models loaded from {load_dir}")
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to load saved models: {e}")
+            return False
+
 
 class NetworkAnalyzer:
     """Graph-based network analysis for fraud ring detection"""
