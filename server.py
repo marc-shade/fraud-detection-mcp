@@ -1347,6 +1347,14 @@ def health_check_impl() -> Dict[str, Any]:
             "total_predictions": _inference_stats["total_predictions"],
             "batch_predictions": _inference_stats["batch_predictions"],
         },
+        "synthetic_data": {
+            "available": SYNTHETIC_DATA_AVAILABLE,
+            "integration_loaded": synthetic_data_integration is not None,
+            "output_dir": (
+                str(synthetic_data_integration.output_dir)
+                if synthetic_data_integration is not None else None
+            ),
+        },
     }
 
     # Add system metrics if monitoring available
@@ -1490,6 +1498,14 @@ def get_model_status_impl() -> Dict[str, Any]:
             },
         },
         "ensemble_weights": transaction_analyzer._ensemble_weights,
+        "synthetic_data": {
+            "available": SYNTHETIC_DATA_AVAILABLE,
+            "integration_loaded": synthetic_data_integration is not None,
+            "output_dir": (
+                str(synthetic_data_integration.output_dir)
+                if synthetic_data_integration is not None else None
+            ),
+        },
         "saved_models": {
             "isolation_forest": str(iso_path) if iso_path.exists() else None,
             "feature_engineer": str(fe_path) if fe_path.exists() else None,
