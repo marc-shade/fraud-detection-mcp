@@ -186,3 +186,182 @@ class TestNetworkAnalyzerExceptionPaths:
             metrics = na._calculate_network_metrics("nodeA")
             assert metrics["betweenness_centrality"] == 0
             assert metrics["closeness_centrality"] == 0
+
+
+from server import (
+    analyze_transaction_impl,
+    detect_behavioral_anomaly_impl,
+    generate_risk_score_impl,
+    explain_decision_impl,
+    health_check_impl,
+    generate_synthetic_dataset_impl,
+    analyze_dataset_impl,
+    run_benchmark_impl,
+)
+
+
+class TestImplExceptionPaths:
+    """Cover outer exception handlers in _impl functions."""
+
+    def test_analyze_transaction_impl_outer_exception(self):
+        """Lines 1134-1136: analyze_transaction_impl catches top-level exception."""
+        with patch(
+            "server.validate_transaction_data",
+            side_effect=RuntimeError("validation boom"),
+        ):
+            result = analyze_transaction_impl({"amount": 100})
+        assert result["status"] == "analysis_failed"
+        assert "validation boom" in result["error"]
+
+    def test_detect_behavioral_impl_outer_exception(self):
+        """Lines 1191-1193: detect_behavioral_anomaly_impl catches exception."""
+        with patch(
+            "server.validate_behavioral_data",
+            side_effect=RuntimeError("behavioral boom"),
+        ):
+            result = detect_behavioral_anomaly_impl({"keystroke_dynamics": []})
+        assert result["status"] == "analysis_failed"
+        assert "behavioral boom" in result["error"]
+
+    def test_generate_risk_score_impl_outer_exception(self):
+        """Lines 1322-1324: generate_risk_score_impl catches exception."""
+        with patch(
+            "server.validate_transaction_data",
+            side_effect=RuntimeError("risk boom"),
+        ):
+            result = generate_risk_score_impl({"amount": 100})
+        assert result["status"] == "analysis_failed"
+        assert "risk boom" in result["error"]
+
+    def test_generate_risk_score_medium_risk_branch(self):
+        """Lines 1294-1295: MEDIUM risk level branch."""
+        # Need a transaction that produces a medium-range score (0.4-0.6).
+        # We can patch the analyzer to return a controlled score.
+        mock_result = {
+            "risk_score": 0.45,
+            "is_anomaly": False,
+            "risk_factors": [],
+            "confidence": 0.85,
+            "anomaly_score": -0.1,
+            "model_scores": {"isolation_forest": 0.45, "ensemble": 0.45},
+        }
+        with patch.object(
+            transaction_analyzer, "analyze_transaction", return_value=mock_result
+        ):
+            result = generate_risk_score_impl(
+                {
+                    "amount": 100.0,
+                    "merchant": "Shop",
+                    "location": "US",
+                    "timestamp": datetime.now().isoformat(),
+                    "payment_method": "credit_card",
+                }
+            )
+        assert result["risk_level"] == "MEDIUM"
+        assert "monitor_closely" in result["recommended_actions"]
+
+    def test_health_check_impl_monitor_exception(self):
+        """Lines 1610-1612: System health check raises exception."""
+        with patch("server.monitor") as mock_mon:
+            mock_mon.health_check.side_effect = RuntimeError("monitor failed")
+            mock_mon.__bool__ = lambda self: True  # ensure truthiness
+            # The health_check_impl checks "if monitor is not None"
+            result = health_check_impl()
+        assert "error" in result.get("system", {})
+
+    def test_generate_synthetic_dataset_exception(self):
+        """Lines 1806-1808: generate_synthetic_dataset_impl catches exception."""
+        with (
+            patch("server.SYNTHETIC_DATA_AVAILABLE", True),
+            patch("server.synthetic_data_integration") as mock_sdi,
+        ):
+            mock_sdi.__bool__ = lambda self: True
+            mock_sdi.generate_comprehensive_test_dataset.side_effect = RuntimeError(
+                "gen failed"
+            )
+            result = generate_synthetic_dataset_impl()
+        assert result["status"] == "generation_failed"
+        assert "gen failed" in result["error"]
+
+    def test_analyze_dataset_empty_dataset(self, tmp_path):
+        """Line 1861: Dataset is empty."""
+        import pandas as pd
+
+        csv_path = tmp_path / "empty.csv"
+        # Write a CSV with headers but no rows
+        pd.DataFrame(columns=["amount", "merchant"]).to_csv(csv_path, index=False)
+
+        result = analyze_dataset_impl(str(csv_path))
+        assert result["status"] == "empty_dataset"
+
+    def test_analyze_dataset_exception(self):
+        """Lines 1926-1928: analyze_dataset_impl catches exception."""
+        result = analyze_dataset_impl("/nonexistent/path/data.csv")
+        assert result["status"] == "file_not_found"
+
+    def test_analyze_dataset_general_exception(self, tmp_path):
+        """Lines 1926-1928: analyze_dataset_impl catches a general exception."""
+        csv_path = tmp_path / "bad.csv"
+        csv_path.write_text("amount,merchant\n100,Shop\n")
+
+        with patch(
+            "server.transaction_analyzer.analyze_transaction",
+            side_effect=RuntimeError("analysis error"),
+        ):
+            result = analyze_dataset_impl(str(csv_path))
+        assert result["status"] == "analysis_failed"
+        assert "analysis error" in result["error"]
+
+    def test_run_benchmark_exception(self):
+        """Lines 2122-2124: run_benchmark_impl catches exception."""
+        with patch(
+            "server.SyntheticDataIntegration",
+            side_effect=RuntimeError("bench fail"),
+        ):
+            result = run_benchmark_impl(num_transactions=10)
+        assert result["status"] == "benchmark_failed"
+        assert "bench fail" in result["error"]
+
+
+class TestExplainDecisionExceptionPaths:
+    """Cover explain_decision_impl edge cases."""
+
+    def test_shap_explanation_failure(self):
+        """Lines 1447-1448: On-demand SHAP explanation raises exception."""
+        analysis_result = {
+            "overall_risk_score": 0.7,
+            "risk_level": "HIGH",
+            "detected_anomalies": ["high_amount"],
+        }
+        txn_data = {
+            "amount": 100.0,
+            "merchant": "Shop",
+            "location": "US",
+            "timestamp": datetime.now().isoformat(),
+            "payment_method": "credit_card",
+        }
+        with patch("server.fraud_explainer") as mock_explainer:
+            mock_explainer.explain_prediction.side_effect = RuntimeError(
+                "SHAP failed"
+            )
+            result = explain_decision_impl(analysis_result, txn_data)
+        # Should still return a valid explanation, just without feature_analysis
+        assert "decision_summary" in result
+        assert "feature_analysis" not in result
+
+    def test_summary_generation_failure(self):
+        """Lines 1459-1460: Summary generation from feature_analysis raises."""
+        analysis_result = {
+            "overall_risk_score": 0.7,
+            "risk_level": "HIGH",
+            "detected_anomalies": [],
+            "feature_explanation": {"method": "shap", "features": {}},
+        }
+        with patch("server.fraud_explainer") as mock_explainer:
+            mock_explainer.generate_summary.side_effect = RuntimeError(
+                "summary failed"
+            )
+            result = explain_decision_impl(analysis_result)
+        # Should still return explanation but without human_readable_summary
+        assert "decision_summary" in result
+        assert "human_readable_summary" not in result
