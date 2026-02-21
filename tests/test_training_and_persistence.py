@@ -171,7 +171,7 @@ class TestTrainingAvailableFlag:
         """TRAINING_AVAILABLE should be True since imblearn is installed."""
         from server import TRAINING_AVAILABLE
         try:
-            from training_pipeline import ModelTrainer
+            from training_pipeline import ModelTrainer  # noqa: F401
             expected = True
         except ImportError:
             expected = False

@@ -119,7 +119,7 @@ class TestAnalyzeTransactionTool:
     def test_behavioral_anomaly_increases_risk(self, sample_transaction_data):
         """Test that behavioral anomalies increase risk score"""
         # Without behavioral data
-        result_without = analyze_transaction(sample_transaction_data)
+        _result_without = analyze_transaction(sample_transaction_data)
 
         # With anomalous behavioral data
         anomalous_behavioral = {

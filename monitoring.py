@@ -510,8 +510,6 @@ def track_prediction(
                 # Extract risk score and transaction ID from result
                 if isinstance(result, tuple) and len(result) >= 2:
                     risk_score = float(result[0])
-                    prediction = result[1]
-                    transaction_id = kwargs.get('transaction_id', 'unknown')
 
                     # Record metrics
                     fraud_prediction_duration_seconds.labels(

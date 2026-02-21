@@ -399,7 +399,7 @@ class PerformanceBenchmark:
             try:
                 y_proba = models['isolation_forest'].predict_proba(X_test)[:, 1]
                 models_for_plots.append(('Isolation Forest', y_test, y_proba))
-            except:
+            except Exception:
                 pass
 
         # 2. XGBoost
@@ -418,7 +418,7 @@ class PerformanceBenchmark:
             try:
                 y_proba = models['xgboost'].predict_proba(X_test)[:, 1]
                 models_for_plots.append(('XGBoost', y_test, y_proba))
-            except:
+            except Exception:
                 pass
 
         # 3. Ensemble
@@ -569,7 +569,7 @@ def main():
     benchmark = PerformanceBenchmark()
 
     # Run full benchmark
-    results = benchmark.run_full_benchmark()
+    benchmark.run_full_benchmark()
 
     print("\n✅ Benchmark complete! Check the benchmark_results directory for detailed reports.")
     print(f"📊 Results saved to: {benchmark.output_dir}")

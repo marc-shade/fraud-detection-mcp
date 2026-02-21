@@ -352,10 +352,10 @@ class FraudDetectionCLI:
         predictions = df["transaction_id"].isin(flagged_ids)
         actual = df["is_fraud"]
 
-        tp = ((predictions == True) & (actual == True)).sum()
-        fp = ((predictions == True) & (actual == False)).sum()
-        tn = ((predictions == False) & (actual == False)).sum()
-        fn = ((predictions == False) & (actual == True)).sum()
+        tp = (predictions & actual).sum()
+        fp = (predictions & ~actual).sum()
+        tn = (~predictions & ~actual).sum()
+        fn = (~predictions & actual).sum()
 
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0
@@ -429,10 +429,10 @@ Examples:
                                 help='Output format (default: csv)')
 
     # Interactive command
-    interactive_parser = subparsers.add_parser('interactive', help='Interactive analysis mode')
+    subparsers.add_parser('interactive', help='Interactive analysis mode')
 
     # Version command
-    version_parser = subparsers.add_parser('version', help='Show version information')
+    subparsers.add_parser('version', help='Show version information')
 
     args = parser.parse_args()
 

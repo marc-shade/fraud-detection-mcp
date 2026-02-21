@@ -15,8 +15,8 @@ try:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
-    from torch_geometric.nn import GCNConv, SAGEConv, global_mean_pool
-    from torch_geometric.data import Data, Batch
+    from torch_geometric.nn import SAGEConv, global_mean_pool
+    from torch_geometric.data import Data
     TORCH_GEOMETRIC_AVAILABLE = True
     PYTORCH_AVAILABLE = True
     logger.info("PyTorch Geometric loaded successfully for GNN")

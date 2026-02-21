@@ -205,8 +205,8 @@ async def detect_fraud(
     Scopes: read:fraud_detection, write:fraud_detection
     """
     # Sanitize inputs
-    merchant = InputSanitizer.sanitize_string(transaction.merchant, max_length=100)
-    location = InputSanitizer.sanitize_string(transaction.location, max_length=100)
+    _merchant = InputSanitizer.sanitize_string(transaction.merchant, max_length=100)
+    _location = InputSanitizer.sanitize_string(transaction.location, max_length=100)
 
     # Fraud detection logic would go here
     # For demo, return mock result

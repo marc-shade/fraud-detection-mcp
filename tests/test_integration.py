@@ -131,7 +131,7 @@ class TestCompleteWorkflows:
 
         # Step 1: Transaction analysis (borderline)
         result1 = analyze_transaction(transaction)
-        initial_risk = result1['overall_risk_score']
+        _initial_risk = result1['overall_risk_score']
 
         # Step 2: Add suspicious behavioral pattern
         suspicious_behavioral = {
