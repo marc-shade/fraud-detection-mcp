@@ -4,6 +4,11 @@ Advanced Fraud Detection MCP Server
 Sophisticated fraud detection using cutting-edge 2024-2025 algorithms
 """
 
+import os
+
+# Prevent OMP segfaults when PyTorch and sklearn coexist in the same process
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+
 import hashlib
 import logging
 import math
