@@ -29,6 +29,15 @@ from models_validation import TransactionData, PaymentMethod
 from feature_engineering import FeatureEngineer
 from async_inference import LRUCache
 
+# Monitoring (graceful degradation if deps unavailable)
+try:
+    from monitoring import MonitoringManager, track_api_call
+    MONITORING_AVAILABLE = True
+except ImportError:
+    MONITORING_AVAILABLE = False
+    MonitoringManager = None
+    track_api_call = None
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -539,6 +548,12 @@ _inference_stats = {
     "total_time_ms": 0.0,
     "batch_predictions": 0,
 }
+
+# Initialize monitoring
+if MONITORING_AVAILABLE:
+    monitor = MonitoringManager(app_name="fraud-detection-mcp", version="2.1.0")
+else:
+    monitor = None
 
 
 def _generate_cache_key(transaction_data: Dict[str, Any]) -> str:
