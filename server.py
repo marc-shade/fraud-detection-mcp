@@ -78,6 +78,15 @@ except ImportError:
     SYNTHETIC_DATA_AVAILABLE = False
     SyntheticDataIntegration = None
 
+# Security utilities (graceful degradation if unavailable)
+try:
+    from security_utils import InputSanitizer, InMemoryRateLimiter
+    SECURITY_UTILS_AVAILABLE = True
+except ImportError:
+    SECURITY_UTILS_AVAILABLE = False
+    InputSanitizer = None  # type: ignore[assignment,misc]
+    InMemoryRateLimiter = None  # type: ignore[assignment,misc]
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -731,6 +740,15 @@ if SYNTHETIC_DATA_AVAILABLE and SyntheticDataIntegration is not None:
         synthetic_data_integration = None
 else:
     synthetic_data_integration = None
+
+# Initialize security utilities
+if SECURITY_UTILS_AVAILABLE and InMemoryRateLimiter is not None:
+    rate_limiter = InMemoryRateLimiter(max_requests=100, window_seconds=60.0)
+    sanitizer = InputSanitizer
+    logger.info("Security utilities initialized (sanitizer + rate limiter)")
+else:
+    rate_limiter = None
+    sanitizer = None
 
 # Initialize monitoring
 if MONITORING_AVAILABLE:
