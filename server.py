@@ -7,6 +7,7 @@ Sophisticated fraud detection using cutting-edge 2024-2025 algorithms
 import hashlib
 import logging
 import math
+import uuid
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 import numpy as np
@@ -24,6 +25,7 @@ from collections import deque
 import networkx as nx
 
 from config import get_config
+from models_validation import TransactionData, PaymentMethod
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -506,6 +508,43 @@ class NetworkAnalyzer:
 behavioral_analyzer = BehavioralBiometrics()
 transaction_analyzer = TransactionAnalyzer()
 network_analyzer = NetworkAnalyzer()
+
+# Payment method mapping for dict-to-Pydantic conversion
+_PAYMENT_METHOD_MAP = {
+    'credit_card': 'credit_card',
+    'debit_card': 'debit_card',
+    'bank_transfer': 'bank_transfer',
+    'crypto': 'crypto',
+    'paypal': 'paypal',
+    'wire_transfer': 'wire_transfer',
+    'check': 'check',
+    'cash': 'cash',
+    'unknown': 'other',
+}
+
+
+def _dict_to_transaction_data(data: Dict[str, Any]) -> TransactionData:
+    """Convert a validated transaction dict to TransactionData for FeatureEngineer."""
+    # Parse timestamp
+    ts = data.get('timestamp')
+    if isinstance(ts, str):
+        ts = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+    elif not isinstance(ts, datetime):
+        ts = datetime.now()
+
+    # Map payment method to enum value
+    pm = data.get('payment_method', 'other')
+    pm = _PAYMENT_METHOD_MAP.get(pm, 'other')
+
+    return TransactionData(
+        transaction_id=data.get('transaction_id', f'txn-{uuid.uuid4().hex[:12]}'),
+        user_id=data.get('user_id', 'anonymous'),
+        amount=max(0.01, float(data.get('amount', 0.01))),
+        merchant=data.get('merchant') or 'unknown',
+        location=data.get('location') or 'unknown',
+        timestamp=ts,
+        payment_method=pm,
+    )
 
 
 # =============================================================================

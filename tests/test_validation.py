@@ -239,3 +239,34 @@ class TestBehavioralValidation:
         valid, msg = validate_behavioral_data(data)
         # Should pass because only first 1000 are checked
         assert valid is True
+
+
+class TestDictToTransactionData:
+    """Test dict-to-TransactionData adapter"""
+
+    def test_full_dict_conversion(self, sample_transaction_data):
+        from server import _dict_to_transaction_data
+        txn = _dict_to_transaction_data(sample_transaction_data)
+        assert txn.amount == 150.00
+        assert txn.merchant == 'Amazon'
+        assert txn.payment_method == 'credit_card'
+
+    def test_minimal_dict_conversion(self):
+        from server import _dict_to_transaction_data
+        txn = _dict_to_transaction_data({'amount': 100.0})
+        assert txn.amount == 100.0
+        assert txn.merchant == 'unknown'
+        assert txn.user_id == 'anonymous'
+        assert txn.transaction_id.startswith('txn-')
+
+    def test_unknown_payment_method(self):
+        from server import _dict_to_transaction_data
+        txn = _dict_to_transaction_data({'amount': 50.0, 'payment_method': 'unknown'})
+        assert txn.payment_method == 'other'
+
+    def test_timestamp_string_parsing(self):
+        from server import _dict_to_transaction_data
+        from datetime import datetime
+        ts = datetime.now().isoformat()
+        txn = _dict_to_transaction_data({'amount': 50.0, 'timestamp': ts})
+        assert isinstance(txn.timestamp, datetime)
