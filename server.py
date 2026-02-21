@@ -9,8 +9,10 @@ import logging
 import math
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 import numpy as np
+import joblib
 
 # FastMCP for high-performance MCP server
 from fastmcp import FastMCP
@@ -37,6 +39,14 @@ except ImportError:
     MONITORING_AVAILABLE = False
     MonitoringManager = None
     track_api_call = None
+
+# Training pipeline (graceful degradation if deps unavailable)
+try:
+    from training_pipeline import ModelTrainer
+    TRAINING_AVAILABLE = True
+except ImportError:
+    TRAINING_AVAILABLE = False
+    ModelTrainer = None
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -261,6 +271,7 @@ class TransactionAnalyzer:
     """Advanced transaction pattern analysis"""
 
     def __init__(self):
+        self._model_source = "none"
         self.feature_engineer = FeatureEngineer()
         self.isolation_forest = IsolationForest(
             contamination=0.1,
@@ -297,6 +308,7 @@ class TransactionAnalyzer:
         # Fit feature engineer and isolation forest on 46-feature space
         feature_matrix, _ = self.feature_engineer.fit_transform(synthetic_transactions)
         self.isolation_forest.fit(feature_matrix)
+        self._model_source = "synthetic"
 
     def analyze_transaction(self, transaction_data: Dict[str, Any]) -> Dict[str, Any]:
         """Comprehensive transaction fraud analysis"""
