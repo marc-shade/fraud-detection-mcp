@@ -358,8 +358,8 @@ class AutoencoderFraudDetector:
             self.fallback_mode = True
             logger.info(f"Fallback model loaded from {path}")
         else:
-            # Load PyTorch model
-            checkpoint = torch.load(path, map_location=self.device)
+            # Load PyTorch model (weights_only=False needed for numpy arrays in checkpoint)
+            checkpoint = torch.load(path, map_location=self.device, weights_only=False)
             self.scaler_mean = checkpoint['scaler_mean']
             self.scaler_std = checkpoint['scaler_std']
             self.threshold = checkpoint['threshold']
