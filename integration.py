@@ -4,28 +4,16 @@ Integration module for Fraud Detection MCP with Synthetic Data MCP
 Provides seamless data generation and analysis pipeline for stored data fraud detection
 """
 
-import asyncio
-import json
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 import pandas as pd
 import numpy as np
 from pathlib import Path
 
-# FastMCP for high-performance MCP server
-from fastmcp import FastMCP
-
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Import fraud detection components
-from server import (
-    transaction_analyzer,
-    behavioral_analyzer,
-    network_analyzer
-)
 
 class SyntheticDataIntegration:
     """Integration with synthetic-data-mcp for fraud detection testing"""
@@ -530,177 +518,3 @@ class SyntheticDataIntegration:
 
         return compliance
 
-# Add MCP tool integration
-mcp = FastMCP("Fraud Detection Integration")
-
-@mcp.tool()
-def generate_synthetic_fraud_dataset(
-    num_transactions: int = 10000,
-    fraud_percentage: float = 5.0,
-    include_behavioral: bool = True,
-    include_network: bool = True,
-    output_format: str = "csv"
-) -> Dict[str, Any]:
-    """
-    Generate synthetic fraud dataset for testing fraud detection algorithms.
-    Integrates with synthetic-data-mcp patterns and fraud detection requirements.
-
-    Args:
-        num_transactions: Total number of transactions to generate
-        fraud_percentage: Percentage of transactions that should be fraudulent (0-100)
-        include_behavioral: Include behavioral biometrics data
-        include_network: Include network relationship data
-        output_format: Output format (csv or json)
-
-    Returns:
-        Dataset generation results with file paths and statistics
-    """
-    integration = SyntheticDataIntegration()
-    return integration.generate_comprehensive_test_dataset(
-        num_transactions=num_transactions,
-        fraud_percentage=fraud_percentage,
-        include_behavioral=include_behavioral,
-        include_network=include_network,
-        output_format=output_format
-    )
-
-@mcp.tool()
-def analyze_synthetic_dataset(
-    dataset_path: str,
-    analysis_type: str = "comprehensive",
-    fraud_threshold: float = 0.6
-) -> Dict[str, Any]:
-    """
-    Analyze a synthetic or real dataset for fraud patterns using the fraud detection algorithms.
-
-    Args:
-        dataset_path: Path to the dataset file (CSV or JSON)
-        analysis_type: Type of analysis to perform
-        fraud_threshold: Risk score threshold for flagging transactions
-
-    Returns:
-        Comprehensive fraud analysis results
-    """
-    # Import the analyze_stored_dataset function from server
-    from server import transaction_analyzer
-
-    try:
-        # Load and analyze dataset
-        if dataset_path.endswith('.csv'):
-            df = pd.read_csv(dataset_path)
-        elif dataset_path.endswith('.json'):
-            df = pd.read_json(dataset_path)
-        else:
-            return {
-                "error": "Unsupported file format. Use CSV or JSON.",
-                "status": "unsupported_format"
-            }
-
-        total_transactions = len(df)
-        flagged_transactions = []
-        risk_distribution = {"low": 0, "medium": 0, "high": 0, "critical": 0}
-
-        # Analyze each transaction
-        for idx, row in df.iterrows():
-            transaction_data = row.to_dict()
-
-            # Perform fraud analysis
-            result = transaction_analyzer.analyze_transaction(transaction_data)
-            risk_score = result.get("risk_score", 0.0)
-
-            # Categorize risk
-            if risk_score >= 0.8:
-                risk_level = "critical"
-            elif risk_score >= 0.6:
-                risk_level = "high"
-            elif risk_score >= 0.4:
-                risk_level = "medium"
-            else:
-                risk_level = "low"
-
-            risk_distribution[risk_level] += 1
-
-            # Flag high-risk transactions
-            if risk_score >= fraud_threshold:
-                flagged_transactions.append({
-                    "transaction_id": transaction_data.get("transaction_id", f"txn_{idx}"),
-                    "risk_score": risk_score,
-                    "risk_level": risk_level,
-                    "risk_factors": result.get("risk_factors", []),
-                    "actual_fraud": transaction_data.get("is_fraud", None)
-                })
-
-        # Calculate performance metrics if ground truth is available
-        performance_metrics = None
-        if "is_fraud" in df.columns:
-            performance_metrics = calculate_performance_metrics(
-                df, flagged_transactions, fraud_threshold
-            )
-
-        return {
-            "dataset_info": {
-                "file_path": dataset_path,
-                "total_transactions": total_transactions,
-                "analysis_timestamp": datetime.now().isoformat()
-            },
-            "fraud_analysis": {
-                "flagged_transactions": len(flagged_transactions),
-                "fraud_rate_percent": len(flagged_transactions) / total_transactions * 100,
-                "fraud_threshold": fraud_threshold
-            },
-            "risk_distribution": risk_distribution,
-            "flagged_transactions": flagged_transactions,
-            "performance_metrics": performance_metrics,
-            "integration_status": "success"
-        }
-
-    except Exception as e:
-        logger.error(f"Dataset analysis failed: {e}")
-        return {
-            "error": str(e),
-            "status": "analysis_failed",
-            "dataset_path": dataset_path
-        }
-
-def calculate_performance_metrics(
-    df: pd.DataFrame,
-    flagged_transactions: List[Dict[str, Any]],
-    threshold: float
-) -> Dict[str, float]:
-    """Calculate performance metrics when ground truth is available"""
-
-    actual_fraud = df["is_fraud"].sum()
-    actual_legitimate = len(df) - actual_fraud
-
-    flagged_ids = set(t["transaction_id"] for t in flagged_transactions)
-
-    # Create prediction array
-    predictions = df["transaction_id"].isin(flagged_ids)
-    actual = df["is_fraud"]
-
-    # Calculate confusion matrix components
-    true_positives = ((predictions == True) & (actual == True)).sum()
-    false_positives = ((predictions == True) & (actual == False)).sum()
-    true_negatives = ((predictions == False) & (actual == False)).sum()
-    false_negatives = ((predictions == False) & (actual == True)).sum()
-
-    # Calculate metrics
-    precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
-    recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
-    f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
-    accuracy = (true_positives + true_negatives) / len(df)
-
-    return {
-        "precision": round(precision, 4),
-        "recall": round(recall, 4),
-        "f1_score": round(f1_score, 4),
-        "accuracy": round(accuracy, 4),
-        "true_positives": int(true_positives),
-        "false_positives": int(false_positives),
-        "true_negatives": int(true_negatives),
-        "false_negatives": int(false_negatives)
-    }
-
-if __name__ == "__main__":
-    # Run integration MCP server
-    mcp.run()
