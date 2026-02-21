@@ -1224,6 +1224,7 @@ def health_check_impl() -> Dict[str, Any]:
         "models": {
             "isolation_forest": transaction_analyzer.isolation_forest is not None,
             "feature_engineer": transaction_analyzer.feature_engineer is not None,
+            "autoencoder": transaction_analyzer.autoencoder is not None,
             "explainer": fraud_explainer is not None,
             "feature_count": len(transaction_analyzer.feature_engineer.feature_names),
             "model_source": transaction_analyzer._model_source,
@@ -1355,7 +1356,20 @@ def get_model_status_impl() -> Dict[str, Any]:
                     if transaction_analyzer.feature_engineer else []
                 ),
             },
+            "autoencoder": {
+                "loaded": transaction_analyzer.autoencoder is not None,
+                "available": AUTOENCODER_AVAILABLE,
+                "fallback_mode": (
+                    getattr(transaction_analyzer.autoencoder, "fallback_mode", None)
+                    if transaction_analyzer.autoencoder else None
+                ),
+                "contamination": (
+                    getattr(transaction_analyzer.autoencoder, "contamination", None)
+                    if transaction_analyzer.autoencoder else None
+                ),
+            },
         },
+        "ensemble_weights": transaction_analyzer._ensemble_weights,
         "saved_models": {
             "isolation_forest": str(iso_path) if iso_path.exists() else None,
             "feature_engineer": str(fe_path) if fe_path.exists() else None,
