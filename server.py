@@ -994,6 +994,45 @@ def analyze_transaction_impl(
         # Primary transaction analysis
         transaction_result = transaction_analyzer.analyze_transaction(transaction_data)
 
+        # Record transaction in user history for velocity analysis
+        user_id = str(transaction_data.get("user_id", "anonymous"))
+        user_history.record(user_id, transaction_data)
+
+        # Velocity-based risk factors
+        velocity_info = user_history.check_velocity(user_id)
+        if velocity_info["is_suspicious"]:
+            transaction_result.setdefault("risk_factors", []).append(
+                "high_transaction_velocity"
+            )
+
+        amount_info = user_history.check_amount_deviation(
+            user_id, float(transaction_data.get("amount", 0))
+        )
+        if amount_info["is_suspicious"]:
+            transaction_result.setdefault("risk_factors", []).append(
+                "unusual_amount_deviation"
+            )
+
+        geo_info = user_history.check_geographic_velocity(user_id)
+        if geo_info["is_suspicious"]:
+            transaction_result.setdefault("risk_factors", []).append(
+                "impossible_travel_detected"
+            )
+
+        merchant_info = user_history.check_merchant_diversity(user_id)
+        if merchant_info["is_suspicious"]:
+            transaction_result.setdefault("risk_factors", []).append(
+                "high_merchant_diversity"
+            )
+
+        # Attach velocity details to results
+        velocity_analysis = {
+            "velocity": velocity_info,
+            "amount_deviation": amount_info,
+            "geographic": geo_info,
+            "merchant_diversity": merchant_info,
+        }
+
         # Generate feature-level explanation
         feature_explanation = None
         if fraud_explainer is not None:
@@ -1020,6 +1059,8 @@ def analyze_transaction_impl(
         # Add transaction risk factors
         risk_factors = transaction_result.get("risk_factors", [])
         results["detected_anomalies"].extend(risk_factors)
+
+        results["velocity_analysis"] = velocity_analysis
 
         # Behavioral analysis if requested
         if include_behavioral and behavioral_data:
