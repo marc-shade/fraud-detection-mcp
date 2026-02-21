@@ -2115,5 +2115,31 @@ def analyze_dataset(
     return analyze_dataset_impl(dataset_path, fraud_threshold)
 
 
+@_monitored("/run_benchmark", "TOOL")
+@mcp.tool()
+def run_benchmark(
+    num_transactions: int = 100,
+    fraud_percentage: float = 10.0,
+    include_latency_percentiles: bool = True,
+) -> Dict[str, Any]:
+    """
+    Run a performance benchmark of the fraud detection pipeline.
+
+    Generates synthetic transactions and runs each through the full analysis
+    pipeline (Isolation Forest + Autoencoder + SHAP explainability), measuring
+    throughput, latency percentiles, and accuracy metrics.
+
+    Args:
+        num_transactions: Number of transactions to benchmark (10-5000, default 100)
+        fraud_percentage: Percentage of fraudulent transactions (0-100, default 10.0)
+        include_latency_percentiles: Include p50/p95/p99 latency stats (default True)
+
+    Returns:
+        Benchmark results with throughput (txn/sec), latency (avg/p50/p95/p99),
+        accuracy (precision/recall/F1), risk distribution, and pipeline config
+    """
+    return run_benchmark_impl(num_transactions, fraud_percentage, include_latency_percentiles)
+
+
 if __name__ == "__main__":
     mcp.run()
