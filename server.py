@@ -150,11 +150,16 @@ class BehavioralBiometrics:
             if not keystroke_data:
                 return {"risk_score": 0.0, "confidence": 0.0, "status": "no_data"}
 
+            if not isinstance(keystroke_data, list):
+                return {"risk_score": 0.0, "confidence": 0.0, "status": "error",
+                        "error": f"keystroke_data must be a list, got {type(keystroke_data).__name__}"}
+
             # Extract features from keystroke data
             features = self._extract_keystroke_features(keystroke_data)
 
             if features is None:
-                return {"risk_score": 0.0, "confidence": 0.0, "status": "invalid_data"}
+                return {"risk_score": 0.0, "confidence": 0.0, "status": "error",
+                        "error": "could not extract valid features from keystroke data"}
 
             # Predict anomaly
             anomaly_score = self.keystroke_model.decision_function([features])[0]
@@ -189,15 +194,21 @@ class BehavioralBiometrics:
             for i, keystroke in enumerate(keystroke_data):
                 # Dwell time
                 if 'press_time' in keystroke and 'release_time' in keystroke:
-                    dwell = keystroke['release_time'] - keystroke['press_time']
-                    dwell_times.append(dwell)
+                    try:
+                        dwell = float(keystroke['release_time']) - float(keystroke['press_time'])
+                        dwell_times.append(dwell)
+                    except (TypeError, ValueError):
+                        pass  # Skip non-numeric timing values
 
                 # Flight time
                 if i > 0:
                     prev_keystroke = keystroke_data[i-1]
                     if 'release_time' in prev_keystroke and 'press_time' in keystroke:
-                        flight = keystroke['press_time'] - prev_keystroke['release_time']
-                        flight_times.append(flight)
+                        try:
+                            flight = float(keystroke['press_time']) - float(prev_keystroke['release_time'])
+                            flight_times.append(flight)
+                        except (TypeError, ValueError):
+                            pass  # Skip non-numeric timing values
 
             if not dwell_times and not flight_times:
                 return [0.0] * 10
