@@ -1,9 +1,24 @@
 """Tests targeting uncovered code paths in server.py to push coverage to 95%+."""
 
-import pytest
 import numpy as np
 from datetime import datetime
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import patch, MagicMock
+
+from server import (
+    BehavioralBiometrics,
+    TransactionAnalyzer,
+    NetworkAnalyzer,
+    transaction_analyzer,
+    analyze_transaction_impl,
+    detect_behavioral_anomaly_impl,
+    generate_risk_score_impl,
+    explain_decision_impl,
+    health_check_impl,
+    generate_synthetic_dataset_impl,
+    analyze_dataset_impl,
+    run_benchmark_impl,
+    train_models_impl,
+)
 
 
 class TestMonitoringDeprecationFix:
@@ -17,15 +32,6 @@ class TestMonitoringDeprecationFix:
         assert "utcnow()" not in source, (
             "monitoring.py still uses deprecated datetime.utcnow()"
         )
-
-
-from server import (
-    BehavioralBiometrics,
-    TransactionAnalyzer,
-    NetworkAnalyzer,
-    transaction_analyzer,
-    network_analyzer,
-)
 
 
 class TestBehavioralExceptionPaths:
@@ -186,18 +192,6 @@ class TestNetworkAnalyzerExceptionPaths:
             metrics = na._calculate_network_metrics("nodeA")
             assert metrics["betweenness_centrality"] == 0
             assert metrics["closeness_centrality"] == 0
-
-
-from server import (
-    analyze_transaction_impl,
-    detect_behavioral_anomaly_impl,
-    generate_risk_score_impl,
-    explain_decision_impl,
-    health_check_impl,
-    generate_synthetic_dataset_impl,
-    analyze_dataset_impl,
-    run_benchmark_impl,
-)
 
 
 class TestImplExceptionPaths:
@@ -365,9 +359,6 @@ class TestExplainDecisionExceptionPaths:
         # Should still return explanation but without human_readable_summary
         assert "decision_summary" in result
         assert "human_readable_summary" not in result
-
-
-from server import train_models_impl
 
 
 class TestTrainModelsImpl:
