@@ -956,6 +956,81 @@ def explain_decision_impl(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
+def analyze_batch_impl(
+    transactions: List[Dict[str, Any]],
+    use_cache: bool = True
+) -> Dict[str, Any]:
+    """Analyze a batch of transactions and return aggregated results."""
+    import time as _time
+    _start = _time.monotonic()
+
+    if not isinstance(transactions, list):
+        return {"error": "transactions must be a list", "status": "validation_failed"}
+
+    if len(transactions) == 0:
+        return {"error": "transactions list is empty", "status": "validation_failed"}
+
+    if len(transactions) > 1000:
+        return {"error": "batch size exceeds maximum of 1000", "status": "validation_failed"}
+
+    results = []
+    risk_scores = []
+    cache_hits = 0
+
+    for txn in transactions:
+        result = analyze_transaction_impl(txn, use_cache=use_cache)
+        results.append(result)
+        score = result.get("overall_risk_score", 0.0)
+        risk_scores.append(score)
+        if result.get("cache_hit", False):
+            cache_hits += 1
+
+    elapsed = (_time.monotonic() - _start) * 1000
+    _inference_stats["batch_predictions"] += 1
+
+    # Count risk levels
+    risk_distribution = {"LOW": 0, "MEDIUM": 0, "HIGH": 0, "CRITICAL": 0}
+    for r in results:
+        level = r.get("risk_level", "LOW")
+        if level in risk_distribution:
+            risk_distribution[level] += 1
+
+    return {
+        "batch_size": len(transactions),
+        "results": results,
+        "summary": {
+            "total_analyzed": len(results),
+            "average_risk_score": float(np.mean(risk_scores)) if risk_scores else 0.0,
+            "max_risk_score": float(np.max(risk_scores)) if risk_scores else 0.0,
+            "min_risk_score": float(np.min(risk_scores)) if risk_scores else 0.0,
+            "risk_distribution": risk_distribution,
+            "cache_hits": cache_hits,
+            "processing_time_ms": round(elapsed, 2),
+        },
+        "analysis_timestamp": datetime.now().isoformat(),
+    }
+
+
+def get_inference_stats_impl() -> Dict[str, Any]:
+    """Return inference statistics including cache performance."""
+    total = _inference_stats["total_predictions"]
+    hits = _inference_stats["cache_hits"]
+    misses = _inference_stats["cache_misses"]
+    total_ms = _inference_stats["total_time_ms"]
+
+    return {
+        "total_predictions": total,
+        "cache_hits": hits,
+        "cache_misses": misses,
+        "cache_hit_rate": round(hits / total, 4) if total > 0 else 0.0,
+        "cache_size": prediction_cache.size(),
+        "cache_capacity": prediction_cache.capacity,
+        "average_prediction_time_ms": round(total_ms / total, 2) if total > 0 else 0.0,
+        "total_time_ms": round(total_ms, 2),
+        "batch_predictions": _inference_stats["batch_predictions"],
+    }
+
+
 # =============================================================================
 # MCP Tool Wrappers (thin delegates to _impl functions)
 # =============================================================================
@@ -1040,6 +1115,35 @@ def explain_decision(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
         Detailed explanation of the decision-making process
     """
     return explain_decision_impl(analysis_result)
+
+
+@mcp.tool()
+def analyze_batch(
+    transactions: List[Dict[str, Any]],
+    use_cache: bool = True
+) -> Dict[str, Any]:
+    """
+    Analyze a batch of transactions for fraud detection.
+
+    Args:
+        transactions: List of transaction data dicts to analyze
+        use_cache: Whether to use prediction cache (default: True)
+
+    Returns:
+        Batch analysis results with per-transaction results and aggregated summary
+    """
+    return analyze_batch_impl(transactions, use_cache)
+
+
+@mcp.tool()
+def get_inference_stats() -> Dict[str, Any]:
+    """
+    Get inference engine statistics including cache performance metrics.
+
+    Returns:
+        Statistics dict with total_predictions, cache_hit_rate, average_prediction_time_ms, etc.
+    """
+    return get_inference_stats_impl()
 
 
 if __name__ == "__main__":
