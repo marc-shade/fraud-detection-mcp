@@ -365,3 +365,83 @@ class TestExplainDecisionExceptionPaths:
         # Should still return explanation but without human_readable_summary
         assert "decision_summary" in result
         assert "human_readable_summary" not in result
+
+
+from server import train_models_impl
+
+
+class TestTrainModelsImpl:
+    """Cover train_models_impl execution paths."""
+
+    def test_train_models_file_not_found(self):
+        """Lines 1644-1648: Data file doesn't exist."""
+        with patch("server.TRAINING_AVAILABLE", True):
+            result = train_models_impl("/nonexistent/path/data.csv")
+        assert result["status"] == "file_not_found"
+
+    def test_train_models_training_exception(self, tmp_path):
+        """Lines 1672-1677: Training raises exception."""
+        csv_path = tmp_path / "data.csv"
+        csv_path.write_text("amount,is_fraud\n100,0\n200,1\n")
+
+        with (
+            patch("server.TRAINING_AVAILABLE", True),
+            patch("server.ModelTrainer") as MockTrainer,
+        ):
+            MockTrainer.return_value.train_all_models.side_effect = RuntimeError(
+                "train exploded"
+            )
+            result = train_models_impl(str(csv_path))
+        assert result["status"] == "training_failed"
+        assert "train exploded" in result["error"]
+
+    def test_train_models_success_with_hot_reload(self, tmp_path):
+        """Lines 1650-1670: Successful training with hot reload."""
+        csv_path = tmp_path / "data.csv"
+        csv_path.write_text("amount,is_fraud\n100,0\n200,1\n")
+
+        with (
+            patch("server.TRAINING_AVAILABLE", True),
+            patch("server.ModelTrainer") as MockTrainer,
+            patch.object(transaction_analyzer, "load_models", return_value=True),
+        ):
+            MockTrainer.return_value.train_all_models.return_value = {
+                "metrics": {"accuracy": 0.95},
+                "status": "success",
+            }
+            result = train_models_impl(str(csv_path))
+        assert result["hot_reload"] is True
+
+    def test_train_models_success_no_hot_reload(self, tmp_path):
+        """Line 1668: Hot reload fails."""
+        csv_path = tmp_path / "data.csv"
+        csv_path.write_text("amount,is_fraud\n100,0\n200,1\n")
+
+        with (
+            patch("server.TRAINING_AVAILABLE", True),
+            patch("server.ModelTrainer") as MockTrainer,
+            patch.object(transaction_analyzer, "load_models", return_value=False),
+        ):
+            MockTrainer.return_value.train_all_models.return_value = {
+                "metrics": {"accuracy": 0.95},
+                "status": "success",
+            }
+            result = train_models_impl(str(csv_path))
+        assert result["hot_reload"] is False
+
+
+class TestMonitoredDecorator:
+    """Cover _monitored no-op branch."""
+
+    def test_monitored_returns_noop_when_monitoring_unavailable(self):
+        """Line 919: _monitored returns identity decorator when monitoring off."""
+        from server import _monitored
+
+        with patch("server.MONITORING_AVAILABLE", False):
+            decorator = _monitored("/test", "GET")
+
+            # Should be a no-op: decorator(fn) returns fn unchanged
+            def dummy():
+                return 42
+
+            assert decorator(dummy) is dummy
