@@ -357,8 +357,11 @@ class TransactionAnalyzer:
 class NetworkAnalyzer:
     """Graph-based network analysis for fraud ring detection"""
 
+    MAX_GRAPH_NODES = 10000
+
     def __init__(self):
         self.transaction_graph = nx.Graph()
+        self._node_order = deque()
 
     def analyze_network_risk(self, entity_data: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze network patterns for fraud ring detection"""
@@ -395,17 +398,27 @@ class NetworkAnalyzer:
 
     def _update_graph(self, entity_id: str, connections: List[Dict]):
         """Update the transaction graph with new entity and connections"""
+        if entity_id not in self.transaction_graph:
+            self._node_order.append(entity_id)
         self.transaction_graph.add_node(entity_id)
 
         for connection in connections:
             connected_entity = connection.get('entity_id')
             if connected_entity:
+                if connected_entity not in self.transaction_graph:
+                    self._node_order.append(connected_entity)
                 self.transaction_graph.add_edge(
                     entity_id,
                     connected_entity,
                     weight=connection.get('strength', 1.0),
                     transaction_count=connection.get('transaction_count', 1)
                 )
+
+        # Evict oldest nodes if over cap
+        while len(self.transaction_graph.nodes) > self.MAX_GRAPH_NODES:
+            oldest = self._node_order.popleft()
+            if oldest in self.transaction_graph:
+                self.transaction_graph.remove_node(oldest)
 
     def _calculate_network_metrics(self, entity_id: str) -> Dict[str, float]:
         """Calculate network centrality and connectivity metrics"""
@@ -420,7 +433,8 @@ class NetworkAnalyzer:
         try:
             betweenness = nx.betweenness_centrality(self.transaction_graph).get(entity_id, 0)
             closeness = nx.closeness_centrality(self.transaction_graph).get(entity_id, 0)
-        except:
+        except Exception as e:
+            logger.error(f"Centrality calculation error: {e}")
             betweenness = 0
             closeness = 0
 

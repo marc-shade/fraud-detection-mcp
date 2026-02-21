@@ -317,6 +317,12 @@ class TestNetworkAnalysis:
         assert metrics['degree'] == 0
         assert metrics['clustering_coefficient'] == 0
 
+    def test_graph_size_capped(self, analyzer):
+        """Graph should not exceed MAX_GRAPH_NODES."""
+        for i in range(12000):
+            analyzer._update_graph(f"entity_{i}", [])
+        assert len(analyzer.transaction_graph.nodes) <= analyzer.MAX_GRAPH_NODES
+
     def test_large_network_performance(self, analyzer):
         """Test performance with large network"""
         # Create large network
