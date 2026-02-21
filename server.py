@@ -12,6 +12,7 @@ os.environ.setdefault("OMP_NUM_THREADS", "1")
 import hashlib
 import logging
 import math
+import threading
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -537,6 +538,157 @@ class TransactionAnalyzer:
             return False
 
 
+class UserTransactionHistory:
+    """In-memory per-user transaction history for velocity analysis.
+
+    Thread-safe, bounded deque per user. No external dependencies.
+    """
+
+    def __init__(self, max_history: int = 100, max_users: int = 10000):
+        self.max_history = max_history
+        self.max_users = max_users
+        self._history: Dict[str, deque] = {}
+        self._lock = threading.Lock()
+
+    def record(self, user_id: str, transaction: Dict[str, Any]) -> None:
+        """Record a transaction for a user."""
+        import time as _time
+        entry = {
+            "amount": float(transaction.get("amount", 0)),
+            "merchant": str(transaction.get("merchant", "")),
+            "location": str(transaction.get("location", "")),
+            "timestamp": transaction.get("timestamp", ""),
+            "recorded_at": _time.monotonic(),
+        }
+        with self._lock:
+            if user_id not in self._history:
+                # Evict oldest user if at capacity
+                if len(self._history) >= self.max_users:
+                    oldest_key = next(iter(self._history))
+                    del self._history[oldest_key]
+                self._history[user_id] = deque(maxlen=self.max_history)
+            self._history[user_id].append(entry)
+
+    def get_history(self, user_id: str) -> List[Dict[str, Any]]:
+        """Get transaction history for a user."""
+        with self._lock:
+            if user_id in self._history:
+                return list(self._history[user_id])
+            return []
+
+    def check_velocity(self, user_id: str, window_seconds: int = 3600) -> Dict[str, Any]:
+        """Check transaction velocity (count in time window).
+
+        Args:
+            user_id: User identifier.
+            window_seconds: Lookback window in seconds (default: 1 hour).
+
+        Returns:
+            Dict with count, window, and is_suspicious flag.
+        """
+        import time as _time
+        cutoff = _time.monotonic() - window_seconds
+        history = self.get_history(user_id)
+        recent = [h for h in history if h["recorded_at"] > cutoff]
+        count = len(recent)
+        return {
+            "transaction_count": count,
+            "window_seconds": window_seconds,
+            "is_suspicious": count >= 10,
+        }
+
+    def check_amount_deviation(self, user_id: str, current_amount: float) -> Dict[str, Any]:
+        """Check if current amount deviates from user's historical pattern.
+
+        Returns:
+            Dict with mean, std, z_score, and is_suspicious flag.
+        """
+        history = self.get_history(user_id)
+        amounts = [h["amount"] for h in history]
+        if len(amounts) < 3:
+            return {
+                "mean": 0.0,
+                "std": 0.0,
+                "z_score": 0.0,
+                "is_suspicious": False,
+                "insufficient_history": True,
+            }
+        mean_amt = float(np.mean(amounts))
+        std_amt = float(np.std(amounts))
+        if std_amt < 1e-6:
+            z_score = 0.0
+        else:
+            z_score = (current_amount - mean_amt) / std_amt
+        return {
+            "mean": round(mean_amt, 2),
+            "std": round(std_amt, 2),
+            "z_score": round(z_score, 2),
+            "is_suspicious": abs(z_score) > 3.0,
+            "insufficient_history": False,
+        }
+
+    def check_geographic_velocity(self, user_id: str) -> Dict[str, Any]:
+        """Detect impossible travel (different locations in rapid succession).
+
+        Returns:
+            Dict with location_changes, time_between, and is_suspicious flag.
+        """
+        history = self.get_history(user_id)
+        if len(history) < 2:
+            return {
+                "location_changes": 0,
+                "is_suspicious": False,
+                "insufficient_history": True,
+            }
+        last = history[-1]
+        prev = history[-2]
+        same_location = last["location"].lower().strip() == prev["location"].lower().strip()
+        time_between = last["recorded_at"] - prev["recorded_at"]
+        return {
+            "location_changes": 0 if same_location else 1,
+            "time_between_seconds": round(time_between, 2),
+            "is_suspicious": not same_location and time_between < 300,
+            "insufficient_history": False,
+        }
+
+    def check_merchant_diversity(self, user_id: str, window_seconds: int = 3600) -> Dict[str, Any]:
+        """Check merchant diversity in time window (card testing signal).
+
+        Returns:
+            Dict with unique_merchants, total, and is_suspicious flag.
+        """
+        import time as _time
+        cutoff = _time.monotonic() - window_seconds
+        history = self.get_history(user_id)
+        recent = [h for h in history if h["recorded_at"] > cutoff]
+        merchants = set(h["merchant"] for h in recent if h["merchant"])
+        return {
+            "unique_merchants": len(merchants),
+            "total_transactions": len(recent),
+            "window_seconds": window_seconds,
+            "is_suspicious": len(merchants) >= 5 and len(recent) >= 5,
+        }
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get history tracker statistics."""
+        with self._lock:
+            total_entries = sum(len(d) for d in self._history.values())
+            return {
+                "tracked_users": len(self._history),
+                "max_users": self.max_users,
+                "total_entries": total_entries,
+                "max_history_per_user": self.max_history,
+            }
+
+    def reset(self, user_id: Optional[str] = None) -> None:
+        """Reset history for a user or all users."""
+        with self._lock:
+            if user_id is not None:
+                self._history.pop(user_id, None)
+            else:
+                self._history.clear()
+
+
 class NetworkAnalyzer:
     """Graph-based network analysis for fraud ring detection"""
 
@@ -755,6 +907,9 @@ if MONITORING_AVAILABLE:
     monitor = MonitoringManager(app_name="fraud-detection-mcp", version="2.1.0")
 else:
     monitor = None
+
+# Initialize user transaction history tracker
+user_history = UserTransactionHistory(max_history=100, max_users=10000)
 
 
 def _monitored(endpoint: str, method: str = "TOOL"):
