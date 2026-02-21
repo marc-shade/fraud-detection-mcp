@@ -200,7 +200,7 @@ class BehavioralBiometrics:
                         flight_times.append(flight)
 
             if not dwell_times and not flight_times:
-                return None
+                return [0.0] * 10
 
             # Statistical features
             features = []

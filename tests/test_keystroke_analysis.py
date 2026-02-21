@@ -76,7 +76,8 @@ class TestKeystrokeDynamicsAnalysis:
         no_timing = [{'key': 'a'}, {'key': 'b'}]
         features = analyzer._extract_keystroke_features(no_timing)
 
-        assert features is None
+        assert features is not None
+        assert features == [0.0] * 10
 
     def test_extract_features_partial_timing(self, analyzer):
         """Test feature extraction with partial timing information"""
