@@ -1307,6 +1307,15 @@ def health_check_impl() -> Dict[str, Any]:
             "feature_count": len(transaction_analyzer.feature_engineer.feature_names),
             "model_source": transaction_analyzer._model_source,
         },
+        "explainability": {
+            "available": EXPLAINABILITY_AVAILABLE,
+            "shap_available": SHAP_AVAILABLE,
+            "explainer_loaded": fraud_explainer is not None,
+            "fallback_mode": (
+                getattr(fraud_explainer, "fallback_mode", None)
+                if fraud_explainer is not None else None
+            ),
+        },
         "cache": {
             "size": prediction_cache.size(),
             "capacity": prediction_cache.capacity,
@@ -1444,6 +1453,20 @@ def get_model_status_impl() -> Dict[str, Any]:
                 "contamination": (
                     getattr(transaction_analyzer.autoencoder, "contamination", None)
                     if transaction_analyzer.autoencoder else None
+                ),
+            },
+            "explainer": {
+                "loaded": fraud_explainer is not None,
+                "available": EXPLAINABILITY_AVAILABLE,
+                "shap_available": SHAP_AVAILABLE,
+                "fallback_mode": (
+                    getattr(fraud_explainer, "fallback_mode", None)
+                    if fraud_explainer is not None else None
+                ),
+                "method": (
+                    "SHAP" if (fraud_explainer is not None and not getattr(fraud_explainer, "fallback_mode", True))
+                    else "Feature Importance" if fraud_explainer is not None
+                    else "unavailable"
                 ),
             },
         },
