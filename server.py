@@ -1958,6 +1958,7 @@ def generate_risk_score_impl(
     transaction_data: Dict[str, Any],
     behavioral_data: Optional[Dict[str, Any]] = None,
     network_data: Optional[Dict[str, Any]] = None,
+    agent_behavior: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Implementation of comprehensive risk score generation"""
     try:
@@ -2054,6 +2055,27 @@ def generate_risk_score_impl(
             agent_id = transaction_data.get("agent_identifier")
             if agent_id:
                 agent_registry.record_transaction(str(agent_id))
+
+        # Agent behavioral fingerprint (agent traffic only)
+        if is_agent_traffic and transaction_data.get("agent_identifier"):
+            behavior = agent_behavior or {}
+            fp_result = agent_fingerprinter.analyze(
+                agent_id=str(transaction_data["agent_identifier"]),
+                api_timing_ms=float(behavior.get("api_timing_ms", 0.0)),
+                decision_pattern=behavior.get("decision_pattern"),
+                request_structure_hash=behavior.get("request_structure_hash"),
+            )
+            fp_score = fp_result.get("risk_score", 0.5)
+            comprehensive_result["component_scores"]["behavioral_fingerprint"] = (
+                fp_score
+            )
+            scores.append(fp_score)
+            confidences.append(fp_result.get("confidence", 0.3))
+
+            if fp_result.get("is_anomaly"):
+                comprehensive_result["detected_anomalies"].append(
+                    "agent_behavioral_fingerprint_anomaly"
+                )
 
         # Calculate weighted overall score
         # Agent traffic: equal weighting across all available components
@@ -3293,19 +3315,27 @@ def generate_risk_score(
     transaction_data: Dict[str, Any],
     behavioral_data: Optional[Dict[str, Any]] = None,
     network_data: Optional[Dict[str, Any]] = None,
+    agent_behavior: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Generate comprehensive risk score combining all analysis methods.
 
+    For human traffic: combines transaction, behavioral, and network analysis.
+    For agent traffic: adds identity verification and behavioral fingerprinting.
+
     Args:
         transaction_data: Transaction details
-        behavioral_data: Behavioral biometrics data
+        behavioral_data: Behavioral biometrics data (human traffic)
         network_data: Network connection data
+        agent_behavior: Agent behavioral data with api_timing_ms, decision_pattern,
+            request_structure_hash (agent traffic)
 
     Returns:
         Comprehensive risk assessment with detailed scoring
     """
-    return generate_risk_score_impl(transaction_data, behavioral_data, network_data)
+    return generate_risk_score_impl(
+        transaction_data, behavioral_data, network_data, agent_behavior
+    )
 
 
 @_monitored("/explain_decision", "TOOL")

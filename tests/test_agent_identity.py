@@ -1,6 +1,7 @@
 """Tests for AgentIdentityRegistry and AgentIdentityVerifier"""
 
 import os
+
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 import json
@@ -129,27 +130,33 @@ class TestAgentIdentityVerifier:
         """Valid API key format passes basic validation"""
         result = self.verifier.verify(
             agent_identifier="test-agent",
-            api_key="sk_agent_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+            api_key="sk_agent_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
         )
         assert "invalid_key_format" not in result["warnings"]
 
     @pytest.mark.unit
     def test_verify_with_api_key_too_short(self):
         """API key that's too short gets a warning"""
-        result = self.verifier.verify(
-            agent_identifier="test-agent",
-            api_key="short"
-        )
+        result = self.verifier.verify(agent_identifier="test-agent", api_key="short")
         assert "invalid_key_format" in result["warnings"]
 
     @pytest.mark.unit
     def test_verify_with_jwt_expired(self):
         """Expired JWT token gets a warning"""
         import base64
+
         # Create a fake expired JWT (header.payload.signature)
-        header = base64.urlsafe_b64encode(b'{"alg":"HS256","typ":"JWT"}').rstrip(b'=').decode()
-        payload = base64.urlsafe_b64encode(b'{"exp":1000000000,"sub":"agent-1"}').rstrip(b'=').decode()
-        sig = base64.urlsafe_b64encode(b'fakesig').rstrip(b'=').decode()
+        header = (
+            base64.urlsafe_b64encode(b'{"alg":"HS256","typ":"JWT"}')
+            .rstrip(b"=")
+            .decode()
+        )
+        payload = (
+            base64.urlsafe_b64encode(b'{"exp":1000000000,"sub":"agent-1"}')
+            .rstrip(b"=")
+            .decode()
+        )
+        sig = base64.urlsafe_b64encode(b"fakesig").rstrip(b"=").decode()
         token = f"{header}.{payload}.{sig}"
         result = self.verifier.verify(agent_identifier="agent-1", token=token)
         assert "token_expired" in result["warnings"]
@@ -159,11 +166,16 @@ class TestAgentIdentityVerifier:
         """Non-expired JWT doesn't get expiry warning"""
         import base64
         import time
+
         future_exp = int(time.time()) + 3600  # 1 hour from now
-        header = base64.urlsafe_b64encode(b'{"alg":"HS256","typ":"JWT"}').rstrip(b'=').decode()
+        header = (
+            base64.urlsafe_b64encode(b'{"alg":"HS256","typ":"JWT"}')
+            .rstrip(b"=")
+            .decode()
+        )
         payload_bytes = json.dumps({"exp": future_exp, "sub": "agent-1"}).encode()
-        payload = base64.urlsafe_b64encode(payload_bytes).rstrip(b'=').decode()
-        sig = base64.urlsafe_b64encode(b'fakesig').rstrip(b'=').decode()
+        payload = base64.urlsafe_b64encode(payload_bytes).rstrip(b"=").decode()
+        sig = base64.urlsafe_b64encode(b"fakesig").rstrip(b"=").decode()
         token = f"{header}.{payload}.{sig}"
         result = self.verifier.verify(agent_identifier="agent-1", token=token)
         assert "token_expired" not in result["warnings"]
@@ -217,18 +229,25 @@ class TestAgentIdentityVerifier:
         """Multiple valid signals increase trust"""
         import base64
         import time
+
         self.registry.register("multi-signal-agent", agent_type="stripe_acp")
         self.registry.update_trust("multi-signal-agent", 0.7)
         future_exp = int(time.time()) + 3600
-        header = base64.urlsafe_b64encode(b'{"alg":"HS256","typ":"JWT"}').rstrip(b'=').decode()
-        payload_bytes = json.dumps({"exp": future_exp, "sub": "multi-signal-agent"}).encode()
-        payload = base64.urlsafe_b64encode(payload_bytes).rstrip(b'=').decode()
-        sig = base64.urlsafe_b64encode(b'fakesig').rstrip(b'=').decode()
+        header = (
+            base64.urlsafe_b64encode(b'{"alg":"HS256","typ":"JWT"}')
+            .rstrip(b"=")
+            .decode()
+        )
+        payload_bytes = json.dumps(
+            {"exp": future_exp, "sub": "multi-signal-agent"}
+        ).encode()
+        payload = base64.urlsafe_b64encode(payload_bytes).rstrip(b"=").decode()
+        sig = base64.urlsafe_b64encode(b"fakesig").rstrip(b"=").decode()
         token = f"{header}.{payload}.{sig}"
         result = self.verifier.verify(
             agent_identifier="multi-signal-agent",
             api_key="sk_agent_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
-            token=token
+            token=token,
         )
         assert result["verified"] is True
         # 3 signals: registry(0.7) + api_key(0.6) + jwt(0.7) = avg 0.667
@@ -241,9 +260,10 @@ class TestVerifyAgentIdentityImpl:
     @pytest.mark.unit
     def test_impl_returns_valid_result(self):
         from server import verify_agent_identity_impl
+
         result = verify_agent_identity_impl(
             agent_identifier="test-impl-agent",
-            api_key="sk_agent_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+            api_key="sk_agent_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
         )
         assert "verified" in result
         assert "trust_score" in result
@@ -252,6 +272,7 @@ class TestVerifyAgentIdentityImpl:
     @pytest.mark.unit
     def test_impl_no_identifier(self):
         from server import verify_agent_identity_impl
+
         result = verify_agent_identity_impl()
         assert result["verified"] is False
         assert "no_identifier" in result["warnings"]
@@ -261,22 +282,30 @@ class TestVerifyAgentIdentityImpl:
         import base64
         import time
         from server import verify_agent_identity_impl
+
         future_exp = int(time.time()) + 3600
-        header = base64.urlsafe_b64encode(b'{"alg":"HS256","typ":"JWT"}').rstrip(b'=').decode()
-        payload_bytes = json.dumps({"exp": future_exp, "sub": "full-cred-agent"}).encode()
-        payload = base64.urlsafe_b64encode(payload_bytes).rstrip(b'=').decode()
-        sig = base64.urlsafe_b64encode(b'fakesig').rstrip(b'=').decode()
+        header = (
+            base64.urlsafe_b64encode(b'{"alg":"HS256","typ":"JWT"}')
+            .rstrip(b"=")
+            .decode()
+        )
+        payload_bytes = json.dumps(
+            {"exp": future_exp, "sub": "full-cred-agent"}
+        ).encode()
+        payload = base64.urlsafe_b64encode(payload_bytes).rstrip(b"=").decode()
+        sig = base64.urlsafe_b64encode(b"fakesig").rstrip(b"=").decode()
         token = f"{header}.{payload}.{sig}"
         result = verify_agent_identity_impl(
             agent_identifier="full-cred-agent",
             api_key="sk_agent_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
-            token=token
+            token=token,
         )
         assert result["verified"] is True or result["trust_score"] > 0
 
     @pytest.mark.unit
     def test_impl_error_handling(self):
         from server import verify_agent_identity_impl
+
         # Should not crash on bad input
         result = verify_agent_identity_impl(
             agent_identifier=12345  # wrong type
@@ -291,10 +320,17 @@ class TestIdentityInRiskScoring:
     def test_agent_with_identity_gets_identity_score(self):
         """Agent traffic with identifier includes identity score"""
         from server import generate_risk_score_impl
+
         result = generate_risk_score_impl(
-            {"amount": 100.0, "merchant": "Store", "location": "NYC",
-             "timestamp": "2026-02-21T12:00:00", "payment_method": "credit_card",
-             "is_agent": True, "agent_identifier": "test-identity-agent"},
+            {
+                "amount": 100.0,
+                "merchant": "Store",
+                "location": "NYC",
+                "timestamp": "2026-02-21T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": True,
+                "agent_identifier": "test-identity-agent",
+            },
         )
         assert result.get("traffic_source") == "agent"
         assert "identity" in result.get("component_scores", {})
@@ -303,10 +339,16 @@ class TestIdentityInRiskScoring:
     def test_agent_without_identity_no_identity_score(self):
         """Agent traffic without identifier has no identity component"""
         from server import generate_risk_score_impl
+
         result = generate_risk_score_impl(
-            {"amount": 100.0, "merchant": "Store", "location": "NYC",
-             "timestamp": "2026-02-21T12:00:00", "payment_method": "credit_card",
-             "is_agent": True},
+            {
+                "amount": 100.0,
+                "merchant": "Store",
+                "location": "NYC",
+                "timestamp": "2026-02-21T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": True,
+            },
         )
         assert result.get("traffic_source") == "agent"
         # No agent_identifier, so identity verification is skipped
@@ -316,10 +358,16 @@ class TestIdentityInRiskScoring:
     def test_human_traffic_no_identity_check(self):
         """Human traffic doesn't get identity verification"""
         from server import generate_risk_score_impl
+
         result = generate_risk_score_impl(
-            {"amount": 100.0, "merchant": "Store", "location": "NYC",
-             "timestamp": "2026-02-21T12:00:00", "payment_method": "credit_card",
-             "is_agent": False},
+            {
+                "amount": 100.0,
+                "merchant": "Store",
+                "location": "NYC",
+                "timestamp": "2026-02-21T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": False,
+            },
         )
         assert "identity" not in result.get("component_scores", {})
 
@@ -327,14 +375,21 @@ class TestIdentityInRiskScoring:
     def test_verified_agent_reduces_risk(self):
         """Verified agent with high trust gets lower risk score"""
         from server import generate_risk_score_impl, agent_registry
+
         agent_registry.register("trusted-risk-agent", agent_type="stripe_acp")
         agent_registry.update_trust("trusted-risk-agent", 0.9)
         for _ in range(10):
             agent_registry.record_transaction("trusted-risk-agent")
         result = generate_risk_score_impl(
-            {"amount": 100.0, "merchant": "Store", "location": "NYC",
-             "timestamp": "2026-02-21T12:00:00", "payment_method": "credit_card",
-             "is_agent": True, "agent_identifier": "trusted-risk-agent"},
+            {
+                "amount": 100.0,
+                "merchant": "Store",
+                "location": "NYC",
+                "timestamp": "2026-02-21T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": True,
+                "agent_identifier": "trusted-risk-agent",
+            },
         )
         assert "identity" in result.get("component_scores", {})
         # Identity score should reflect high trust
@@ -345,11 +400,120 @@ class TestIdentityInRiskScoring:
     def test_unverified_agent_increases_risk(self):
         """Unverified agent gets higher risk from identity component"""
         from server import generate_risk_score_impl
+
         result = generate_risk_score_impl(
-            {"amount": 100.0, "merchant": "Store", "location": "NYC",
-             "timestamp": "2026-02-21T12:00:00", "payment_method": "credit_card",
-             "is_agent": True, "agent_identifier": "totally-unknown-agent-xyz"},
+            {
+                "amount": 100.0,
+                "merchant": "Store",
+                "location": "NYC",
+                "timestamp": "2026-02-21T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": True,
+                "agent_identifier": "totally-unknown-agent-xyz",
+            },
         )
         assert "identity" in result.get("component_scores", {})
         identity_score = result["component_scores"]["identity"]
         assert identity_score >= 0.5  # High risk for unverified agent
+
+
+class TestBehavioralFingerprintInRiskScoring:
+    """Tests for behavioral fingerprint integration in generate_risk_score_impl"""
+
+    @pytest.mark.unit
+    def test_agent_with_identifier_gets_fingerprint_score(self):
+        """Agent traffic with identifier includes behavioral_fingerprint score"""
+        from server import generate_risk_score_impl
+
+        result = generate_risk_score_impl(
+            {
+                "amount": 100.0,
+                "merchant": "Store",
+                "location": "NYC",
+                "timestamp": "2026-02-21T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": True,
+                "agent_identifier": "fp-test-agent-1",
+            },
+        )
+        assert result.get("traffic_source") == "agent"
+        assert "behavioral_fingerprint" in result.get("component_scores", {})
+
+    @pytest.mark.unit
+    def test_human_traffic_no_fingerprint(self):
+        """Human traffic does not get behavioral fingerprint component"""
+        from server import generate_risk_score_impl
+
+        result = generate_risk_score_impl(
+            {
+                "amount": 100.0,
+                "merchant": "Store",
+                "location": "NYC",
+                "timestamp": "2026-02-21T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": False,
+            },
+        )
+        assert "behavioral_fingerprint" not in result.get("component_scores", {})
+
+    @pytest.mark.unit
+    def test_agent_without_identifier_no_fingerprint(self):
+        """Agent traffic without identifier skips fingerprint"""
+        from server import generate_risk_score_impl
+
+        result = generate_risk_score_impl(
+            {
+                "amount": 100.0,
+                "merchant": "Store",
+                "location": "NYC",
+                "timestamp": "2026-02-21T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": True,
+            },
+        )
+        assert "behavioral_fingerprint" not in result.get("component_scores", {})
+
+    @pytest.mark.unit
+    def test_agent_behavior_passed_through(self):
+        """agent_behavior parameter is used by fingerprinter"""
+        from server import generate_risk_score_impl
+
+        result = generate_risk_score_impl(
+            {
+                "amount": 100.0,
+                "merchant": "Store",
+                "location": "NYC",
+                "timestamp": "2026-02-21T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": True,
+                "agent_identifier": "fp-behavior-agent",
+            },
+            agent_behavior={
+                "api_timing_ms": 50.0,
+                "decision_pattern": "approve",
+                "request_structure_hash": "test_hash",
+            },
+        )
+        assert "behavioral_fingerprint" in result.get("component_scores", {})
+        # Score should be a valid float
+        fp_score = result["component_scores"]["behavioral_fingerprint"]
+        assert isinstance(fp_score, float)
+        assert 0.0 <= fp_score <= 1.0
+
+    @pytest.mark.unit
+    def test_fingerprint_score_in_analysis_components(self):
+        """behavioral_fingerprint appears in analysis_components list"""
+        from server import generate_risk_score_impl
+
+        result = generate_risk_score_impl(
+            {
+                "amount": 100.0,
+                "merchant": "Store",
+                "location": "NYC",
+                "timestamp": "2026-02-21T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": True,
+                "agent_identifier": "fp-components-agent",
+            },
+        )
+        assert "behavioral_fingerprint" in result.get("analysis_components", [])
