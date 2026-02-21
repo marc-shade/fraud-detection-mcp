@@ -794,11 +794,11 @@ def analyze_transaction_impl(
     _start = _time.monotonic()
     try:
         # --- Security: sanitise inputs & enforce rate limit ---
-        if sanitizer is not None:
+        if sanitizer is not None and isinstance(transaction_data, dict):
             transaction_data = sanitizer.sanitize_dict(transaction_data)
-            if behavioral_data is not None:
+            if isinstance(behavioral_data, dict):
                 behavioral_data = sanitizer.sanitize_dict(behavioral_data)
-        if rate_limiter is not None:
+        if rate_limiter is not None and isinstance(transaction_data, dict):
             user_key = str(transaction_data.get("user_id", "anonymous"))
             rl = rate_limiter.check_rate_limit(user_key)
             if not rl["allowed"]:
@@ -949,7 +949,7 @@ def detect_behavioral_anomaly_impl(behavioral_data: Dict[str, Any]) -> Dict[str,
     """Implementation of behavioral biometrics anomaly detection"""
     try:
         # --- Security: sanitise inputs ---
-        if sanitizer is not None:
+        if sanitizer is not None and isinstance(behavioral_data, dict):
             behavioral_data = sanitizer.sanitize_dict(behavioral_data)
 
         valid, msg = validate_behavioral_data(behavioral_data)
