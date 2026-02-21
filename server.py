@@ -612,6 +612,8 @@ def analyze_transaction_impl(
                 _inference_stats["total_predictions"] += 1
                 elapsed = (_time.monotonic() - _start) * 1000
                 _inference_stats["total_time_ms"] += elapsed
+                if monitor is not None:
+                    monitor.record_cache_hit(cache_type="prediction")
                 result = dict(cached)
                 result["cache_hit"] = True
                 return result
@@ -687,6 +689,22 @@ def analyze_transaction_impl(
         results["explanation"] = explanation
         results["analysis_timestamp"] = datetime.now().isoformat()
         results["model_version"] = "v2.1.0"
+
+        # Record monitoring metrics
+        if monitor is not None:
+            elapsed_s = (_time.monotonic() - _start)
+            monitor.record_prediction(
+                model_type="isolation_forest",
+                feature_count=46,
+                duration=elapsed_s,
+                risk_score=risk_score,
+                transaction_id=transaction_data.get("transaction_id", "unknown"),
+            )
+            monitor.record_fraud_transaction(
+                risk_level=results["risk_level"].lower(),
+                status="processed",
+            )
+
         results["cache_hit"] = False
 
         # Store in prediction cache
