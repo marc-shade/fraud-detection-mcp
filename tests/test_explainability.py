@@ -8,8 +8,7 @@ Covers: EXPLAINABILITY_AVAILABLE flag, explain_decision_impl with
 
 import pytest
 import numpy as np
-from datetime import datetime
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 
 # =============================================================================
@@ -70,7 +69,7 @@ class TestFraudExplainerUnit:
 
     def test_explain_prediction_returns_dict(self):
         """explain_prediction returns a dictionary."""
-        from server import fraud_explainer, transaction_analyzer
+        from server import fraud_explainer
         if fraud_explainer is None:
             pytest.skip("FraudExplainer not available")
         features = np.random.randn(46)
