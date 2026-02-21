@@ -1099,6 +1099,131 @@ class AgentIdentityRegistry:
 agent_registry = AgentIdentityRegistry()
 
 
+class AgentIdentityVerifier:
+    """Validates agent credentials and computes trust scores.
+
+    Checks API key format, JWT token expiry, and registry membership.
+    """
+
+    # Minimum API key length for basic format validation
+    MIN_KEY_LENGTH = 16
+
+    def __init__(self, registry: AgentIdentityRegistry):
+        self._registry = registry
+
+    def verify(
+        self,
+        agent_identifier: Optional[str] = None,
+        api_key: Optional[str] = None,
+        token: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Verify agent identity using available credentials.
+
+        Args:
+            agent_identifier: Agent identifier string.
+            api_key: API key credential.
+            token: JWT-style bearer token.
+
+        Returns:
+            Dict with verified, identity, trust_score, warnings.
+        """
+        warnings: List[str] = []
+        trust_signals: List[float] = []
+        identity: Dict[str, Any] = {}
+
+        # Check for identifier
+        if not agent_identifier:
+            return {
+                "verified": False,
+                "identity": {},
+                "trust_score": 0.0,
+                "warnings": ["no_identifier"],
+            }
+
+        identity["agent_id"] = agent_identifier
+
+        # Signal 1: Registry lookup
+        registry_entry = self._registry.lookup(agent_identifier)
+        if registry_entry:
+            trust_signals.append(registry_entry["trust_score"])
+            identity.update(registry_entry)
+        else:
+            warnings.append("not_in_registry")
+            # Auto-register with low initial trust
+            self._registry.register(agent_identifier)
+            self._registry.update_trust(agent_identifier, 0.3)
+            trust_signals.append(0.3)
+
+        # Signal 2: API key format validation
+        if api_key:
+            if isinstance(api_key, str) and len(api_key) >= self.MIN_KEY_LENGTH:
+                trust_signals.append(0.6)  # key present and reasonable format
+            else:
+                warnings.append("invalid_key_format")
+                trust_signals.append(0.1)
+
+        # Signal 3: JWT token validation (expiry check only)
+        if token:
+            token_trust = self._validate_token(token, warnings)
+            trust_signals.append(token_trust)
+
+        # Compute final trust score
+        if trust_signals:
+            trust_score = float(sum(trust_signals) / len(trust_signals))
+        else:
+            trust_score = 0.0
+
+        # Verified if trust >= 0.5 and no critical warnings
+        critical_warnings = {"no_identifier", "token_expired"}
+        has_critical = bool(critical_warnings & set(warnings))
+        verified = trust_score >= 0.5 and not has_critical
+
+        return {
+            "verified": verified,
+            "identity": identity,
+            "trust_score": trust_score,
+            "warnings": warnings,
+        }
+
+    def _validate_token(self, token: str, warnings: List[str]) -> float:
+        """Validate JWT token expiry. Returns trust signal."""
+        import base64 as _b64
+        import time as _time
+
+        try:
+            parts = token.split(".")
+            if len(parts) != 3:
+                warnings.append("token_parse_error")
+                return 0.1
+
+            # Decode payload (second part)
+            payload_b64 = parts[1]
+            # Add padding if needed
+            padding = 4 - len(payload_b64) % 4
+            if padding != 4:
+                payload_b64 += "=" * padding
+
+            payload_bytes = _b64.urlsafe_b64decode(payload_b64)
+            payload = json.loads(payload_bytes)
+
+            # Check expiry
+            exp = payload.get("exp")
+            if exp and isinstance(exp, (int, float)):
+                if exp < _time.time():
+                    warnings.append("token_expired")
+                    return 0.1
+                else:
+                    return 0.7  # valid expiry
+            return 0.5  # no expiry claim, neutral
+
+        except Exception:
+            warnings.append("token_parse_error")
+            return 0.1
+
+
+agent_verifier = AgentIdentityVerifier(agent_registry)
+
+
 def _monitored(endpoint: str, method: str = "TOOL"):
     """Apply @track_api_call only when monitoring is available."""
     if MONITORING_AVAILABLE and track_api_call is not None:
