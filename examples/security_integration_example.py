@@ -12,7 +12,8 @@ import uvicorn
 
 # Import security components
 import sys
-sys.path.append('..')
+
+sys.path.append("..")
 from security import (
     AuthManager,
     RateLimiter,
@@ -21,14 +22,14 @@ from security import (
     UserRole,
     TierLevel,
     TokenData,
-    InputSanitizer
+    InputSanitizer,
 )
 
 # Initialize FastAPI app
 app = FastAPI(
     title="Fraud Detection API",
     description="Secure fraud detection API with authentication",
-    version="2.0.0"
+    version="2.0.0",
 )
 
 # Initialize security components
@@ -48,6 +49,7 @@ app.add_middleware(
     allow_methods=["GET", "POST"],  # Limit methods
     allow_headers=["Authorization", "Content-Type", "X-API-Key"],
 )
+
 
 # Add security middleware
 @app.middleware("http")
@@ -94,6 +96,7 @@ class TransactionRequest(BaseModel):
 # PUBLIC ENDPOINTS (No Authentication Required)
 # =============================================================================
 
+
 @app.get("/")
 async def root():
     """Public endpoint - API information"""
@@ -102,17 +105,14 @@ async def root():
         "version": "2.0.0",
         "status": "operational",
         "documentation": "/docs",
-        "authentication": "Bearer token or API key required"
+        "authentication": "Bearer token or API key required",
     }
 
 
 @app.get("/health")
 async def health_check():
     """Public endpoint - Health check"""
-    return {
-        "status": "healthy",
-        "timestamp": "2025-09-29T00:00:00Z"
-    }
+    return {"status": "healthy", "timestamp": "2025-09-29T00:00:00Z"}
 
 
 @app.post("/auth/login", response_model=TokenResponse)
@@ -133,7 +133,7 @@ async def login(request: Request, credentials: LoginRequest):
         raise HTTPException(
             status_code=401,
             detail="Invalid credentials",
-            headers={"WWW-Authenticate": "Bearer"}
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     # Generate token
@@ -142,16 +142,12 @@ async def login(request: Request, credentials: LoginRequest):
         username=user.username,
         role=user.role,
         tier=user.tier,
-        scopes=["read:fraud_detection", "write:fraud_detection"]
+        scopes=["read:fraud_detection", "write:fraud_detection"],
     )
 
     access_token = auth_manager.create_access_token(token_data)
 
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "expires_in": 1800
-    }
+    return {"access_token": access_token, "token_type": "bearer", "expires_in": 1800}
 
 
 @app.post("/auth/register")
@@ -169,13 +165,13 @@ async def register(request: Request, user_data: UserCreateRequest):
         email=user_data.email,
         password=user_data.password,
         role=user_data.role,
-        tier=user_data.tier
+        tier=user_data.tier,
     )
 
     if not user:
         raise HTTPException(
             status_code=400,
-            detail="User creation failed - check password requirements or duplicate username/email"
+            detail="User creation failed - check password requirements or duplicate username/email",
         )
 
     return {
@@ -183,7 +179,7 @@ async def register(request: Request, user_data: UserCreateRequest):
         "user_id": user.user_id,
         "username": user.username,
         "role": user.role.value,
-        "tier": user.tier.value
+        "tier": user.tier.value,
     }
 
 
@@ -191,12 +187,13 @@ async def register(request: Request, user_data: UserCreateRequest):
 # PROTECTED ENDPOINTS (Authentication Required)
 # =============================================================================
 
+
 @app.post("/api/fraud/detect")
 @require_auth(required_role=UserRole.API_USER)
 async def detect_fraud(
     request: Request,
     transaction: TransactionRequest,
-    token_data: TokenData = None  # Injected by @require_auth
+    token_data: TokenData = None,  # Injected by @require_auth
 ):
     """
     Protected endpoint - Fraud detection
@@ -219,7 +216,7 @@ async def detect_fraud(
         "risk_level": "LOW" if risk_score < 0.4 else "MEDIUM",
         "analyzed_by": token_data.username,
         "user_role": token_data.role.value,
-        "message": "Transaction analyzed successfully"
+        "message": "Transaction analyzed successfully",
     }
 
 
@@ -236,7 +233,7 @@ async def get_profile(request: Request, token_data: TokenData = None):
         "username": token_data.username,
         "role": token_data.role.value,
         "tier": token_data.tier.value,
-        "scopes": token_data.scopes
+        "scopes": token_data.scopes,
     }
 
 
@@ -246,7 +243,7 @@ async def generate_api_key(
     request: Request,
     key_name: str,
     expires_in_days: Optional[int] = 365,
-    token_data: TokenData = None
+    token_data: TokenData = None,
 ):
     """
     Protected endpoint - Generate API key
@@ -260,18 +257,16 @@ async def generate_api_key(
         name=key_name,
         tier=token_data.tier,
         scopes=token_data.scopes,
-        expires_in_days=expires_in_days
+        expires_in_days=expires_in_days,
     )
 
-    return APIKeyResponse(
-        api_key=raw_key,
-        key_id=api_key.key_id
-    )
+    return APIKeyResponse(api_key=raw_key, key_id=api_key.key_id)
 
 
 # =============================================================================
 # ANALYST ENDPOINTS (Higher Privilege Required)
 # =============================================================================
+
 
 @app.get("/api/fraud/analytics")
 @require_auth(required_role=UserRole.ANALYST)
@@ -286,16 +281,14 @@ async def get_fraud_analytics(request: Request, token_data: TokenData = None):
         "total_transactions": 10000,
         "fraud_detected": 150,
         "fraud_rate": 0.015,
-        "accessed_by": token_data.username
+        "accessed_by": token_data.username,
     }
 
 
 @app.post("/api/fraud/investigate")
 @require_auth(required_role=UserRole.ANALYST)
 async def investigate_transaction(
-    request: Request,
-    transaction_id: str,
-    token_data: TokenData = None
+    request: Request, transaction_id: str, token_data: TokenData = None
 ):
     """
     Protected endpoint - Detailed fraud investigation
@@ -307,7 +300,7 @@ async def investigate_transaction(
         "transaction_id": transaction_id,
         "investigation_status": "in_progress",
         "assigned_to": token_data.username,
-        "priority": "high"
+        "priority": "high",
     }
 
 
@@ -315,12 +308,11 @@ async def investigate_transaction(
 # ADMIN ENDPOINTS (Highest Privilege Required)
 # =============================================================================
 
+
 @app.post("/api/admin/users")
 @require_auth(required_role=UserRole.ADMIN)
 async def create_user_admin(
-    request: Request,
-    user_data: UserCreateRequest,
-    token_data: TokenData = None
+    request: Request, user_data: UserCreateRequest, token_data: TokenData = None
 ):
     """
     Protected endpoint - Admin user creation
@@ -334,7 +326,7 @@ async def create_user_admin(
         email=user_data.email,
         password=user_data.password,
         role=user_data.role,
-        tier=user_data.tier
+        tier=user_data.tier,
     )
 
     if not user:
@@ -343,7 +335,7 @@ async def create_user_admin(
     return {
         "message": "User created by admin",
         "user_id": user.user_id,
-        "created_by": token_data.username
+        "created_by": token_data.username,
     }
 
 
@@ -364,7 +356,7 @@ async def list_users(request: Request, token_data: TokenData = None):
             "email": u.email,
             "role": u.role.value,
             "tier": u.tier.value,
-            "is_active": u.is_active
+            "is_active": u.is_active,
         }
         for u in auth_manager._users.values()
     ]
@@ -372,17 +364,13 @@ async def list_users(request: Request, token_data: TokenData = None):
     return {
         "total_users": len(users),
         "users": users,
-        "accessed_by": token_data.username
+        "accessed_by": token_data.username,
     }
 
 
 @app.post("/api/admin/revoke-token")
 @require_auth(required_role=UserRole.ADMIN)
-async def revoke_token(
-    request: Request,
-    token: str,
-    token_data: TokenData = None
-):
+async def revoke_token(request: Request, token: str, token_data: TokenData = None):
     """
     Protected endpoint - Revoke user token
 
@@ -393,7 +381,7 @@ async def revoke_token(
 
     return {
         "message": "Token revoked" if success else "Token revocation failed",
-        "revoked_by": token_data.username
+        "revoked_by": token_data.username,
     }
 
 
@@ -401,13 +389,11 @@ async def revoke_token(
 # ERROR HANDLERS
 # =============================================================================
 
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     """Custom error handler - prevents information leakage"""
-    return {
-        "error": exc.detail,
-        "status_code": exc.status_code
-    }
+    return {"error": exc.detail, "status_code": exc.status_code}
 
 
 @app.exception_handler(Exception)
@@ -417,15 +403,13 @@ async def general_exception_handler(request: Request, exc: Exception):
     print(f"Unhandled error: {exc}")
 
     # Return generic error to client
-    return {
-        "error": "An internal error occurred",
-        "status_code": 500
-    }
+    return {"error": "An internal error occurred", "status_code": 500}
 
 
 # =============================================================================
 # STARTUP AND INITIALIZATION
 # =============================================================================
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -443,7 +427,7 @@ async def startup_event():
             email="admin@example.com",
             password="Admin@SecureP@ss123!",
             role=UserRole.ADMIN,
-            tier=TierLevel.INTERNAL
+            tier=TierLevel.INTERNAL,
         )
         print(f"Default admin user created: {admin_user.username}")
 
@@ -480,10 +464,4 @@ if __name__ == "__main__":
     print("\nPress Ctrl+C to stop")
     print("=" * 70)
 
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8000,
-        log_level="info",
-        access_log=True
-    )
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info", access_log=True)

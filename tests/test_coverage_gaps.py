@@ -28,6 +28,7 @@ class TestMonitoringDeprecationFix:
         """Ensure monitoring.py does not use deprecated datetime.utcnow()."""
         import inspect
         import monitoring
+
         source = inspect.getsource(monitoring)
         assert "utcnow()" not in source, (
             "monitoring.py still uses deprecated datetime.utcnow()"
@@ -69,9 +70,15 @@ class TestBehavioralExceptionPaths:
         # But consecutive entries have release_time (prev) and press_time (curr)
         # -> valid flight times.
         data = [
-            {"key": "a", "release_time": 100},   # no press_time -> no dwell
-            {"key": "b", "press_time": 150},      # flight = 150 - 100 = 50; no release_time -> no dwell
-            {"key": "c", "press_time": 250},      # prev has no release_time -> no flight; no release_time -> no dwell
+            {"key": "a", "release_time": 100},  # no press_time -> no dwell
+            {
+                "key": "b",
+                "press_time": 150,
+            },  # flight = 150 - 100 = 50; no release_time -> no dwell
+            {
+                "key": "c",
+                "press_time": 250,
+            },  # prev has no release_time -> no flight; no release_time -> no dwell
         ]
         result = bb._extract_keystroke_features(data)
         assert result is not None
@@ -335,9 +342,7 @@ class TestExplainDecisionExceptionPaths:
             "payment_method": "credit_card",
         }
         with patch("server.fraud_explainer") as mock_explainer:
-            mock_explainer.explain_prediction.side_effect = RuntimeError(
-                "SHAP failed"
-            )
+            mock_explainer.explain_prediction.side_effect = RuntimeError("SHAP failed")
             result = explain_decision_impl(analysis_result, txn_data)
         # Should still return a valid explanation, just without feature_analysis
         assert "decision_summary" in result
@@ -352,9 +357,7 @@ class TestExplainDecisionExceptionPaths:
             "feature_explanation": {"method": "shap", "features": {}},
         }
         with patch("server.fraud_explainer") as mock_explainer:
-            mock_explainer.generate_summary.side_effect = RuntimeError(
-                "summary failed"
-            )
+            mock_explainer.generate_summary.side_effect = RuntimeError("summary failed")
             result = explain_decision_impl(analysis_result)
         # Should still return explanation but without human_readable_summary
         assert "decision_summary" in result

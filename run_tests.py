@@ -21,15 +21,17 @@ def main():
 
     # Test discovery and execution
     cmd = [
-        sys.executable, "-m", "pytest",
+        sys.executable,
+        "-m",
+        "pytest",
         "tests/",
-        "-v",                              # Verbose output
-        "--tb=short",                      # Shorter traceback format
-        "--cov=server",                    # Coverage for server.py
-        "--cov-report=term-missing",       # Show missing lines
-        "--cov-report=html",               # Generate HTML report
-        "--cov-fail-under=80",             # Require 80% coverage
-        "-ra",                             # Show summary of all test outcomes
+        "-v",  # Verbose output
+        "--tb=short",  # Shorter traceback format
+        "--cov=server",  # Coverage for server.py
+        "--cov-report=term-missing",  # Show missing lines
+        "--cov-report=html",  # Generate HTML report
+        "--cov-fail-under=80",  # Require 80% coverage
+        "-ra",  # Show summary of all test outcomes
     ]
 
     print("Running tests...")

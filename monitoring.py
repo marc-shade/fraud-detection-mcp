@@ -41,111 +41,108 @@ REGISTRY = CollectorRegistry()
 
 # Fraud Detection Metrics
 fraud_transactions_total = Counter(
-    'fraud_transactions_total',
-    'Total fraud transactions processed',
-    ['risk_level', 'status'],
-    registry=REGISTRY
+    "fraud_transactions_total",
+    "Total fraud transactions processed",
+    ["risk_level", "status"],
+    registry=REGISTRY,
 )
 
 fraud_prediction_duration_seconds = Histogram(
-    'fraud_prediction_duration_seconds',
-    'Time spent processing fraud predictions',
-    ['model_type', 'feature_count'],
+    "fraud_prediction_duration_seconds",
+    "Time spent processing fraud predictions",
+    ["model_type", "feature_count"],
     buckets=(0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0),
-    registry=REGISTRY
+    registry=REGISTRY,
 )
 
 fraud_risk_score_current = Gauge(
-    'fraud_risk_score_current',
-    'Current fraud risk score for transaction',
-    ['transaction_id', 'risk_category'],
-    registry=REGISTRY
+    "fraud_risk_score_current",
+    "Current fraud risk score for transaction",
+    ["transaction_id", "risk_category"],
+    registry=REGISTRY,
 )
 
 fraud_model_accuracy = Gauge(
-    'fraud_model_accuracy',
-    'Model accuracy by type',
-    ['model', 'metric_type'],
-    registry=REGISTRY
+    "fraud_model_accuracy",
+    "Model accuracy by type",
+    ["model", "metric_type"],
+    registry=REGISTRY,
 )
 
 # API Metrics
 api_requests_total = Counter(
-    'fraud_api_requests_total',
-    'Total API requests',
-    ['endpoint', 'method', 'status_code'],
-    registry=REGISTRY
+    "fraud_api_requests_total",
+    "Total API requests",
+    ["endpoint", "method", "status_code"],
+    registry=REGISTRY,
 )
 
 api_errors_total = Counter(
-    'fraud_api_errors_total',
-    'Total API errors',
-    ['endpoint', 'error_type'],
-    registry=REGISTRY
+    "fraud_api_errors_total",
+    "Total API errors",
+    ["endpoint", "error_type"],
+    registry=REGISTRY,
 )
 
 api_request_duration_seconds = Histogram(
-    'fraud_api_request_duration_seconds',
-    'API request duration in seconds',
-    ['endpoint', 'method'],
+    "fraud_api_request_duration_seconds",
+    "API request duration in seconds",
+    ["endpoint", "method"],
     buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
-    registry=REGISTRY
+    registry=REGISTRY,
 )
 
 # System Metrics
 system_cpu_usage = Gauge(
-    'fraud_system_cpu_usage_percent',
-    'CPU usage percentage',
-    registry=REGISTRY
+    "fraud_system_cpu_usage_percent", "CPU usage percentage", registry=REGISTRY
 )
 
 system_memory_usage = Gauge(
-    'fraud_system_memory_usage_bytes',
-    'Memory usage in bytes',
-    ['type'],
-    registry=REGISTRY
+    "fraud_system_memory_usage_bytes",
+    "Memory usage in bytes",
+    ["type"],
+    registry=REGISTRY,
 )
 
 system_disk_usage = Gauge(
-    'fraud_system_disk_usage_percent',
-    'Disk usage percentage',
-    ['mount_point'],
-    registry=REGISTRY
+    "fraud_system_disk_usage_percent",
+    "Disk usage percentage",
+    ["mount_point"],
+    registry=REGISTRY,
 )
 
 # Model Performance Metrics
 model_predictions_total = Counter(
-    'fraud_model_predictions_total',
-    'Total predictions made',
-    ['model', 'prediction_class'],
-    registry=REGISTRY
+    "fraud_model_predictions_total",
+    "Total predictions made",
+    ["model", "prediction_class"],
+    registry=REGISTRY,
 )
 
 model_features_processed = Counter(
-    'fraud_model_features_processed_total',
-    'Total features processed',
-    ['feature_type'],
-    registry=REGISTRY
+    "fraud_model_features_processed_total",
+    "Total features processed",
+    ["feature_type"],
+    registry=REGISTRY,
 )
 
 model_cache_hits = Counter(
-    'fraud_model_cache_hits_total',
-    'Model cache hits',
-    ['cache_type'],
-    registry=REGISTRY
+    "fraud_model_cache_hits_total",
+    "Model cache hits",
+    ["cache_type"],
+    registry=REGISTRY,
 )
 
 # Application Info
 app_info = Info(
-    'fraud_detection_app',
-    'Fraud detection application information',
-    registry=REGISTRY
+    "fraud_detection_app", "Fraud detection application information", registry=REGISTRY
 )
 
 
 # ============================================================================
 # Structured Logging Configuration
 # ============================================================================
+
 
 def setup_logging(log_level: str = "INFO", log_file: Optional[str] = None) -> None:
     """Configure structured logging with structlog."""
@@ -163,14 +160,12 @@ def setup_logging(log_level: str = "INFO", log_file: Optional[str] = None) -> No
 
     if sys.stderr.isatty():
         # Pretty colored output for development
-        processors = shared_processors + [
-            structlog.dev.ConsoleRenderer()
-        ]
+        processors = shared_processors + [structlog.dev.ConsoleRenderer()]
     else:
         # JSON output for production
         processors = shared_processors + [
             structlog.processors.dict_tracebacks,
-            structlog.processors.JSONRenderer()
+            structlog.processors.JSONRenderer(),
         ]
 
     structlog.configure(
@@ -199,6 +194,7 @@ def setup_logging(log_level: str = "INFO", log_file: Optional[str] = None) -> No
 # Monitoring Manager
 # ============================================================================
 
+
 class MonitoringManager:
     """
     Central monitoring manager for fraud detection system.
@@ -213,13 +209,15 @@ class MonitoringManager:
         self.start_time = time.time()
 
         # Initialize application info
-        app_info.info({
-            'app_name': app_name,
-            'version': version,
-            'python_version': platform.python_version(),
-            'platform': platform.system(),
-            'platform_release': platform.release(),
-        })
+        app_info.info(
+            {
+                "app_name": app_name,
+                "version": version,
+                "python_version": platform.python_version(),
+                "platform": platform.system(),
+                "platform_release": platform.release(),
+            }
+        )
 
         self.logger.info(
             "monitoring_initialized",
@@ -228,15 +226,10 @@ class MonitoringManager:
         )
 
     def record_fraud_transaction(
-        self,
-        risk_level: str,
-        status: str = "processed"
+        self, risk_level: str, status: str = "processed"
     ) -> None:
         """Record a fraud transaction."""
-        fraud_transactions_total.labels(
-            risk_level=risk_level,
-            status=status
-        ).inc()
+        fraud_transactions_total.labels(risk_level=risk_level, status=status).inc()
 
         self.logger.info(
             "fraud_transaction_recorded",
@@ -251,26 +244,23 @@ class MonitoringManager:
         duration: float,
         risk_score: float,
         transaction_id: str,
-        prediction_class: str = "fraud"
+        prediction_class: str = "fraud",
     ) -> None:
         """Record prediction metrics."""
         # Duration histogram
         fraud_prediction_duration_seconds.labels(
-            model_type=model_type,
-            feature_count=str(feature_count)
+            model_type=model_type, feature_count=str(feature_count)
         ).observe(duration)
 
         # Risk score gauge
         risk_category = self._categorize_risk(risk_score)
         fraud_risk_score_current.labels(
-            transaction_id=transaction_id,
-            risk_category=risk_category
+            transaction_id=transaction_id, risk_category=risk_category
         ).set(risk_score)
 
         # Prediction counter
         model_predictions_total.labels(
-            model=model_type,
-            prediction_class=prediction_class
+            model=model_type, prediction_class=prediction_class
         ).inc()
 
         self.logger.info(
@@ -288,31 +278,23 @@ class MonitoringManager:
         accuracy: float,
         precision: Optional[float] = None,
         recall: Optional[float] = None,
-        f1_score: Optional[float] = None
+        f1_score: Optional[float] = None,
     ) -> None:
         """Record model accuracy metrics."""
-        fraud_model_accuracy.labels(
-            model=model,
-            metric_type="accuracy"
-        ).set(accuracy)
+        fraud_model_accuracy.labels(model=model, metric_type="accuracy").set(accuracy)
 
         if precision is not None:
-            fraud_model_accuracy.labels(
-                model=model,
-                metric_type="precision"
-            ).set(precision)
+            fraud_model_accuracy.labels(model=model, metric_type="precision").set(
+                precision
+            )
 
         if recall is not None:
-            fraud_model_accuracy.labels(
-                model=model,
-                metric_type="recall"
-            ).set(recall)
+            fraud_model_accuracy.labels(model=model, metric_type="recall").set(recall)
 
         if f1_score is not None:
-            fraud_model_accuracy.labels(
-                model=model,
-                metric_type="f1_score"
-            ).set(f1_score)
+            fraud_model_accuracy.labels(model=model, metric_type="f1_score").set(
+                f1_score
+            )
 
         self.logger.info(
             "model_accuracy_recorded",
@@ -329,25 +311,19 @@ class MonitoringManager:
         method: str,
         status_code: int,
         duration: float,
-        error_type: Optional[str] = None
+        error_type: Optional[str] = None,
     ) -> None:
         """Record API request metrics."""
         api_requests_total.labels(
-            endpoint=endpoint,
-            method=method,
-            status_code=str(status_code)
+            endpoint=endpoint, method=method, status_code=str(status_code)
         ).inc()
 
-        api_request_duration_seconds.labels(
-            endpoint=endpoint,
-            method=method
-        ).observe(duration)
+        api_request_duration_seconds.labels(endpoint=endpoint, method=method).observe(
+            duration
+        )
 
         if error_type:
-            api_errors_total.labels(
-                endpoint=endpoint,
-                error_type=error_type
-            ).inc()
+            api_errors_total.labels(endpoint=endpoint, error_type=error_type).inc()
 
             self.logger.error(
                 "api_request_error",
@@ -368,15 +344,11 @@ class MonitoringManager:
 
     def record_feature_processing(self, feature_type: str, count: int = 1) -> None:
         """Record feature processing."""
-        model_features_processed.labels(
-            feature_type=feature_type
-        ).inc(count)
+        model_features_processed.labels(feature_type=feature_type).inc(count)
 
     def record_cache_hit(self, cache_type: str) -> None:
         """Record cache hit."""
-        model_cache_hits.labels(
-            cache_type=cache_type
-        ).inc()
+        model_cache_hits.labels(cache_type=cache_type).inc()
 
     def update_system_metrics(self) -> None:
         """Update system resource metrics."""
@@ -391,7 +363,7 @@ class MonitoringManager:
         system_memory_usage.labels(type="total").set(memory.total)
 
         # Disk usage
-        disk = psutil.disk_usage('/')
+        disk = psutil.disk_usage("/")
         system_disk_usage.labels(mount_point="/").set(disk.percent)
 
         self.logger.debug(
@@ -412,17 +384,13 @@ class MonitoringManager:
             # System metrics
             cpu_percent = psutil.cpu_percent(interval=0.1)
             memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
+            disk = psutil.disk_usage("/")
 
             # Application uptime
             uptime_seconds = time.time() - self.start_time
 
             # Determine overall health
-            is_healthy = (
-                cpu_percent < 90 and
-                memory.percent < 90 and
-                disk.percent < 90
-            )
+            is_healthy = cpu_percent < 90 and memory.percent < 90 and disk.percent < 90
 
             health_status = {
                 "status": "healthy" if is_healthy else "degraded",
@@ -441,27 +409,23 @@ class MonitoringManager:
                     "cpu": "ok" if cpu_percent < 90 else "warning",
                     "memory": "ok" if memory.percent < 90 else "warning",
                     "disk": "ok" if disk.percent < 90 else "warning",
-                }
+                },
             }
 
             self.logger.info(
                 "health_check_completed",
                 status=health_status["status"],
-                **health_status["system"]
+                **health_status["system"],
             )
 
             return health_status
 
         except Exception as e:
-            self.logger.error(
-                "health_check_failed",
-                error=str(e),
-                exc_info=True
-            )
+            self.logger.error("health_check_failed", error=str(e), exc_info=True)
             return {
                 "status": "unhealthy",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "error": str(e)
+                "error": str(e),
             }
 
     def get_metrics(self) -> bytes:
@@ -485,10 +449,8 @@ class MonitoringManager:
 # Decorators for Automatic Tracking
 # ============================================================================
 
-def track_prediction(
-    model_type: str,
-    feature_count: Optional[int] = None
-):
+
+def track_prediction(model_type: str, feature_count: Optional[int] = None):
     """
     Decorator to track prediction performance.
 
@@ -497,6 +459,7 @@ def track_prediction(
         def predict_fraud(transaction):
             return risk_score, prediction
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -514,7 +477,7 @@ def track_prediction(
                     # Record metrics
                     fraud_prediction_duration_seconds.labels(
                         model_type=model_type,
-                        feature_count=str(feature_count or 'unknown')
+                        feature_count=str(feature_count or "unknown"),
                     ).observe(duration)
 
                     logger.info(
@@ -533,11 +496,12 @@ def track_prediction(
                     model_type=model_type,
                     duration=duration,
                     error=str(e),
-                    exc_info=True
+                    exc_info=True,
                 )
                 raise
 
         return wrapper
+
     return decorator
 
 
@@ -550,6 +514,7 @@ def track_api_call(endpoint: str, method: str = "GET"):
         def predict_endpoint(request):
             return response
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -570,7 +535,7 @@ def track_api_call(endpoint: str, method: str = "GET"):
                     endpoint=endpoint,
                     method=method,
                     error=str(e),
-                    exc_info=True
+                    exc_info=True,
                 )
                 raise
 
@@ -578,23 +543,20 @@ def track_api_call(endpoint: str, method: str = "GET"):
                 duration = time.time() - start_time
 
                 api_requests_total.labels(
-                    endpoint=endpoint,
-                    method=method,
-                    status_code=str(status_code)
+                    endpoint=endpoint, method=method, status_code=str(status_code)
                 ).inc()
 
                 api_request_duration_seconds.labels(
-                    endpoint=endpoint,
-                    method=method
+                    endpoint=endpoint, method=method
                 ).observe(duration)
 
                 if error_type:
                     api_errors_total.labels(
-                        endpoint=endpoint,
-                        error_type=error_type
+                        endpoint=endpoint, error_type=error_type
                     ).inc()
 
         return wrapper
+
     return decorator
 
 
@@ -602,11 +564,12 @@ def track_api_call(endpoint: str, method: str = "GET"):
 # Setup Function
 # ============================================================================
 
+
 def setup_monitoring(
     app_name: str = "fraud-detection",
     version: str = "1.0.0",
     log_level: str = "INFO",
-    log_file: Optional[str] = None
+    log_file: Optional[str] = None,
 ) -> MonitoringManager:
     """
     Initialize monitoring system.
@@ -654,13 +617,13 @@ GRAFANA_DASHBOARD = {
                     {
                         "expr": "rate(fraud_transactions_total[5m])",
                         "legendFormat": "{{risk_level}} - {{status}}",
-                        "refId": "A"
+                        "refId": "A",
                     }
                 ],
                 "yaxes": [
                     {"format": "short", "label": "Transactions/sec"},
-                    {"format": "short"}
-                ]
+                    {"format": "short"},
+                ],
             },
             {
                 "id": 2,
@@ -671,18 +634,15 @@ GRAFANA_DASHBOARD = {
                     {
                         "expr": "histogram_quantile(0.95, rate(fraud_prediction_duration_seconds_bucket[5m]))",
                         "legendFormat": "{{model_type}} p95",
-                        "refId": "A"
+                        "refId": "A",
                     },
                     {
                         "expr": "histogram_quantile(0.99, rate(fraud_prediction_duration_seconds_bucket[5m]))",
                         "legendFormat": "{{model_type}} p99",
-                        "refId": "B"
-                    }
+                        "refId": "B",
+                    },
                 ],
-                "yaxes": [
-                    {"format": "s", "label": "Duration"},
-                    {"format": "short"}
-                ]
+                "yaxes": [{"format": "s", "label": "Duration"}, {"format": "short"}],
             },
             {
                 "id": 3,
@@ -693,13 +653,13 @@ GRAFANA_DASHBOARD = {
                     {
                         "expr": "fraud_model_accuracy",
                         "legendFormat": "{{model}} - {{metric_type}}",
-                        "refId": "A"
+                        "refId": "A",
                     }
                 ],
                 "yaxes": [
                     {"format": "percentunit", "label": "Accuracy", "max": 1, "min": 0},
-                    {"format": "short"}
-                ]
+                    {"format": "short"},
+                ],
             },
             {
                 "id": 4,
@@ -710,13 +670,13 @@ GRAFANA_DASHBOARD = {
                     {
                         "expr": "rate(fraud_api_requests_total[5m])",
                         "legendFormat": "{{endpoint}} - {{method}} ({{status_code}})",
-                        "refId": "A"
+                        "refId": "A",
                     }
                 ],
                 "yaxes": [
                     {"format": "reqps", "label": "Requests/sec"},
-                    {"format": "short"}
-                ]
+                    {"format": "short"},
+                ],
             },
             {
                 "id": 5,
@@ -727,12 +687,12 @@ GRAFANA_DASHBOARD = {
                     {
                         "expr": "rate(fraud_api_errors_total[5m])",
                         "legendFormat": "{{endpoint}} - {{error_type}}",
-                        "refId": "A"
+                        "refId": "A",
                     }
                 ],
                 "yaxes": [
                     {"format": "short", "label": "Errors/sec"},
-                    {"format": "short"}
+                    {"format": "short"},
                 ],
                 "alert": {
                     "conditions": [
@@ -741,7 +701,7 @@ GRAFANA_DASHBOARD = {
                             "operator": {"type": "and"},
                             "query": {"params": ["A", "5m", "now"]},
                             "reducer": {"params": [], "type": "avg"},
-                            "type": "query"
+                            "type": "query",
                         }
                     ],
                     "executionErrorState": "alerting",
@@ -749,8 +709,8 @@ GRAFANA_DASHBOARD = {
                     "handler": 1,
                     "name": "High API Error Rate",
                     "noDataState": "no_data",
-                    "notifications": []
-                }
+                    "notifications": [],
+                },
             },
             {
                 "id": 6,
@@ -761,16 +721,22 @@ GRAFANA_DASHBOARD = {
                     {
                         "expr": "fraud_system_cpu_usage_percent",
                         "legendFormat": "CPU Usage",
-                        "refId": "A"
+                        "refId": "A",
                     }
                 ],
                 "yaxes": [
                     {"format": "percent", "label": "Usage", "max": 100, "min": 0},
-                    {"format": "short"}
+                    {"format": "short"},
                 ],
                 "thresholds": [
-                    {"value": 80, "colorMode": "critical", "op": "gt", "fill": True, "line": True}
-                ]
+                    {
+                        "value": 80,
+                        "colorMode": "critical",
+                        "op": "gt",
+                        "fill": True,
+                        "line": True,
+                    }
+                ],
             },
             {
                 "id": 7,
@@ -781,16 +747,22 @@ GRAFANA_DASHBOARD = {
                     {
                         "expr": "fraud_system_memory_usage_bytes{type='used'} / fraud_system_memory_usage_bytes{type='total'} * 100",
                         "legendFormat": "Memory Usage",
-                        "refId": "A"
+                        "refId": "A",
                     }
                 ],
                 "yaxes": [
                     {"format": "percent", "label": "Usage", "max": 100, "min": 0},
-                    {"format": "short"}
+                    {"format": "short"},
                 ],
                 "thresholds": [
-                    {"value": 80, "colorMode": "critical", "op": "gt", "fill": True, "line": True}
-                ]
+                    {
+                        "value": 80,
+                        "colorMode": "critical",
+                        "op": "gt",
+                        "fill": True,
+                        "line": True,
+                    }
+                ],
             },
             {
                 "id": 8,
@@ -801,9 +773,9 @@ GRAFANA_DASHBOARD = {
                     {
                         "expr": "sum by (model) (fraud_model_predictions_total)",
                         "legendFormat": "{{model}}",
-                        "refId": "A"
+                        "refId": "A",
                     }
-                ]
+                ],
             },
             {
                 "id": 9,
@@ -814,12 +786,12 @@ GRAFANA_DASHBOARD = {
                     {
                         "expr": "fraud_risk_score_current",
                         "legendFormat": "{{risk_category}}",
-                        "refId": "A"
+                        "refId": "A",
                     }
                 ],
                 "dataFormat": "timeseries",
-                "yAxis": {"format": "short", "decimals": 2}
-            }
+                "yAxis": {"format": "short", "decimals": 2},
+            },
         ],
         "templating": {
             "list": [
@@ -828,15 +800,15 @@ GRAFANA_DASHBOARD = {
                     "type": "query",
                     "query": "label_values(fraud_model_predictions_total, model)",
                     "multi": True,
-                    "includeAll": True
+                    "includeAll": True,
                 },
                 {
                     "name": "endpoint",
                     "type": "query",
                     "query": "label_values(fraud_api_requests_total, endpoint)",
                     "multi": True,
-                    "includeAll": True
-                }
+                    "includeAll": True,
+                },
             ]
         },
         "annotations": {
@@ -847,10 +819,10 @@ GRAFANA_DASHBOARD = {
                     "enable": True,
                     "expr": "fraud_detection_app_info",
                     "iconColor": "rgba(0, 211, 255, 1)",
-                    "tagKeys": "version"
+                    "tagKeys": "version",
                 }
             ]
-        }
+        },
     }
 }
 
@@ -862,9 +834,7 @@ GRAFANA_DASHBOARD = {
 if __name__ == "__main__":
     # Initialize monitoring
     monitor = setup_monitoring(
-        app_name="fraud-detection",
-        version="1.0.0",
-        log_level="INFO"
+        app_name="fraud-detection", version="1.0.0", log_level="INFO"
     )
 
     # Example: Track fraud transaction
@@ -873,6 +843,7 @@ if __name__ == "__main__":
 
     # Example: Track prediction
     import random
+
     transaction_id = f"txn_{random.randint(1000, 9999)}"
     monitor.record_prediction(
         model_type="random_forest",
@@ -880,24 +851,17 @@ if __name__ == "__main__":
         duration=0.042,
         risk_score=0.87,
         transaction_id=transaction_id,
-        prediction_class="fraud"
+        prediction_class="fraud",
     )
 
     # Example: Track model accuracy
     monitor.record_model_accuracy(
-        model="random_forest",
-        accuracy=0.95,
-        precision=0.92,
-        recall=0.88,
-        f1_score=0.90
+        model="random_forest", accuracy=0.95, precision=0.92, recall=0.88, f1_score=0.90
     )
 
     # Example: Track API request
     monitor.record_api_request(
-        endpoint="/api/predict",
-        method="POST",
-        status_code=200,
-        duration=0.156
+        endpoint="/api/predict", method="POST", status_code=200, duration=0.156
     )
 
     # Update system metrics
@@ -909,21 +873,19 @@ if __name__ == "__main__":
 
     # Get metrics
     print("\nPrometheus Metrics:")
-    print(monitor.get_metrics().decode('utf-8'))
+    print(monitor.get_metrics().decode("utf-8"))
 
     # Example decorator usage
     @track_prediction(model_type="gradient_boosting", feature_count=20)
     def predict_transaction(transaction_data, transaction_id=None):
         """Example prediction function."""
         import time
+
         time.sleep(0.01)  # Simulate processing
         risk_score = random.uniform(0, 1)
         prediction = "fraud" if risk_score > 0.5 else "legitimate"
         return risk_score, prediction
 
     # Test decorator
-    result = predict_transaction(
-        {"amount": 1000},
-        transaction_id="txn_5678"
-    )
+    result = predict_transaction({"amount": 1000}, transaction_id="txn_5678")
     print(f"\nPrediction Result: {result}")

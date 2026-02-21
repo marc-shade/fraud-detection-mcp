@@ -13,10 +13,9 @@ import pandas as pd
 from datetime import datetime
 
 # Import fraud detection components
-from server import (
-    transaction_analyzer
-)
+from server import transaction_analyzer
 from integration import SyntheticDataIntegration
+
 
 class FraudDetectionCLI:
     """Command-line interface for fraud detection operations"""
@@ -37,9 +36,9 @@ class FraudDetectionCLI:
                 print(f"❌ Error: Dataset file not found: {args.input}")
                 sys.exit(1)
 
-            if args.input.endswith('.csv'):
+            if args.input.endswith(".csv"):
                 df = pd.read_csv(args.input)
-            elif args.input.endswith('.json'):
+            elif args.input.endswith(".json"):
                 df = pd.read_json(args.input)
             else:
                 print("❌ Error: Unsupported file format. Use CSV or JSON.")
@@ -77,24 +76,32 @@ class FraudDetectionCLI:
 
                 # Flag high-risk transactions
                 if risk_score >= args.threshold:
-                    flagged_transactions.append({
-                        "transaction_id": transaction_data.get("transaction_id", f"txn_{idx}"),
-                        "risk_score": risk_score,
-                        "risk_level": risk_level,
-                        "risk_factors": result.get("risk_factors", []),
-                        "actual_fraud": transaction_data.get("is_fraud", None)
-                    })
+                    flagged_transactions.append(
+                        {
+                            "transaction_id": transaction_data.get(
+                                "transaction_id", f"txn_{idx}"
+                            ),
+                            "risk_score": risk_score,
+                            "risk_level": risk_level,
+                            "risk_factors": result.get("risk_factors", []),
+                            "actual_fraud": transaction_data.get("is_fraud", None),
+                        }
+                    )
 
                 processed += 1
                 if processed % 1000 == 0:
-                    print(f"  📊 Processed: {processed:,}/{total_transactions:,} transactions")
+                    print(
+                        f"  📊 Processed: {processed:,}/{total_transactions:,} transactions"
+                    )
 
             # Display results
             print("\n✅ Analysis Complete!")
             print("=" * 60)
 
             fraud_rate = len(flagged_transactions) / total_transactions * 100
-            print(f"🚨 Flagged Transactions: {len(flagged_transactions):,} ({fraud_rate:.2f}%)")
+            print(
+                f"🚨 Flagged Transactions: {len(flagged_transactions):,} ({fraud_rate:.2f}%)"
+            )
             print(f"🎯 Risk Threshold: {args.threshold}")
 
             print("\n📊 Risk Distribution:")
@@ -104,16 +111,22 @@ class FraudDetectionCLI:
 
             # Show flagged transactions
             if flagged_transactions and args.show_details:
-                print(f"\n🚨 Top {min(10, len(flagged_transactions))} Flagged Transactions:")
+                print(
+                    f"\n🚨 Top {min(10, len(flagged_transactions))} Flagged Transactions:"
+                )
                 for i, txn in enumerate(flagged_transactions[:10], 1):
-                    print(f"  {i:>2}. ID: {txn['transaction_id']:<15} "
-                          f"Risk: {txn['risk_score']:.3f} "
-                          f"Level: {txn['risk_level']:<8} "
-                          f"Factors: {', '.join(txn['risk_factors'][:2])}")
+                    print(
+                        f"  {i:>2}. ID: {txn['transaction_id']:<15} "
+                        f"Risk: {txn['risk_score']:.3f} "
+                        f"Level: {txn['risk_level']:<8} "
+                        f"Factors: {', '.join(txn['risk_factors'][:2])}"
+                    )
 
             # Calculate performance metrics if ground truth available
             if "is_fraud" in df.columns:
-                metrics = self._calculate_performance_metrics(df, flagged_transactions, args.threshold)
+                metrics = self._calculate_performance_metrics(
+                    df, flagged_transactions, args.threshold
+                )
                 print("\n📈 Performance Metrics:")
                 print(f"  Precision: {metrics['precision']:.4f}")
                 print(f"  Recall:    {metrics['recall']:.4f}")
@@ -144,27 +157,27 @@ class FraudDetectionCLI:
                 fraud_percentage=args.fraud_rate,
                 include_behavioral=args.behavioral,
                 include_network=args.network,
-                output_format=args.format
+                output_format=args.format,
             )
 
             if result.get("integration_status") == "success":
                 print("✅ Dataset generation complete!")
                 print(f"📁 Transactions: {result['dataset_paths']['transactions']}")
 
-                if result['dataset_paths']['behavioral']:
+                if result["dataset_paths"]["behavioral"]:
                     print(f"🧠 Behavioral: {result['dataset_paths']['behavioral']}")
 
-                if result['dataset_paths']['network']:
+                if result["dataset_paths"]["network"]:
                     print(f"🕸️  Network: {result['dataset_paths']['network']}")
 
                 print("\n📊 Generation Statistics:")
-                info = result['generation_info']
+                info = result["generation_info"]
                 print(f"  Total transactions: {info['total_transactions']:,}")
                 print(f"  Legitimate: {info['legitimate_transactions']:,}")
                 print(f"  Fraudulent: {info['fraudulent_transactions']:,}")
 
                 print("\n🚨 Fraud Distribution:")
-                for fraud_type, count in result['fraud_distribution'].items():
+                for fraud_type, count in result["fraud_distribution"].items():
                     if count > 0:
                         print(f"  {fraud_type}: {count}")
 
@@ -188,18 +201,18 @@ class FraudDetectionCLI:
             try:
                 command = input("\nfraud-detect> ").strip().lower()
 
-                if command in ['quit', 'exit', 'q']:
+                if command in ["quit", "exit", "q"]:
                     print("👋 Goodbye!")
                     break
 
-                elif command == 'help':
+                elif command == "help":
                     self._show_interactive_help()
 
-                elif command.startswith('load '):
+                elif command.startswith("load "):
                     dataset_path = command[5:].strip()
                     current_dataset = self._load_dataset_interactive(dataset_path)
 
-                elif command.startswith('analyze'):
+                elif command.startswith("analyze"):
                     if current_dataset is None:
                         print("❌ No dataset loaded. Use 'load <path>' first.")
                         continue
@@ -214,17 +227,17 @@ class FraudDetectionCLI:
 
                     self._analyze_dataset_interactive(current_dataset, threshold)
 
-                elif command.startswith('show '):
+                elif command.startswith("show "):
                     if current_dataset is None:
                         print("❌ No dataset loaded. Use 'load <path>' first.")
                         continue
 
                     self._show_dataset_info(current_dataset)
 
-                elif command.startswith('generate'):
+                elif command.startswith("generate"):
                     self._generate_interactive()
 
-                elif command == 'status':
+                elif command == "status":
                     self._show_status(current_dataset)
 
                 else:
@@ -254,9 +267,9 @@ class FraudDetectionCLI:
                 print(f"❌ File not found: {dataset_path}")
                 return None
 
-            if dataset_path.endswith('.csv'):
+            if dataset_path.endswith(".csv"):
                 df = pd.read_csv(dataset_path)
-            elif dataset_path.endswith('.json'):
+            elif dataset_path.endswith(".json"):
                 df = pd.read_json(dataset_path)
             else:
                 print("❌ Unsupported format. Use CSV or JSON.")
@@ -295,21 +308,25 @@ class FraudDetectionCLI:
             if risk_score >= threshold:
                 flagged_count += 1
 
-        print(f"🚨 Flagged: {flagged_count} transactions ({flagged_count/len(df)*100:.1f}%)")
+        print(
+            f"🚨 Flagged: {flagged_count} transactions ({flagged_count / len(df) * 100:.1f}%)"
+        )
         print("📊 Risk distribution:")
         for level, count in risk_counts.items():
-            print(f"  {level}: {count} ({count/len(df)*100:.1f}%)")
+            print(f"  {level}: {count} ({count / len(df) * 100:.1f}%)")
 
     def _show_dataset_info(self, df: pd.DataFrame) -> None:
         """Show dataset information"""
         print("\n📊 Dataset Information:")
         print(f"  Transactions: {len(df):,}")
         print(f"  Columns: {list(df.columns)}")
-        print(f"  Date range: {df.get('timestamp', pd.Series()).min()} to {df.get('timestamp', pd.Series()).max()}")
+        print(
+            f"  Date range: {df.get('timestamp', pd.Series()).min()} to {df.get('timestamp', pd.Series()).max()}"
+        )
 
-        if 'is_fraud' in df.columns:
-            fraud_count = df['is_fraud'].sum()
-            print(f"  Known fraud: {fraud_count} ({fraud_count/len(df)*100:.1f}%)")
+        if "is_fraud" in df.columns:
+            fraud_count = df["is_fraud"].sum()
+            print(f"  Known fraud: {fraud_count} ({fraud_count / len(df) * 100:.1f}%)")
 
     def _generate_interactive(self) -> None:
         """Generate data in interactive mode"""
@@ -324,7 +341,7 @@ class FraudDetectionCLI:
                 fraud_percentage=fraud_rate,
                 include_behavioral=True,
                 include_network=True,
-                output_format="csv"
+                output_format="csv",
             )
 
             if result.get("integration_status") == "success":
@@ -345,7 +362,10 @@ class FraudDetectionCLI:
         print("  Integration ready: Yes")
 
     def _calculate_performance_metrics(
-        self, df: pd.DataFrame, flagged_transactions: List[Dict[str, Any]], threshold: float
+        self,
+        df: pd.DataFrame,
+        flagged_transactions: List[Dict[str, Any]],
+        threshold: float,
     ) -> Dict[str, float]:
         """Calculate performance metrics"""
         flagged_ids = set(t["transaction_id"] for t in flagged_transactions)
@@ -359,20 +379,25 @@ class FraudDetectionCLI:
 
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0
-        f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+        f1_score = (
+            2 * (precision * recall) / (precision + recall)
+            if (precision + recall) > 0
+            else 0
+        )
         accuracy = (tp + tn) / len(df)
 
         return {
             "precision": precision,
             "recall": recall,
             "f1_score": f1_score,
-            "accuracy": accuracy
+            "accuracy": accuracy,
         }
 
     def _save_results(
-        self, flagged_transactions: List[Dict[str, Any]],
+        self,
+        flagged_transactions: List[Dict[str, Any]],
         risk_distribution: Dict[str, int],
-        output_path: str
+        output_path: str,
     ) -> None:
         """Save analysis results"""
         results = {
@@ -381,12 +406,13 @@ class FraudDetectionCLI:
             "risk_distribution": risk_distribution,
             "summary": {
                 "total_flagged": len(flagged_transactions),
-                "risk_levels": risk_distribution
-            }
+                "risk_levels": risk_distribution,
+            },
         }
 
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             json.dump(results, f, indent=2)
+
 
 def main():
     """Main CLI entry point"""
@@ -399,40 +425,72 @@ Examples:
   fraud-detect analyze --threshold 0.7 --show-details data.json
   fraud-detect generate --count 50000 --fraud-rate 3.5
   fraud-detect interactive
-        """
+        """,
     )
 
-    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # Analyze command
-    analyze_parser = subparsers.add_parser('analyze', help='Analyze dataset for fraud patterns')
-    analyze_parser.add_argument('input', help='Input dataset file (CSV or JSON)')
-    analyze_parser.add_argument('--threshold', '-t', type=float, default=0.6,
-                               help='Risk score threshold for flagging (default: 0.6)')
-    analyze_parser.add_argument('--analysis-type', choices=['quick', 'comprehensive', 'network'],
-                               default='comprehensive', help='Type of analysis')
-    analyze_parser.add_argument('--output', '-o', help='Output file for results (JSON)')
-    analyze_parser.add_argument('--show-details', action='store_true',
-                               help='Show detailed information about flagged transactions')
+    analyze_parser = subparsers.add_parser(
+        "analyze", help="Analyze dataset for fraud patterns"
+    )
+    analyze_parser.add_argument("input", help="Input dataset file (CSV or JSON)")
+    analyze_parser.add_argument(
+        "--threshold",
+        "-t",
+        type=float,
+        default=0.6,
+        help="Risk score threshold for flagging (default: 0.6)",
+    )
+    analyze_parser.add_argument(
+        "--analysis-type",
+        choices=["quick", "comprehensive", "network"],
+        default="comprehensive",
+        help="Type of analysis",
+    )
+    analyze_parser.add_argument("--output", "-o", help="Output file for results (JSON)")
+    analyze_parser.add_argument(
+        "--show-details",
+        action="store_true",
+        help="Show detailed information about flagged transactions",
+    )
 
     # Generate command
-    generate_parser = subparsers.add_parser('generate', help='Generate synthetic test data')
-    generate_parser.add_argument('--count', '-c', type=int, default=10000,
-                                help='Number of transactions to generate (default: 10000)')
-    generate_parser.add_argument('--fraud-rate', '-f', type=float, default=5.0,
-                                help='Fraud percentage (default: 5.0)')
-    generate_parser.add_argument('--behavioral', action='store_true',
-                                help='Include behavioral biometrics data')
-    generate_parser.add_argument('--network', action='store_true',
-                                help='Include network relationship data')
-    generate_parser.add_argument('--format', choices=['csv', 'json'], default='csv',
-                                help='Output format (default: csv)')
+    generate_parser = subparsers.add_parser(
+        "generate", help="Generate synthetic test data"
+    )
+    generate_parser.add_argument(
+        "--count",
+        "-c",
+        type=int,
+        default=10000,
+        help="Number of transactions to generate (default: 10000)",
+    )
+    generate_parser.add_argument(
+        "--fraud-rate",
+        "-f",
+        type=float,
+        default=5.0,
+        help="Fraud percentage (default: 5.0)",
+    )
+    generate_parser.add_argument(
+        "--behavioral", action="store_true", help="Include behavioral biometrics data"
+    )
+    generate_parser.add_argument(
+        "--network", action="store_true", help="Include network relationship data"
+    )
+    generate_parser.add_argument(
+        "--format",
+        choices=["csv", "json"],
+        default="csv",
+        help="Output format (default: csv)",
+    )
 
     # Interactive command
-    subparsers.add_parser('interactive', help='Interactive analysis mode')
+    subparsers.add_parser("interactive", help="Interactive analysis mode")
 
     # Version command
-    subparsers.add_parser('version', help='Show version information')
+    subparsers.add_parser("version", help="Show version information")
 
     args = parser.parse_args()
 
@@ -442,17 +500,18 @@ Examples:
 
     cli = FraudDetectionCLI()
 
-    if args.command == 'analyze':
+    if args.command == "analyze":
         cli.analyze_dataset(args)
-    elif args.command == 'generate':
+    elif args.command == "generate":
         cli.generate_test_data(args)
-    elif args.command == 'interactive':
+    elif args.command == "interactive":
         cli.interactive_analysis(args)
-    elif args.command == 'version':
+    elif args.command == "version":
         print("Advanced Fraud Detection CLI v1.0.0")
         print("Based on 2024-2025 fraud detection research")
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()

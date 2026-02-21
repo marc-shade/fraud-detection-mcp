@@ -1,6 +1,7 @@
 """Tests for TrafficClassifier and classify_traffic_source MCP tool"""
 
 import os
+
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 import pytest
@@ -32,9 +33,9 @@ class TestTrafficClassifier:
     @pytest.mark.unit
     def test_classify_stripe_acp_user_agent(self):
         """Stripe ACP user agent detected as agent"""
-        result = self.classifier.classify({
-            "user_agent": "Stripe-ACP/1.0 agent-id:abc123"
-        })
+        result = self.classifier.classify(
+            {"user_agent": "Stripe-ACP/1.0 agent-id:abc123"}
+        )
         assert result["source"] == "agent"
         assert result["agent_type"] == "stripe_acp"
         assert "user_agent_match" in result["signals"]
@@ -42,46 +43,41 @@ class TestTrafficClassifier:
     @pytest.mark.unit
     def test_classify_visa_tap_user_agent(self):
         """Visa TAP user agent detected as agent"""
-        result = self.classifier.classify({
-            "user_agent": "Visa-TAP/2.0 commerce-agent"
-        })
+        result = self.classifier.classify({"user_agent": "Visa-TAP/2.0 commerce-agent"})
         assert result["source"] == "agent"
         assert result["agent_type"] == "visa_tap"
 
     @pytest.mark.unit
     def test_classify_openai_operator_user_agent(self):
         """OpenAI Operator user agent detected as agent"""
-        result = self.classifier.classify({
-            "user_agent": "OpenAI-Operator/1.0"
-        })
+        result = self.classifier.classify({"user_agent": "OpenAI-Operator/1.0"})
         assert result["source"] == "agent"
         assert result["agent_type"] == "openai"
 
     @pytest.mark.unit
     def test_classify_browser_user_agent(self):
         """Standard browser user agent classified as human"""
-        result = self.classifier.classify({
-            "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/120.0"
-        })
+        result = self.classifier.classify(
+            {
+                "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/120.0"
+            }
+        )
         assert result["source"] == "human"
         assert "user_agent_match" in result["signals"]
 
     @pytest.mark.unit
     def test_classify_agent_identifier_present(self):
         """Presence of agent_identifier signals agent"""
-        result = self.classifier.classify({
-            "agent_identifier": "mastercard-agent-pay:agent-456"
-        })
+        result = self.classifier.classify(
+            {"agent_identifier": "mastercard-agent-pay:agent-456"}
+        )
         assert result["source"] == "agent"
         assert "agent_identifier_present" in result["signals"]
 
     @pytest.mark.unit
     def test_classify_unknown_no_signals(self):
         """No signals results in unknown classification"""
-        result = self.classifier.classify({
-            "amount": 100.0,
-            "merchant": "Store"
-        })
+        result = self.classifier.classify({"amount": 100.0, "merchant": "Store"})
         assert result["source"] == "unknown"
         assert result["confidence"] < 0.5
 
@@ -105,47 +101,41 @@ class TestTrafficClassifier:
     @pytest.mark.unit
     def test_classify_multiple_signals_boost_confidence(self):
         """Multiple agent signals increase confidence"""
-        result = self.classifier.classify({
-            "is_agent": True,
-            "agent_identifier": "stripe-acp:agent-789",
-            "user_agent": "Stripe-ACP/1.0"
-        })
+        result = self.classifier.classify(
+            {
+                "is_agent": True,
+                "agent_identifier": "stripe-acp:agent-789",
+                "user_agent": "Stripe-ACP/1.0",
+            }
+        )
         assert result["source"] == "agent"
         assert result["confidence"] >= 0.95
 
     @pytest.mark.unit
     def test_classify_coinbase_x402(self):
         """Coinbase x402 protocol detected"""
-        result = self.classifier.classify({
-            "user_agent": "x402-client/1.0"
-        })
+        result = self.classifier.classify({"user_agent": "x402-client/1.0"})
         assert result["source"] == "agent"
         assert result["agent_type"] == "x402"
 
     @pytest.mark.unit
     def test_classify_google_ap2(self):
         """Google AP2 protocol detected"""
-        result = self.classifier.classify({
-            "user_agent": "Google-AP2/1.0 agent"
-        })
+        result = self.classifier.classify({"user_agent": "Google-AP2/1.0 agent"})
         assert result["source"] == "agent"
         assert result["agent_type"] == "google_ap2"
 
     @pytest.mark.unit
     def test_classify_paypal_agent(self):
         """PayPal Agent Ready detected"""
-        result = self.classifier.classify({
-            "user_agent": "PayPal-Agent/2.0"
-        })
+        result = self.classifier.classify({"user_agent": "PayPal-Agent/2.0"})
         assert result["source"] == "agent"
         assert result["agent_type"] == "paypal"
 
     @pytest.mark.unit
     def test_classify_anthropic_agent(self):
         """Anthropic Claude agent detected"""
-        result = self.classifier.classify({
-            "user_agent": "Anthropic-Agent/1.0 claude"
-        })
+        result = self.classifier.classify({"user_agent": "Anthropic-Agent/1.0 claude"})
         assert result["source"] == "agent"
         assert result["agent_type"] == "anthropic"
 
@@ -156,25 +146,27 @@ class TestClassifyTrafficSourceImpl:
     @pytest.mark.unit
     def test_impl_returns_valid_result(self):
         from server import classify_traffic_source_impl
-        result = classify_traffic_source_impl({
-            "user_agent": "Stripe-ACP/1.0",
-            "amount": 100.0
-        })
+
+        result = classify_traffic_source_impl(
+            {"user_agent": "Stripe-ACP/1.0", "amount": 100.0}
+        )
         assert result["source"] == "agent"
         assert "classification_timestamp" in result
 
     @pytest.mark.unit
     def test_impl_with_transaction_data_and_metadata(self):
         from server import classify_traffic_source_impl
+
         result = classify_traffic_source_impl(
             {"amount": 100.0, "merchant": "Store"},
-            {"user_agent": "Mozilla/5.0 Chrome/120", "is_agent": False}
+            {"user_agent": "Mozilla/5.0 Chrome/120", "is_agent": False},
         )
         assert result["source"] == "human"
 
     @pytest.mark.unit
     def test_impl_invalid_input(self):
         from server import classify_traffic_source_impl
+
         result = classify_traffic_source_impl("not a dict")
         assert "error" in result
 
@@ -182,16 +174,16 @@ class TestClassifyTrafficSourceImpl:
     def test_impl_metadata_in_transaction_data(self):
         """Agent fields in transaction_data itself should be detected"""
         from server import classify_traffic_source_impl
-        result = classify_traffic_source_impl({
-            "amount": 100.0,
-            "is_agent": True,
-            "agent_identifier": "test-agent-1"
-        })
+
+        result = classify_traffic_source_impl(
+            {"amount": 100.0, "is_agent": True, "agent_identifier": "test-agent-1"}
+        )
         assert result["source"] == "agent"
 
     @pytest.mark.unit
     def test_impl_empty_input(self):
         from server import classify_traffic_source_impl
+
         result = classify_traffic_source_impl({})
         assert result["source"] == "unknown"
 
@@ -203,25 +195,51 @@ class TestAgentAwareRiskScoring:
     def test_risk_score_human_uses_standard_weights(self):
         """Human traffic uses standard 50/30/20 weights"""
         from server import generate_risk_score_impl
+
         result = generate_risk_score_impl(
-            {"amount": 100.0, "merchant": "Store", "location": "NYC",
-             "timestamp": "2026-02-01T12:00:00", "payment_method": "credit_card"},
-            {"keystroke_dynamics": [{"key": "a", "dwell_time": 80, "flight_time": 120}] * 10},
-            {"entity_id": "user123", "connections": [{"target": "user456", "type": "shared_device"}]}
+            {
+                "amount": 100.0,
+                "merchant": "Store",
+                "location": "NYC",
+                "timestamp": "2026-02-01T12:00:00",
+                "payment_method": "credit_card",
+            },
+            {
+                "keystroke_dynamics": [
+                    {"key": "a", "dwell_time": 80, "flight_time": 120}
+                ]
+                * 10
+            },
+            {
+                "entity_id": "user123",
+                "connections": [{"target": "user456", "type": "shared_device"}],
+            },
         )
-        assert "traffic_source" not in result or result.get("traffic_source") == "unknown"
+        assert (
+            "traffic_source" not in result or result.get("traffic_source") == "unknown"
+        )
         assert result["overall_risk_score"] >= 0.0
 
     @pytest.mark.unit
     def test_risk_score_agent_uses_agent_weights(self):
         """Agent traffic applies agent-specific weighting"""
         from server import generate_risk_score_impl
+
         result = generate_risk_score_impl(
-            {"amount": 100.0, "merchant": "Store", "location": "NYC",
-             "timestamp": "2026-02-01T12:00:00", "payment_method": "credit_card",
-             "is_agent": True, "agent_identifier": "stripe-acp:agent-1"},
+            {
+                "amount": 100.0,
+                "merchant": "Store",
+                "location": "NYC",
+                "timestamp": "2026-02-01T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": True,
+                "agent_identifier": "stripe-acp:agent-1",
+            },
             None,  # No behavioral data for agents
-            {"entity_id": "agent-1", "connections": [{"target": "merchant-1", "type": "transaction"}]}
+            {
+                "entity_id": "agent-1",
+                "connections": [{"target": "merchant-1", "type": "transaction"}],
+            },
         )
         assert result.get("traffic_source") == "agent"
         assert "agent_classification" in result
@@ -231,10 +249,16 @@ class TestAgentAwareRiskScoring:
     def test_risk_score_agent_no_behavioral_skips_behavioral(self):
         """Agent traffic without behavioral data skips behavioral weight"""
         from server import generate_risk_score_impl
+
         result = generate_risk_score_impl(
-            {"amount": 100.0, "merchant": "Store", "location": "NYC",
-             "timestamp": "2026-02-01T12:00:00", "payment_method": "credit_card",
-             "is_agent": True},
+            {
+                "amount": 100.0,
+                "merchant": "Store",
+                "location": "NYC",
+                "timestamp": "2026-02-01T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": True,
+            },
         )
         assert result.get("traffic_source") == "agent"
         assert "behavioral" not in result.get("component_scores", {})
@@ -243,12 +267,18 @@ class TestAgentAwareRiskScoring:
     def test_risk_score_agent_with_network_reweights(self):
         """Agent traffic with network data uses heavier network weight"""
         from server import generate_risk_score_impl
+
         result = generate_risk_score_impl(
-            {"amount": 100.0, "merchant": "Store", "location": "NYC",
-             "timestamp": "2026-02-01T12:00:00", "payment_method": "credit_card",
-             "is_agent": True},
+            {
+                "amount": 100.0,
+                "merchant": "Store",
+                "location": "NYC",
+                "timestamp": "2026-02-01T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": True,
+            },
             None,
-            {"entity_id": "agent-1", "connections": []}
+            {"entity_id": "agent-1", "connections": []},
         )
         assert result.get("traffic_source") == "agent"
         assert result["overall_risk_score"] >= 0.0
@@ -258,9 +288,15 @@ class TestAgentAwareRiskScoring:
     def test_risk_score_unknown_traffic_uses_standard(self):
         """Unknown traffic source uses standard weights"""
         from server import generate_risk_score_impl
+
         result = generate_risk_score_impl(
-            {"amount": 100.0, "merchant": "Store", "location": "NYC",
-             "timestamp": "2026-02-01T12:00:00", "payment_method": "credit_card"}
+            {
+                "amount": 100.0,
+                "merchant": "Store",
+                "location": "NYC",
+                "timestamp": "2026-02-01T12:00:00",
+                "payment_method": "credit_card",
+            }
         )
         # No agent fields, should be unknown/standard
         assert result["overall_risk_score"] >= 0.0

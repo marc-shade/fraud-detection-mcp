@@ -25,7 +25,7 @@ class FeatureEngineer:
         self._merchant_mapping: Dict[str, int] = {}
         self._initialized = False
 
-    def fit(self, transactions: List[TransactionData]) -> 'FeatureEngineer':
+    def fit(self, transactions: List[TransactionData]) -> "FeatureEngineer":
         """
         Fit the feature engineer on training data to learn encodings
 
@@ -46,9 +46,15 @@ class FeatureEngineer:
             merchants.add(txn.merchant)
 
         # Create mappings with 0 reserved for unknown
-        self._payment_method_mapping = {pm: idx + 1 for idx, pm in enumerate(sorted(payment_methods))}
-        self._location_mapping = {loc: idx + 1 for idx, loc in enumerate(sorted(locations))}
-        self._merchant_mapping = {merch: idx + 1 for idx, merch in enumerate(sorted(merchants))}
+        self._payment_method_mapping = {
+            pm: idx + 1 for idx, pm in enumerate(sorted(payment_methods))
+        }
+        self._location_mapping = {
+            loc: idx + 1 for idx, loc in enumerate(sorted(locations))
+        }
+        self._merchant_mapping = {
+            merch: idx + 1 for idx, merch in enumerate(sorted(merchants))
+        }
 
         # Build feature names
         self._build_feature_names()
@@ -61,7 +67,7 @@ class FeatureEngineer:
         self,
         transaction: TransactionData,
         behavioral: BehavioralData = None,
-        network: NetworkData = None
+        network: NetworkData = None,
     ) -> np.ndarray:
         """
         Transform a single transaction into feature vector
@@ -109,7 +115,7 @@ class FeatureEngineer:
         self,
         transactions: List[TransactionData],
         behavioral_data: List[BehavioralData] = None,
-        network_data: List[NetworkData] = None
+        network_data: List[NetworkData] = None,
     ) -> Tuple[np.ndarray, List[str]]:
         """
         Fit and transform in one step
@@ -172,14 +178,18 @@ class FeatureEngineer:
         is_night = 1.0 if hour < 6 or hour >= 22 else 0.0
 
         return [
-            hour_sin, hour_cos,
-            dow_sin, dow_cos,
-            dom_sin, dom_cos,
-            month_sin, month_cos,
+            hour_sin,
+            hour_cos,
+            dow_sin,
+            dow_cos,
+            dom_sin,
+            dom_cos,
+            month_sin,
+            month_cos,
             is_weekend,
             is_night,
             float(hour),  # Raw hour for some models
-            float(day_of_week)  # Raw day for some models
+            float(day_of_week),  # Raw day for some models
         ]
 
     def _extract_categorical_features(self, txn: TransactionData) -> List[float]:
@@ -190,11 +200,13 @@ class FeatureEngineer:
         )
 
         # One-hot-like encoding for common payment methods
-        is_credit = 1.0 if 'credit' in str(txn.payment_method).lower() else 0.0
-        is_debit = 1.0 if 'debit' in str(txn.payment_method).lower() else 0.0
-        is_crypto = 1.0 if 'crypto' in str(txn.payment_method).lower() else 0.0
-        is_wire = 1.0 if 'wire' in str(txn.payment_method).lower() else 0.0
-        is_online = 1.0 if str(txn.payment_method).lower() in ['paypal', 'crypto'] else 0.0
+        is_credit = 1.0 if "credit" in str(txn.payment_method).lower() else 0.0
+        is_debit = 1.0 if "debit" in str(txn.payment_method).lower() else 0.0
+        is_crypto = 1.0 if "crypto" in str(txn.payment_method).lower() else 0.0
+        is_wire = 1.0 if "wire" in str(txn.payment_method).lower() else 0.0
+        is_online = (
+            1.0 if str(txn.payment_method).lower() in ["paypal", "crypto"] else 0.0
+        )
 
         return [
             payment_method_encoded,
@@ -202,36 +214,26 @@ class FeatureEngineer:
             is_debit,
             is_crypto,
             is_wire,
-            is_online
+            is_online,
         ]
 
     def _extract_location_features(self, txn: TransactionData) -> List[float]:
         """Extract location features"""
-        location_encoded = float(
-            self._location_mapping.get(txn.location, 0)
-        )
+        location_encoded = float(self._location_mapping.get(txn.location, 0))
 
         # Location string length as proxy for specificity
         location_length = len(txn.location) if txn.location else 0.0
 
-        return [
-            location_encoded,
-            float(location_length)
-        ]
+        return [location_encoded, float(location_length)]
 
     def _extract_merchant_features(self, txn: TransactionData) -> List[float]:
         """Extract merchant features"""
-        merchant_encoded = float(
-            self._merchant_mapping.get(txn.merchant, 0)
-        )
+        merchant_encoded = float(self._merchant_mapping.get(txn.merchant, 0))
 
         # Merchant string length
         merchant_length = len(txn.merchant) if txn.merchant else 0.0
 
-        return [
-            merchant_encoded,
-            float(merchant_length)
-        ]
+        return [merchant_encoded, float(merchant_length)]
 
     def _extract_behavioral_features(self, behavioral: BehavioralData) -> List[float]:
         """Extract behavioral biometrics features"""
@@ -251,26 +253,30 @@ class FeatureEngineer:
             # Calculate timing statistics
             hold_times = [e.release_time - e.press_time for e in events]
             flight_times = [
-                events[i+1].press_time - events[i].release_time
+                events[i + 1].press_time - events[i].release_time
                 for i in range(len(events) - 1)
             ]
 
-            features.extend([
-                np.mean(hold_times) if hold_times else 0.0,
-                np.std(hold_times) if len(hold_times) > 1 else 0.0,
-                np.mean(flight_times) if flight_times else 0.0,
-                np.std(flight_times) if len(flight_times) > 1 else 0.0,
-                float(len(events))
-            ])
+            features.extend(
+                [
+                    np.mean(hold_times) if hold_times else 0.0,
+                    np.std(hold_times) if len(hold_times) > 1 else 0.0,
+                    np.mean(flight_times) if flight_times else 0.0,
+                    np.std(flight_times) if len(flight_times) > 1 else 0.0,
+                    float(len(events)),
+                ]
+            )
         else:
             features.extend([0.0] * 5)
 
         # Mouse patterns
         if behavioral.mouse_patterns and len(behavioral.mouse_patterns) > 0:
-            features.extend([
-                float(len(behavioral.mouse_patterns)),
-                1.0  # Has mouse data
-            ])
+            features.extend(
+                [
+                    float(len(behavioral.mouse_patterns)),
+                    1.0,  # Has mouse data
+                ]
+            )
         else:
             features.extend([0.0, 0.0])
 
@@ -294,31 +300,28 @@ class FeatureEngineer:
         # Connection statistics
         if network.connections:
             # Strength statistics
-            strengths = [
-                float(c.get('strength', 0.5))
-                for c in network.connections
-            ]
-            features.extend([
-                np.mean(strengths),
-                np.std(strengths) if len(strengths) > 1 else 0.0,
-                np.max(strengths) if strengths else 0.0,
-                np.min(strengths) if strengths else 0.0
-            ])
+            strengths = [float(c.get("strength", 0.5)) for c in network.connections]
+            features.extend(
+                [
+                    np.mean(strengths),
+                    np.std(strengths) if len(strengths) > 1 else 0.0,
+                    np.max(strengths) if strengths else 0.0,
+                    np.min(strengths) if strengths else 0.0,
+                ]
+            )
 
             # Transaction count statistics
             tx_counts = [
-                float(c.get('transaction_count', 0))
-                for c in network.connections
+                float(c.get("transaction_count", 0)) for c in network.connections
             ]
-            features.extend([
-                np.mean(tx_counts),
-                np.max(tx_counts) if tx_counts else 0.0
-            ])
+            features.extend(
+                [np.mean(tx_counts), np.max(tx_counts) if tx_counts else 0.0]
+            )
         else:
             features.extend([0.0] * 6)
 
         # Entity type indicator
-        is_user = 1.0 if network.entity_type == 'user' else 0.0
+        is_user = 1.0 if network.entity_type == "user" else 0.0
         features.append(is_user)
 
         return features
@@ -339,76 +342,65 @@ class FeatureEngineer:
         # High amount indicator
         high_amount = 1.0 if amount > 10000.0 else 0.0
 
-        return [
-            amount_night,
-            amount_weekend,
-            high_amount
-        ]
+        return [amount_night, amount_weekend, high_amount]
 
     def _build_feature_names(self):
         """Build comprehensive list of feature names"""
         self.feature_names = [
             # Amount features (3)
-            'amount',
-            'amount_log',
-            'amount_sqrt',
-
+            "amount",
+            "amount_log",
+            "amount_sqrt",
             # Temporal features (12)
-            'hour_sin',
-            'hour_cos',
-            'day_of_week_sin',
-            'day_of_week_cos',
-            'day_of_month_sin',
-            'day_of_month_cos',
-            'month_sin',
-            'month_cos',
-            'is_weekend',
-            'is_night',
-            'hour_raw',
-            'day_of_week_raw',
-
+            "hour_sin",
+            "hour_cos",
+            "day_of_week_sin",
+            "day_of_week_cos",
+            "day_of_month_sin",
+            "day_of_month_cos",
+            "month_sin",
+            "month_cos",
+            "is_weekend",
+            "is_night",
+            "hour_raw",
+            "day_of_week_raw",
             # Categorical features (6)
-            'payment_method_encoded',
-            'is_credit',
-            'is_debit',
-            'is_crypto',
-            'is_wire',
-            'is_online_payment',
-
+            "payment_method_encoded",
+            "is_credit",
+            "is_debit",
+            "is_crypto",
+            "is_wire",
+            "is_online_payment",
             # Location features (2)
-            'location_encoded',
-            'location_length',
-
+            "location_encoded",
+            "location_length",
             # Merchant features (2)
-            'merchant_encoded',
-            'merchant_length',
-
+            "merchant_encoded",
+            "merchant_length",
             # Behavioral features (10)
-            'session_duration',
-            'keystroke_hold_mean',
-            'keystroke_hold_std',
-            'keystroke_flight_mean',
-            'keystroke_flight_std',
-            'keystroke_count',
-            'mouse_pattern_count',
-            'has_mouse_data',
-            'has_session_id',
-            'behavioral_available',
-
+            "session_duration",
+            "keystroke_hold_mean",
+            "keystroke_hold_std",
+            "keystroke_flight_mean",
+            "keystroke_flight_std",
+            "keystroke_count",
+            "mouse_pattern_count",
+            "has_mouse_data",
+            "has_session_id",
+            "behavioral_available",
             # Network features (8)
-            'connection_count',
-            'connection_strength_mean',
-            'connection_strength_std',
-            'connection_strength_max',
-            'connection_strength_min',
-            'connection_tx_count_mean',
-            'connection_tx_count_max',
-            'is_user_entity',
-
+            "connection_count",
+            "connection_strength_mean",
+            "connection_strength_std",
+            "connection_strength_max",
+            "connection_strength_min",
+            "connection_tx_count_mean",
+            "connection_tx_count_max",
+            "is_user_entity",
             # Derived features (3)
-            'amount_night_interaction',
-            'amount_weekend_interaction',
-            'high_amount_flag'
+            "amount_night_interaction",
+            "amount_weekend_interaction",
+            "high_amount_flag",
         ]
 
     def get_feature_names(self) -> List[str]:
@@ -418,12 +410,12 @@ class FeatureEngineer:
     def get_feature_importance_map(self) -> Dict[str, str]:
         """Get mapping of features to their categories"""
         return {
-            'amount': 'Amount Features',
-            'temporal': 'Temporal Features',
-            'categorical': 'Categorical Features',
-            'behavioral': 'Behavioral Features',
-            'network': 'Network Features',
-            'derived': 'Derived Features'
+            "amount": "Amount Features",
+            "temporal": "Temporal Features",
+            "categorical": "Categorical Features",
+            "behavioral": "Behavioral Features",
+            "network": "Network Features",
+            "derived": "Derived Features",
         }
 
 
@@ -432,7 +424,7 @@ def extract_features_batch(
     transactions: List[TransactionData],
     behavioral_data: List[BehavioralData] = None,
     network_data: List[NetworkData] = None,
-    feature_engineer: FeatureEngineer = None
+    feature_engineer: FeatureEngineer = None,
 ) -> Tuple[np.ndarray, List[str]]:
     """
     Extract features from batch of transactions
@@ -450,11 +442,7 @@ def extract_features_batch(
         feature_engineer = FeatureEngineer()
         feature_engineer.fit(transactions)
 
-    return feature_engineer.fit_transform(
-        transactions,
-        behavioral_data,
-        network_data
-    )
+    return feature_engineer.fit_transform(transactions, behavioral_data, network_data)
 
 
-__all__ = ['FeatureEngineer', 'extract_features_batch']
+__all__ = ["FeatureEngineer", "extract_features_batch"]

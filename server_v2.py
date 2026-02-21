@@ -20,7 +20,7 @@ from models_validation import (
     TransactionData,
     BehavioralData,
     NetworkData,
-    AnalysisRequest
+    AnalysisRequest,
 )
 
 # ML Components
@@ -43,7 +43,7 @@ from monitoring import MetricsCollector, HealthMonitor
 config = get_config()
 logging.basicConfig(
     level=getattr(logging, config.LOG_LEVEL),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -96,8 +96,7 @@ async def initialize_system():
         # 4. Async Inference Engine
         logger.info("Initializing async inference engine...")
         async_detector = AsyncFraudDetector(
-            fraud_pipeline=fraud_pipeline,
-            feature_engineer=feature_engineer
+            fraud_pipeline=fraud_pipeline, feature_engineer=feature_engineer
         )
 
         # 5. Explainability Engine
@@ -118,7 +117,9 @@ async def initialize_system():
             logger.info("Initializing monitoring...")
             metrics_collector = MetricsCollector()
             health_monitor = HealthMonitor()
-            logger.info(f"Metrics endpoint: http://localhost:{config.METRICS_PORT}/metrics")
+            logger.info(
+                f"Metrics endpoint: http://localhost:{config.METRICS_PORT}/metrics"
+            )
 
         logger.info("=" * 60)
         logger.info("✅ Fraud Detection System v2.0 initialized successfully")
@@ -136,7 +137,7 @@ async def analyze_transaction_v2(
     network_data: Optional[Dict[str, Any]] = None,
     include_explanation: bool = True,
     user_id: Optional[str] = None,
-    api_key: Optional[str] = None
+    api_key: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Advanced transaction fraud analysis with all features integrated.
@@ -159,10 +160,7 @@ async def analyze_transaction_v2(
         if rate_limiter and api_key:
             # Check rate limit
             user_tier = "free"  # Would be looked up from database
-            await rate_limiter.check_rate_limit(
-                identifier=api_key,
-                tier=user_tier
-            )
+            await rate_limiter.check_rate_limit(identifier=api_key, tier=user_tier)
 
         # 1. Validate input data
         try:
@@ -172,7 +170,7 @@ async def analyze_transaction_v2(
             return {
                 "error": "Invalid transaction data",
                 "details": str(e),
-                "status": "validation_failed"
+                "status": "validation_failed",
             }
 
         # Validate optional data
@@ -195,7 +193,7 @@ async def analyze_transaction_v2(
             transaction_data=trans,
             behavioral_data=behavioral_obj,
             network_data=network_obj,
-            include_explanation=include_explanation
+            include_explanation=include_explanation,
         )
 
         # 3. Perform async inference
@@ -211,14 +209,16 @@ async def analyze_transaction_v2(
                 explanation = explainability_engine.explain_prediction(
                     features=features,
                     feature_names=feature_names,
-                    transaction_id=trans.transaction_id
+                    transaction_id=trans.transaction_id,
                 )
 
                 result["shap_explanation"] = {
                     "top_risk_factors": explanation.top_risk_factors,
                     "top_protective_factors": explanation.top_protective_factors,
                     "explanation_text": explanation.explanation_text,
-                    "waterfall_plot_path": str(explanation.waterfall_plot_path) if explanation.waterfall_plot_path else None
+                    "waterfall_plot_path": str(explanation.waterfall_plot_path)
+                    if explanation.waterfall_plot_path
+                    else None,
                 }
             except Exception as e:
                 logger.error(f"Explanation generation failed: {e}")
@@ -230,8 +230,7 @@ async def analyze_transaction_v2(
             risk_level = result.get("risk_level", "UNKNOWN")
 
             metrics_collector.record_transaction(
-                risk_level=risk_level,
-                processing_time=analysis_time
+                risk_level=risk_level, processing_time=analysis_time
             )
 
         # 6. Add metadata
@@ -240,7 +239,7 @@ async def analyze_transaction_v2(
         result["system_info"] = {
             "environment": config.ENVIRONMENT,
             "security_enabled": auth_manager is not None,
-            "explainability_available": explainability_engine is not None
+            "explainability_available": explainability_engine is not None,
         }
 
         logger.info(
@@ -263,7 +262,7 @@ async def analyze_transaction_v2(
             "risk_score": 0.0,
             "risk_level": "UNKNOWN",
             "status": "analysis_failed",
-            "analysis_timestamp": datetime.now().isoformat()
+            "analysis_timestamp": datetime.now().isoformat(),
         }
 
 
@@ -271,7 +270,7 @@ async def analyze_transaction_v2(
 async def batch_analyze_transactions(
     transactions: List[Dict[str, Any]],
     parallel: bool = True,
-    include_explanation: bool = False
+    include_explanation: bool = False,
 ) -> Dict[str, Any]:
     """
     Batch analysis of multiple transactions with parallel processing.
@@ -296,11 +295,13 @@ async def batch_analyze_transactions(
                 trans = TransactionData(**trans_data)
                 validated_transactions.append(trans)
             except Exception as e:
-                validation_errors.append({
-                    "index": i,
-                    "error": str(e),
-                    "transaction_id": trans_data.get("transaction_id", "unknown")
-                })
+                validation_errors.append(
+                    {
+                        "index": i,
+                        "error": str(e),
+                        "transaction_id": trans_data.get("transaction_id", "unknown"),
+                    }
+                )
 
         logger.info(
             f"Validated {len(validated_transactions)} transactions, "
@@ -309,8 +310,7 @@ async def batch_analyze_transactions(
 
         # Analyze batch
         results = await async_detector.analyze_batch_async(
-            transactions=validated_transactions,
-            include_explanation=include_explanation
+            transactions=validated_transactions, include_explanation=include_explanation
         )
 
         # Calculate summary statistics
@@ -325,29 +325,28 @@ async def batch_analyze_transactions(
                 "HIGH": risk_levels.count("HIGH"),
                 "MEDIUM": risk_levels.count("MEDIUM"),
                 "LOW": risk_levels.count("LOW"),
-                "UNKNOWN": risk_levels.count("UNKNOWN")
+                "UNKNOWN": risk_levels.count("UNKNOWN"),
             },
             "statistics": {
                 "mean_risk_score": float(np.mean(risk_scores)) if risk_scores else 0,
-                "median_risk_score": float(np.median(risk_scores)) if risk_scores else 0,
+                "median_risk_score": float(np.median(risk_scores))
+                if risk_scores
+                else 0,
                 "max_risk_score": float(np.max(risk_scores)) if risk_scores else 0,
-                "min_risk_score": float(np.min(risk_scores)) if risk_scores else 0
-            }
+                "min_risk_score": float(np.min(risk_scores)) if risk_scores else 0,
+            },
         }
 
         return {
             "summary": summary,
             "results": results,
             "validation_errors": validation_errors,
-            "batch_timestamp": datetime.now().isoformat()
+            "batch_timestamp": datetime.now().isoformat(),
         }
 
     except Exception as e:
         logger.error(f"Batch analysis failed: {e}", exc_info=True)
-        return {
-            "error": str(e),
-            "status": "batch_analysis_failed"
-        }
+        return {"error": str(e), "status": "batch_analysis_failed"}
 
 
 @mcp.tool()
@@ -366,20 +365,20 @@ def get_model_performance() -> Dict[str, Any]:
         model_info = {
             "isolation_forest": {
                 "loaded": fraud_pipeline.isolation_forest is not None,
-                "type": "unsupervised_anomaly_detection"
+                "type": "unsupervised_anomaly_detection",
             },
             "xgboost": {
                 "loaded": fraud_pipeline.xgb_model is not None,
-                "type": "supervised_classification"
+                "type": "supervised_classification",
             },
             "autoencoder": {
                 "loaded": fraud_pipeline.autoencoder is not None,
-                "type": "deep_learning_anomaly"
+                "type": "deep_learning_anomaly",
             },
             "gnn": {
                 "loaded": fraud_pipeline.gnn_model is not None,
-                "type": "graph_neural_network"
-            }
+                "type": "graph_neural_network",
+            },
         }
 
         # Get metrics from monitoring
@@ -391,7 +390,7 @@ def get_model_performance() -> Dict[str, Any]:
             "models": model_info,
             "performance_metrics": performance_metrics,
             "model_version": "2.0.0",
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
     except Exception as e:
@@ -411,7 +410,7 @@ async def get_system_health() -> Dict[str, Any]:
         health_status = {
             "status": "healthy",
             "components": {},
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         # Check each component
@@ -421,7 +420,7 @@ async def get_system_health() -> Dict[str, Any]:
 
         health_status["components"]["ml_pipeline"] = {
             "status": "ok" if fraud_pipeline else "not_initialized",
-            "models_loaded": bool(fraud_pipeline and fraud_pipeline.isolation_forest)
+            "models_loaded": bool(fraud_pipeline and fraud_pipeline.isolation_forest),
         }
 
         health_status["components"]["async_detector"] = {
@@ -434,7 +433,7 @@ async def get_system_health() -> Dict[str, Any]:
 
         health_status["components"]["security"] = {
             "status": "ok" if auth_manager else "disabled",
-            "environment": config.ENVIRONMENT
+            "environment": config.ENVIRONMENT,
         }
 
         health_status["components"]["monitoring"] = {
@@ -463,14 +462,13 @@ async def get_system_health() -> Dict[str, Any]:
         return {
             "status": "error",
             "error": str(e),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
 
 @mcp.tool()
 def explain_fraud_decision(
-    transaction_id: str,
-    analysis_result: Optional[Dict[str, Any]] = None
+    transaction_id: str, analysis_result: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Get detailed explanation for a fraud detection decision using SHAP.
@@ -496,7 +494,7 @@ def explain_fraud_decision(
             "transaction_id": transaction_id,
             "risk_level": analysis_result.get("risk_level", "UNKNOWN"),
             "risk_score": analysis_result.get("risk_score", 0),
-            "explanation_timestamp": datetime.now().isoformat()
+            "explanation_timestamp": datetime.now().isoformat(),
         }
 
         # Add SHAP explanation if available
@@ -523,7 +521,7 @@ async def train_models_tool(
     training_data_path: str,
     test_size: float = 0.2,
     use_smote: bool = True,
-    optimize_hyperparams: bool = True
+    optimize_hyperparams: bool = True,
 ) -> Dict[str, Any]:
     """
     Train or retrain fraud detection models.
@@ -549,7 +547,7 @@ async def train_models_tool(
             data_path=training_data_path,
             test_size=test_size,
             use_smote=use_smote,
-            optimize_hyperparams=optimize_hyperparams
+            optimize_hyperparams=optimize_hyperparams,
         )
 
         logger.info("Model training completed successfully")
@@ -562,15 +560,12 @@ async def train_models_tool(
         return {
             "status": "training_completed",
             "results": training_results,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
     except Exception as e:
         logger.error(f"Model training failed: {e}", exc_info=True)
-        return {
-            "status": "training_failed",
-            "error": str(e)
-        }
+        return {"status": "training_failed", "error": str(e)}
 
 
 @mcp.tool()
@@ -593,15 +588,15 @@ def get_configuration() -> Dict[str, Any]:
                 "enabled": config.ENVIRONMENT == "production",
                 "rate_limit_free": config.RATE_LIMIT_FREE_TIER,
                 "rate_limit_paid": config.RATE_LIMIT_PAID_TIER,
-                "rate_limit_enterprise": config.RATE_LIMIT_ENTERPRISE
+                "rate_limit_enterprise": config.RATE_LIMIT_ENTERPRISE,
             },
             "model_settings": {
                 "isolation_forest_contamination": config.ISOLATION_FOREST_CONTAMINATION,
                 "xgboost_n_estimators": config.XGBOOST_N_ESTIMATORS,
                 "threshold_high_risk": config.THRESHOLD_HIGH_RISK,
-                "threshold_critical_risk": config.THRESHOLD_CRITICAL_RISK
+                "threshold_critical_risk": config.THRESHOLD_CRITICAL_RISK,
             },
-            "version": "2.0.0"
+            "version": "2.0.0",
         }
     except Exception as e:
         logger.error(f"Failed to get configuration: {e}")

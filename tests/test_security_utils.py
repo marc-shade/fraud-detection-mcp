@@ -14,6 +14,7 @@ from security_utils import InMemoryRateLimiter, InputSanitizer
 # InputSanitizer
 # =========================================================================
 
+
 class TestStripHtmlTags:
     """InputSanitizer.strip_html_tags"""
 
@@ -25,7 +26,10 @@ class TestStripHtmlTags:
     @pytest.mark.unit
     @pytest.mark.security
     def test_removes_script_tags(self):
-        assert InputSanitizer.strip_html_tags('<script>alert("x")</script>') == 'alert("x")'
+        assert (
+            InputSanitizer.strip_html_tags('<script>alert("x")</script>')
+            == 'alert("x")'
+        )
 
     @pytest.mark.unit
     @pytest.mark.security
@@ -129,6 +133,7 @@ class TestSanitizeDict:
 # InMemoryRateLimiter
 # =========================================================================
 
+
 class TestRateLimiter:
     """InMemoryRateLimiter core behaviour"""
 
@@ -207,6 +212,7 @@ class TestRateLimiter:
 # Server integration
 # =========================================================================
 
+
 class TestServerIntegration:
     """Verify security_utils is wired into the server."""
 
@@ -214,24 +220,28 @@ class TestServerIntegration:
     @pytest.mark.security
     def test_security_utils_available_flag(self):
         import server
+
         assert server.SECURITY_UTILS_AVAILABLE is True
 
     @pytest.mark.integration
     @pytest.mark.security
     def test_sanitizer_loaded(self):
         import server
+
         assert server.sanitizer is not None
 
     @pytest.mark.integration
     @pytest.mark.security
     def test_rate_limiter_loaded(self):
         import server
+
         assert server.rate_limiter is not None
 
     @pytest.mark.integration
     @pytest.mark.security
     def test_health_check_includes_security(self):
         from server import health_check_impl
+
         result = health_check_impl()
         assert "security_utils" in result
         sec = result["security_utils"]
@@ -245,11 +255,14 @@ class TestServerIntegration:
     def test_transaction_analysis_with_html_input(self):
         """Sanitisation should strip HTML but analysis should still succeed."""
         from server import analyze_transaction_impl
-        result = analyze_transaction_impl({
-            "amount": 150.0,
-            "merchant": "<script>alert('xss')</script>Amazon",
-            "location": "US",
-        })
+
+        result = analyze_transaction_impl(
+            {
+                "amount": 150.0,
+                "merchant": "<script>alert('xss')</script>Amazon",
+                "location": "US",
+            }
+        )
         # Should not error -- sanitiser strips the tags before validation
         assert "error" not in result or result.get("status") != "validation_failed"
 
@@ -258,10 +271,13 @@ class TestServerIntegration:
     def test_behavioral_analysis_with_html_input(self):
         """Sanitisation should strip HTML from behavioral data."""
         from server import detect_behavioral_anomaly_impl
-        result = detect_behavioral_anomaly_impl({
-            "user_id": "<img src=x onerror=alert(1)>user123",
-            "keystroke_dynamics": [],
-        })
+
+        result = detect_behavioral_anomaly_impl(
+            {
+                "user_id": "<img src=x onerror=alert(1)>user123",
+                "keystroke_dynamics": [],
+            }
+        )
         # Should run without error (empty keystroke list is valid)
         assert "error" not in result
 
@@ -270,6 +286,7 @@ class TestServerIntegration:
     def test_rate_limit_enforced_on_transaction(self):
         """Exhaust rate limit and verify the impl returns rate_limited status."""
         from server import analyze_transaction_impl, rate_limiter
+
         # Use a unique user_id to avoid collision with other tests
         uid = "rate_limit_test_user_unique_12345"
         # Reset to ensure clean state

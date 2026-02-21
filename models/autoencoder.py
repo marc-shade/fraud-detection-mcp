@@ -16,14 +16,18 @@ try:
     import torch.nn as nn
     import torch.optim as optim
     from torch.utils.data import DataLoader, TensorDataset
+
     PYTORCH_AVAILABLE = True
     logger.info("PyTorch loaded successfully for Autoencoder")
 except ImportError:
     PYTORCH_AVAILABLE = False
-    logger.warning("PyTorch not available - Autoencoder will use fallback implementation")
+    logger.warning(
+        "PyTorch not available - Autoencoder will use fallback implementation"
+    )
 
 
 if PYTORCH_AVAILABLE:
+
     class AutoencoderNetwork(nn.Module):
         """
         Symmetric autoencoder architecture
@@ -44,7 +48,7 @@ if PYTORCH_AVAILABLE:
                 nn.BatchNorm1d(32),
                 nn.Dropout(0.2),
                 nn.Linear(32, 16),
-                nn.ReLU()
+                nn.ReLU(),
             )
 
             # Decoder
@@ -57,7 +61,7 @@ if PYTORCH_AVAILABLE:
                 nn.ReLU(),
                 nn.BatchNorm1d(64),
                 nn.Dropout(0.2),
-                nn.Linear(64, input_dim)
+                nn.Linear(64, input_dim),
             )
 
         def forward(self, x):
@@ -83,7 +87,7 @@ class AutoencoderFraudDetector:
         learning_rate: float = 0.001,
         epochs: int = 50,
         batch_size: int = 32,
-        device: Optional[str] = None
+        device: Optional[str] = None,
     ):
         """
         Initialize autoencoder
@@ -108,18 +112,22 @@ class AutoencoderFraudDetector:
 
         # Determine device
         if not PYTORCH_AVAILABLE:
-            self.device = 'cpu'
+            self.device = "cpu"
             self.fallback_mode = True
             logger.warning("Using fallback mode (no PyTorch)")
         else:
             if device is None:
-                self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                self.device = "cuda" if torch.cuda.is_available() else "cpu"
             else:
                 self.device = device
             self.fallback_mode = False
-            logger.info(f"AutoencoderFraudDetector initialized on device: {self.device}")
+            logger.info(
+                f"AutoencoderFraudDetector initialized on device: {self.device}"
+            )
 
-    def fit(self, X: np.ndarray, y: Optional[np.ndarray] = None) -> 'AutoencoderFraudDetector':
+    def fit(
+        self, X: np.ndarray, y: Optional[np.ndarray] = None
+    ) -> "AutoencoderFraudDetector":
         """
         Fit autoencoder on normal (non-fraud) transactions
 
@@ -136,10 +144,14 @@ class AutoencoderFraudDetector:
         # Filter to normal transactions if labels provided
         if y is not None:
             X_train = X[y == 0]
-            logger.info(f"Training on {len(X_train)} normal transactions (filtered from {len(X)})")
+            logger.info(
+                f"Training on {len(X_train)} normal transactions (filtered from {len(X)})"
+            )
         else:
             X_train = X
-            logger.info(f"Training on {len(X_train)} transactions (assuming mostly normal)")
+            logger.info(
+                f"Training on {len(X_train)} transactions (assuming mostly normal)"
+            )
 
         # Normalize data
         self.scaler_mean = np.mean(X_train, axis=0)
@@ -182,7 +194,7 @@ class AutoencoderFraudDetector:
 
             avg_loss = total_loss / len(dataloader)
             if (epoch + 1) % 10 == 0:
-                logger.info(f"Epoch [{epoch+1}/{self.epochs}], Loss: {avg_loss:.4f}")
+                logger.info(f"Epoch [{epoch + 1}/{self.epochs}], Loss: {avg_loss:.4f}")
 
         # Calculate threshold based on reconstruction error
         self.model.eval()
@@ -258,7 +270,9 @@ class AutoencoderFraudDetector:
 
         return errors
 
-    def _fit_fallback(self, X: np.ndarray, y: Optional[np.ndarray] = None) -> 'AutoencoderFraudDetector':
+    def _fit_fallback(
+        self, X: np.ndarray, y: Optional[np.ndarray] = None
+    ) -> "AutoencoderFraudDetector":
         """Fallback fitting using simple statistics"""
         logger.warning("Using fallback mode - limited functionality")
 
@@ -275,7 +289,7 @@ class AutoencoderFraudDetector:
 
         # Calculate simple threshold
         X_normalized = (X_train - self.scaler_mean) / self.scaler_std
-        distances = np.sum(X_normalized ** 2, axis=1)
+        distances = np.sum(X_normalized**2, axis=1)
         self.threshold = np.percentile(distances, (1 - self.contamination) * 100)
 
         logger.info("Fallback model fitted")
@@ -290,7 +304,7 @@ class AutoencoderFraudDetector:
         X_normalized = (X - self.scaler_mean) / self.scaler_std
 
         # Calculate distance from origin (proxy for anomaly)
-        distances = np.sum(X_normalized ** 2, axis=1)
+        distances = np.sum(X_normalized**2, axis=1)
 
         return distances
 
@@ -331,19 +345,22 @@ class AutoencoderFraudDetector:
                 scaler_std=self.scaler_std,
                 threshold=self.threshold,
                 input_dim=self.input_dim,
-                fallback_mode=True
+                fallback_mode=True,
             )
             logger.info(f"Fallback model saved to {path}")
         else:
             # Save PyTorch model
-            torch.save({
-                'model_state': self.model.state_dict(),
-                'scaler_mean': self.scaler_mean,
-                'scaler_std': self.scaler_std,
-                'threshold': self.threshold,
-                'input_dim': self.input_dim,
-                'contamination': self.contamination
-            }, path)
+            torch.save(
+                {
+                    "model_state": self.model.state_dict(),
+                    "scaler_mean": self.scaler_mean,
+                    "scaler_std": self.scaler_std,
+                    "threshold": self.threshold,
+                    "input_dim": self.input_dim,
+                    "contamination": self.contamination,
+                },
+                path,
+            )
             logger.info(f"Model saved to {path}")
 
     def load(self, path: str):
@@ -351,31 +368,30 @@ class AutoencoderFraudDetector:
         if self.fallback_mode or not PYTORCH_AVAILABLE:
             # Load simple statistics
             data = np.load(path)
-            self.scaler_mean = data['scaler_mean']
-            self.scaler_std = data['scaler_std']
-            self.threshold = data['threshold']
-            self.input_dim = data['input_dim']
+            self.scaler_mean = data["scaler_mean"]
+            self.scaler_std = data["scaler_std"]
+            self.threshold = data["threshold"]
+            self.input_dim = data["input_dim"]
             self.fallback_mode = True
             logger.info(f"Fallback model loaded from {path}")
         else:
             # Load PyTorch model (weights_only=False needed for numpy arrays in checkpoint)
             checkpoint = torch.load(path, map_location=self.device, weights_only=False)
-            self.scaler_mean = checkpoint['scaler_mean']
-            self.scaler_std = checkpoint['scaler_std']
-            self.threshold = checkpoint['threshold']
-            self.input_dim = checkpoint['input_dim']
-            self.contamination = checkpoint.get('contamination', 0.1)
+            self.scaler_mean = checkpoint["scaler_mean"]
+            self.scaler_std = checkpoint["scaler_std"]
+            self.threshold = checkpoint["threshold"]
+            self.input_dim = checkpoint["input_dim"]
+            self.contamination = checkpoint.get("contamination", 0.1)
 
             self.model = AutoencoderNetwork(self.input_dim).to(self.device)
-            self.model.load_state_dict(checkpoint['model_state'])
+            self.model.load_state_dict(checkpoint["model_state"])
             self.model.eval()
             logger.info(f"Model loaded from {path}")
 
 
 # Factory function
 def create_autoencoder(
-    contamination: float = 0.1,
-    **kwargs
+    contamination: float = 0.1, **kwargs
 ) -> AutoencoderFraudDetector:
     """
     Create autoencoder fraud detector
@@ -390,4 +406,4 @@ def create_autoencoder(
     return AutoencoderFraudDetector(contamination=contamination, **kwargs)
 
 
-__all__ = ['AutoencoderFraudDetector', 'create_autoencoder', 'PYTORCH_AVAILABLE']
+__all__ = ["AutoencoderFraudDetector", "create_autoencoder", "PYTORCH_AVAILABLE"]

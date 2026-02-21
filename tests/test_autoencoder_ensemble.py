@@ -11,16 +11,20 @@ class TestAutoencoderAvailability:
 
     def test_autoencoder_available_flag(self):
         from server import AUTOENCODER_AVAILABLE
+
         assert isinstance(AUTOENCODER_AVAILABLE, bool)
 
     def test_autoencoder_import(self):
         from server import AUTOENCODER_AVAILABLE
+
         if AUTOENCODER_AVAILABLE:
             from models.autoencoder import AutoencoderFraudDetector
+
             assert AutoencoderFraudDetector is not None
 
     def test_autoencoder_initialized_on_analyzer(self):
         from server import transaction_analyzer, AUTOENCODER_AVAILABLE
+
         if AUTOENCODER_AVAILABLE:
             assert transaction_analyzer.autoencoder is not None
         else:
@@ -32,6 +36,7 @@ class TestEnsembleWeights:
 
     def test_default_weights(self):
         from server import transaction_analyzer
+
         weights = transaction_analyzer._ensemble_weights
         assert "isolation_forest" in weights
         assert "autoencoder" in weights
@@ -40,6 +45,7 @@ class TestEnsembleWeights:
 
     def test_weights_sum_to_one(self):
         from server import transaction_analyzer
+
         weights = transaction_analyzer._ensemble_weights
         total = weights["isolation_forest"] + weights["autoencoder"]
         assert abs(total - 1.0) < 1e-9
@@ -50,6 +56,7 @@ class TestEnsembleScoring:
 
     def test_model_scores_in_result(self):
         from server import transaction_analyzer
+
         result = transaction_analyzer.analyze_transaction({"amount": 100})
         assert "model_scores" in result
         scores = result["model_scores"]
@@ -58,6 +65,7 @@ class TestEnsembleScoring:
 
     def test_model_scores_autoencoder_present_when_available(self):
         from server import transaction_analyzer, AUTOENCODER_AVAILABLE
+
         result = transaction_analyzer.analyze_transaction({"amount": 100})
         scores = result["model_scores"]
         if AUTOENCODER_AVAILABLE and transaction_analyzer.autoencoder is not None:
@@ -67,40 +75,54 @@ class TestEnsembleScoring:
 
     def test_risk_score_within_bounds(self):
         from server import transaction_analyzer
+
         result = transaction_analyzer.analyze_transaction({"amount": 100})
         assert 0.0 <= result["risk_score"] <= 1.0
 
     def test_model_scores_within_bounds(self):
         from server import transaction_analyzer
+
         result = transaction_analyzer.analyze_transaction({"amount": 500})
         for name, score in result["model_scores"].items():
             assert 0.0 <= score <= 1.0, f"{name} score {score} out of bounds"
 
     def test_high_risk_transaction_ensemble(self):
         from server import transaction_analyzer
-        result = transaction_analyzer.analyze_transaction({
-            "amount": 15000,
-            "payment_method": "crypto",
-            "location": "unknown",
-        })
+
+        result = transaction_analyzer.analyze_transaction(
+            {
+                "amount": 15000,
+                "payment_method": "crypto",
+                "location": "unknown",
+            }
+        )
         assert result["risk_score"] > 0.0
         assert len(result["risk_factors"]) > 0
 
     def test_ensemble_still_returns_standard_keys(self):
         """Ensure backward compatibility -- all original keys still present."""
         from server import transaction_analyzer
+
         result = transaction_analyzer.analyze_transaction({"amount": 200})
-        for key in ["risk_score", "is_anomaly", "risk_factors", "confidence",
-                     "analysis_type", "anomaly_score"]:
+        for key in [
+            "risk_score",
+            "is_anomaly",
+            "risk_factors",
+            "confidence",
+            "analysis_type",
+            "anomaly_score",
+        ]:
             assert key in result, f"Missing key: {key}"
 
     def test_analysis_type_unchanged(self):
         from server import transaction_analyzer
+
         result = transaction_analyzer.analyze_transaction({"amount": 100})
         assert result["analysis_type"] == "transaction_pattern"
 
     def test_confidence_unchanged(self):
         from server import transaction_analyzer
+
         result = transaction_analyzer.analyze_transaction({"amount": 100})
         assert result["confidence"] == 0.88
 
@@ -110,6 +132,7 @@ class TestAutoencoderPersistence:
 
     def test_save_includes_autoencoder(self, tmp_path):
         from server import transaction_analyzer, AUTOENCODER_AVAILABLE
+
         paths = transaction_analyzer.save_models(model_dir=tmp_path)
         assert "isolation_forest" in paths
         if AUTOENCODER_AVAILABLE and transaction_analyzer.autoencoder is not None:
@@ -117,6 +140,7 @@ class TestAutoencoderPersistence:
 
     def test_load_restores_autoencoder(self, tmp_path):
         from server import TransactionAnalyzer, AUTOENCODER_AVAILABLE
+
         # Create and save an analyzer
         analyzer1 = TransactionAnalyzer()
         analyzer1.save_models(model_dir=tmp_path)
@@ -133,16 +157,19 @@ class TestModelStatusWithAutoencoder:
 
     def test_model_status_has_autoencoder(self):
         from server import get_model_status_impl
+
         status = get_model_status_impl()
         assert "autoencoder" in status["models"]
 
     def test_model_status_has_ensemble_weights(self):
         from server import get_model_status_impl
+
         status = get_model_status_impl()
         assert "ensemble_weights" in status
 
     def test_health_check_has_autoencoder(self):
         from server import health_check_impl
+
         health = health_check_impl()
         assert "autoencoder" in health["models"]
 
@@ -152,9 +179,11 @@ class TestAutoencoderDirect:
 
     def test_create_and_fit(self):
         from server import AUTOENCODER_AVAILABLE
+
         if not AUTOENCODER_AVAILABLE:
             pytest.skip("Autoencoder not available")
         from models.autoencoder import AutoencoderFraudDetector
+
         ae = AutoencoderFraudDetector(contamination=0.1, epochs=5, batch_size=16)
         X = np.random.randn(50, 10).astype(np.float32)
         ae.fit(X)
@@ -162,9 +191,11 @@ class TestAutoencoderDirect:
 
     def test_predict_returns_binary(self):
         from server import AUTOENCODER_AVAILABLE
+
         if not AUTOENCODER_AVAILABLE:
             pytest.skip("Autoencoder not available")
         from models.autoencoder import AutoencoderFraudDetector
+
         ae = AutoencoderFraudDetector(contamination=0.1, epochs=5, batch_size=16)
         X = np.random.randn(50, 10).astype(np.float32)
         ae.fit(X)
@@ -173,9 +204,11 @@ class TestAutoencoderDirect:
 
     def test_decision_function_returns_floats(self):
         from server import AUTOENCODER_AVAILABLE
+
         if not AUTOENCODER_AVAILABLE:
             pytest.skip("Autoencoder not available")
         from models.autoencoder import AutoencoderFraudDetector
+
         ae = AutoencoderFraudDetector(contamination=0.1, epochs=5, batch_size=16)
         X = np.random.randn(50, 10).astype(np.float32)
         ae.fit(X)
@@ -185,9 +218,11 @@ class TestAutoencoderDirect:
 
     def test_save_and_load_roundtrip(self, tmp_path):
         from server import AUTOENCODER_AVAILABLE
+
         if not AUTOENCODER_AVAILABLE:
             pytest.skip("Autoencoder not available")
         from models.autoencoder import AutoencoderFraudDetector
+
         ae1 = AutoencoderFraudDetector(contamination=0.1, epochs=5, batch_size=16)
         X = np.random.randn(50, 10).astype(np.float32)
         ae1.fit(X)

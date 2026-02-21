@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 # Try to import SHAP, but allow graceful degradation
 try:
     import shap
+
     SHAP_AVAILABLE = True
     logger.info("SHAP library loaded successfully")
 except ImportError:
@@ -52,7 +53,11 @@ class FraudExplainer:
 
         try:
             # Try TreeExplainer for tree-based models (fastest)
-            if 'XGB' in model_type or 'GradientBoosting' in model_type or 'RandomForest' in model_type:
+            if (
+                "XGB" in model_type
+                or "GradientBoosting" in model_type
+                or "RandomForest" in model_type
+            ):
                 self.explainer = shap.TreeExplainer(self.model)
                 logger.info(f"Initialized TreeExplainer for {model_type}")
             else:
@@ -64,10 +69,7 @@ class FraudExplainer:
             self.explainer = None
 
     def explain_prediction(
-        self,
-        features: np.ndarray,
-        prediction: float,
-        top_n: int = 10
+        self, features: np.ndarray, prediction: float, top_n: int = 10
     ) -> Dict[str, Any]:
         """
         Generate explanation for a single prediction
@@ -86,10 +88,7 @@ class FraudExplainer:
             return self._explain_with_feature_importance(features, prediction, top_n)
 
     def _explain_with_shap(
-        self,
-        features: np.ndarray,
-        prediction: float,
-        top_n: int
+        self, features: np.ndarray, prediction: float, top_n: int
     ) -> Dict[str, Any]:
         """Generate SHAP-based explanation"""
         try:
@@ -121,10 +120,10 @@ class FraudExplainer:
             # Separate risk factors and protective factors
             risk_factors = [
                 {
-                    'feature': name,
-                    'contribution': float(contrib),
-                    'value': float(value),
-                    'description': self._describe_feature(name, value, contrib)
+                    "feature": name,
+                    "contribution": float(contrib),
+                    "value": float(value),
+                    "description": self._describe_feature(name, value, contrib),
                 }
                 for name, contrib, value in contributions[:top_n]
                 if contrib > 0
@@ -132,29 +131,29 @@ class FraudExplainer:
 
             protective_factors = [
                 {
-                    'feature': name,
-                    'contribution': float(contrib),
-                    'value': float(value),
-                    'description': self._describe_feature(name, value, contrib)
+                    "feature": name,
+                    "contribution": float(contrib),
+                    "value": float(value),
+                    "description": self._describe_feature(name, value, contrib),
                 }
                 for name, contrib, value in contributions[:top_n]
                 if contrib < 0
             ]
 
             return {
-                'method': 'SHAP',
-                'base_value': float(base_value),
-                'prediction': float(prediction),
-                'risk_factors': risk_factors,
-                'protective_factors': protective_factors,
-                'top_features': [
+                "method": "SHAP",
+                "base_value": float(base_value),
+                "prediction": float(prediction),
+                "risk_factors": risk_factors,
+                "protective_factors": protective_factors,
+                "top_features": [
                     {
-                        'feature': name,
-                        'contribution': float(contrib),
-                        'value': float(value)
+                        "feature": name,
+                        "contribution": float(contrib),
+                        "value": float(value),
                     }
                     for name, contrib, value in contributions[:top_n]
-                ]
+                ],
             }
 
         except Exception as e:
@@ -162,17 +161,14 @@ class FraudExplainer:
             return self._explain_with_feature_importance(features, prediction, top_n)
 
     def _explain_with_feature_importance(
-        self,
-        features: np.ndarray,
-        prediction: float,
-        top_n: int
+        self, features: np.ndarray, prediction: float, top_n: int
     ) -> Dict[str, Any]:
         """Fallback explanation using feature importance"""
         try:
             # Get feature importance from model
-            if hasattr(self.model, 'feature_importances_'):
+            if hasattr(self.model, "feature_importances_"):
                 importance = self.model.feature_importances_
-            elif hasattr(self.model, 'coef_'):
+            elif hasattr(self.model, "coef_"):
                 importance = np.abs(self.model.coef_[0])
             else:
                 # No feature importance available
@@ -191,10 +187,10 @@ class FraudExplainer:
             # Create explanation
             risk_factors = [
                 {
-                    'feature': name,
-                    'importance': float(imp),
-                    'value': float(value),
-                    'description': self._describe_feature(name, value, imp)
+                    "feature": name,
+                    "importance": float(imp),
+                    "value": float(value),
+                    "description": self._describe_feature(name, value, imp),
                 }
                 for name, imp, value in contributions[:top_n]
                 if value > np.median(features)
@@ -202,29 +198,25 @@ class FraudExplainer:
 
             protective_factors = [
                 {
-                    'feature': name,
-                    'importance': float(imp),
-                    'value': float(value),
-                    'description': self._describe_feature(name, value, -imp)
+                    "feature": name,
+                    "importance": float(imp),
+                    "value": float(value),
+                    "description": self._describe_feature(name, value, -imp),
                 }
                 for name, imp, value in contributions[:top_n]
                 if value <= np.median(features)
             ]
 
             return {
-                'method': 'Feature Importance',
-                'prediction': float(prediction),
-                'risk_factors': risk_factors[:top_n // 2],
-                'protective_factors': protective_factors[:top_n // 2],
-                'top_features': [
-                    {
-                        'feature': name,
-                        'importance': float(imp),
-                        'value': float(value)
-                    }
+                "method": "Feature Importance",
+                "prediction": float(prediction),
+                "risk_factors": risk_factors[: top_n // 2],
+                "protective_factors": protective_factors[: top_n // 2],
+                "top_features": [
+                    {"feature": name, "importance": float(imp), "value": float(value)}
                     for name, imp, value in contributions[:top_n]
                 ],
-                'note': 'SHAP not available - using feature importance fallback'
+                "note": "SHAP not available - using feature importance fallback",
             }
 
         except Exception as e:
@@ -232,9 +224,7 @@ class FraudExplainer:
             return self._minimal_explanation(features, prediction)
 
     def _minimal_explanation(
-        self,
-        features: np.ndarray,
-        prediction: float
+        self, features: np.ndarray, prediction: float
     ) -> Dict[str, Any]:
         """Minimal explanation when all else fails"""
         if features.ndim > 1:
@@ -246,75 +236,72 @@ class FraudExplainer:
 
         risk_factors = [
             {
-                'feature': self.feature_names[i],
-                'value': float(features[i]),
-                'description': f"High value: {features[i]:.2f}"
+                "feature": self.feature_names[i],
+                "value": float(features[i]),
+                "description": f"High value: {features[i]:.2f}",
             }
             for i in top_indices
         ]
 
         protective_factors = [
             {
-                'feature': self.feature_names[i],
-                'value': float(features[i]),
-                'description': f"Low value: {features[i]:.2f}"
+                "feature": self.feature_names[i],
+                "value": float(features[i]),
+                "description": f"Low value: {features[i]:.2f}",
             }
             for i in bottom_indices
         ]
 
         return {
-            'method': 'Basic Analysis',
-            'prediction': float(prediction),
-            'risk_factors': risk_factors,
-            'protective_factors': protective_factors,
-            'note': 'Limited explanation - model introspection not available'
+            "method": "Basic Analysis",
+            "prediction": float(prediction),
+            "risk_factors": risk_factors,
+            "protective_factors": protective_factors,
+            "note": "Limited explanation - model introspection not available",
         }
 
     def _describe_feature(
-        self,
-        feature_name: str,
-        value: float,
-        contribution: float
+        self, feature_name: str, value: float, contribution: float
     ) -> str:
         """Generate human-readable description of feature contribution"""
         # Amount features
-        if 'amount' in feature_name:
-            if 'log' in feature_name:
+        if "amount" in feature_name:
+            if "log" in feature_name:
                 return f"Transaction amount (log scale): {value:.2f}"
-            elif 'sqrt' in feature_name:
+            elif "sqrt" in feature_name:
                 return f"Transaction amount (sqrt): {value:.2f}"
             else:
                 return f"Transaction amount: ${value:,.2f}"
 
         # Temporal features
-        if 'hour' in feature_name:
-            if 'sin' not in feature_name and 'cos' not in feature_name:
+        if "hour" in feature_name:
+            if "sin" not in feature_name and "cos" not in feature_name:
                 hour = int(value)
                 return f"Transaction hour: {hour:02d}:00"
             return f"Time pattern: {value:.2f}"
 
-        if 'weekend' in feature_name:
+        if "weekend" in feature_name:
             return "Weekend transaction" if value > 0.5 else "Weekday transaction"
 
-        if 'night' in feature_name:
+        if "night" in feature_name:
             return "Night-time transaction" if value > 0.5 else "Daytime transaction"
 
         # Categorical features
-        if 'payment_method' in feature_name:
+        if "payment_method" in feature_name:
             return f"Payment method type: {value:.0f}"
 
-        if 'crypto' in feature_name:
+        if "crypto" in feature_name:
             return "Cryptocurrency payment" if value > 0.5 else "Traditional payment"
 
         # Behavioral features
-        if 'keystroke' in feature_name:
+        if "keystroke" in feature_name:
             return f"Keystroke pattern: {value:.2f}"
 
-        if 'session' in feature_name:
+        if "session" in feature_name:
             return f"Session behavior: {value:.2f}"
 
         # Network features
-        if 'connection' in feature_name:
+        if "connection" in feature_name:
             return f"Network connections: {value:.0f}"
 
         # Default
@@ -330,39 +317,36 @@ class FraudExplainer:
         Returns:
             Human-readable summary string
         """
-        method = explanation.get('method', 'Unknown')
-        prediction = explanation.get('prediction', 0.0)
-        risk_factors = explanation.get('risk_factors', [])
-        protective_factors = explanation.get('protective_factors', [])
+        method = explanation.get("method", "Unknown")
+        prediction = explanation.get("prediction", 0.0)
+        risk_factors = explanation.get("risk_factors", [])
+        protective_factors = explanation.get("protective_factors", [])
 
         summary_parts = [
             f"Risk Score: {prediction:.1%}",
             f"Analysis Method: {method}",
-            ""
+            "",
         ]
 
         if risk_factors:
             summary_parts.append("Top Risk Factors:")
             for i, factor in enumerate(risk_factors[:5], 1):
-                feature = factor.get('feature', 'Unknown')
-                desc = factor.get('description', '')
+                feature = factor.get("feature", "Unknown")
+                desc = factor.get("description", "")
                 summary_parts.append(f"  {i}. {feature}: {desc}")
             summary_parts.append("")
 
         if protective_factors:
             summary_parts.append("Protective Factors:")
             for i, factor in enumerate(protective_factors[:3], 1):
-                feature = factor.get('feature', 'Unknown')
-                desc = factor.get('description', '')
+                feature = factor.get("feature", "Unknown")
+                desc = factor.get("description", "")
                 summary_parts.append(f"  {i}. {feature}: {desc}")
 
         return "\n".join(summary_parts)
 
     def batch_explain(
-        self,
-        features_batch: np.ndarray,
-        predictions: np.ndarray,
-        top_n: int = 10
+        self, features_batch: np.ndarray, predictions: np.ndarray, top_n: int = 10
     ) -> List[Dict[str, Any]]:
         """
         Generate explanations for batch of predictions
@@ -384,10 +368,7 @@ class FraudExplainer:
         return explanations
 
 
-def create_explainer(
-    model,
-    feature_names: List[str]
-) -> FraudExplainer:
+def create_explainer(model, feature_names: List[str]) -> FraudExplainer:
     """
     Factory function to create explainer
 
@@ -401,4 +382,4 @@ def create_explainer(
     return FraudExplainer(model, feature_names)
 
 
-__all__ = ['FraudExplainer', 'create_explainer', 'SHAP_AVAILABLE']
+__all__ = ["FraudExplainer", "create_explainer", "SHAP_AVAILABLE"]

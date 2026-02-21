@@ -9,6 +9,7 @@ import json
 from datetime import datetime, timedelta
 from typing import Dict, Any
 
+
 # Example MCP client (would be imported from your MCP client library)
 class MockMCPClient:
     """Mock MCP client for demonstration purposes"""
@@ -16,7 +17,9 @@ class MockMCPClient:
     def __init__(self, server_url: str = "localhost:8080"):
         self.server_url = server_url
 
-    async def call_tool(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def call_tool(
+        self, tool_name: str, parameters: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Mock tool call - in real implementation, this would call the MCP server"""
         print(f"🔧 Calling tool: {tool_name}")
         print(f"📊 Parameters: {json.dumps(parameters, indent=2)}")
@@ -54,8 +57,10 @@ class MockMCPClient:
             "risk_level": risk_level,
             "detected_anomalies": anomalies,
             "explanation": f"Transaction analysis complete. Amount: ${amount:,.2f}",
-            "recommended_actions": ["monitor_closely"] if risk_level == "MEDIUM" else ["allow_transaction"],
-            "analysis_timestamp": datetime.now().isoformat()
+            "recommended_actions": ["monitor_closely"]
+            if risk_level == "MEDIUM"
+            else ["allow_transaction"],
+            "analysis_timestamp": datetime.now().isoformat(),
         }
 
     def _mock_behavioral_analysis(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -73,7 +78,7 @@ class MockMCPClient:
             "overall_anomaly_score": anomaly_score,
             "detected_anomalies": detected_anomalies,
             "confidence": 0.88,
-            "analysis_timestamp": datetime.now().isoformat()
+            "analysis_timestamp": datetime.now().isoformat(),
         }
 
     def _mock_comprehensive_analysis(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -105,14 +110,17 @@ class MockMCPClient:
             "overall_risk_score": overall_score,
             "risk_level": risk_level,
             "component_scores": {
-                "transaction": base_score - (0.1 if has_behavioral else 0) - (0.15 if has_network else 0),
+                "transaction": base_score
+                - (0.1 if has_behavioral else 0)
+                - (0.15 if has_network else 0),
                 "behavioral": 0.1 if has_behavioral else None,
-                "network": 0.15 if has_network else None
+                "network": 0.15 if has_network else None,
             },
             "recommended_actions": actions,
             "comprehensive_explanation": f"Multi-modal analysis complete with {2 + has_behavioral + has_network} components",
-            "analysis_timestamp": datetime.now().isoformat()
+            "analysis_timestamp": datetime.now().isoformat(),
         }
+
 
 async def example_basic_transaction_analysis():
     """Example 1: Basic transaction fraud analysis"""
@@ -131,14 +139,14 @@ async def example_basic_transaction_analysis():
         "timestamp": datetime.now().isoformat(),
         "payment_method": "credit_card",
         "card_type": "visa",
-        "user_id": "user_12345"
+        "user_id": "user_12345",
     }
 
     # Analyze transaction
-    result = await client.call_tool("analyze_transaction", {
-        "transaction_data": transaction_data,
-        "include_behavioral": False
-    })
+    result = await client.call_tool(
+        "analyze_transaction",
+        {"transaction_data": transaction_data, "include_behavioral": False},
+    )
 
     print("📊 Analysis Result:")
     print(f"   Risk Score: {result.get('overall_risk_score', 0):.2f}")
@@ -146,6 +154,7 @@ async def example_basic_transaction_analysis():
     print(f"   Anomalies: {', '.join(result.get('detected_anomalies', []))}")
     print(f"   Recommendation: {', '.join(result.get('recommended_actions', []))}")
     print()
+
 
 async def example_behavioral_biometrics_analysis():
     """Example 2: Behavioral biometrics fraud detection"""
@@ -170,24 +179,23 @@ async def example_behavioral_biometrics_analysis():
             "movements": [
                 {"x": 100, "y": 200, "timestamp": 1000},
                 {"x": 150, "y": 220, "timestamp": 1100},
-                {"x": 200, "y": 240, "timestamp": 1200}
+                {"x": 200, "y": 240, "timestamp": 1200},
             ],
-            "clicks": [
-                {"x": 300, "y": 400, "timestamp": 1500, "button": "left"}
-            ]
-        }
+            "clicks": [{"x": 300, "y": 400, "timestamp": 1500, "button": "left"}],
+        },
     }
 
     # Analyze behavioral patterns
-    result = await client.call_tool("detect_behavioral_anomaly", {
-        "behavioral_data": behavioral_data
-    })
+    result = await client.call_tool(
+        "detect_behavioral_anomaly", {"behavioral_data": behavioral_data}
+    )
 
     print("🔍 Behavioral Analysis Result:")
     print(f"   Anomaly Score: {result.get('overall_anomaly_score', 0):.2f}")
     print(f"   Confidence: {result.get('confidence', 0):.2f}")
     print(f"   Detected Anomalies: {', '.join(result.get('detected_anomalies', []))}")
     print()
+
 
 async def example_comprehensive_fraud_detection():
     """Example 3: Comprehensive multi-modal fraud detection"""
@@ -208,7 +216,7 @@ async def example_comprehensive_fraud_detection():
         "card_type": "amex",
         "user_id": "user_67890",
         "ip_address": "192.0.2.217",
-        "device_fingerprint": "device_abc123"
+        "device_fingerprint": "device_abc123",
     }
 
     # Behavioral data (more comprehensive)
@@ -223,8 +231,8 @@ async def example_comprehensive_fraud_detection():
             "session_duration": 300,  # 5 minutes
             "pages_visited": 8,
             "form_interactions": 3,
-            "copy_paste_events": 1
-        }
+            "copy_paste_events": 1,
+        },
     }
 
     # Network/relationship data
@@ -233,16 +241,19 @@ async def example_comprehensive_fraud_detection():
         "connections": [
             {"entity_id": "user_11111", "strength": 0.8, "transaction_count": 5},
             {"entity_id": "merchant_xyz", "strength": 0.3, "transaction_count": 1},
-            {"entity_id": "device_abc123", "strength": 1.0, "transaction_count": 50}
-        ]
+            {"entity_id": "device_abc123", "strength": 1.0, "transaction_count": 50},
+        ],
     }
 
     # Perform comprehensive analysis
-    result = await client.call_tool("generate_risk_score", {
-        "transaction_data": transaction_data,
-        "behavioral_data": behavioral_data,
-        "network_data": network_data
-    })
+    result = await client.call_tool(
+        "generate_risk_score",
+        {
+            "transaction_data": transaction_data,
+            "behavioral_data": behavioral_data,
+            "network_data": network_data,
+        },
+    )
 
     print("🎯 Comprehensive Analysis Result:")
     print(f"   Overall Risk Score: {result.get('overall_risk_score', 0):.2f}")
@@ -259,6 +270,7 @@ async def example_comprehensive_fraud_detection():
     print(f"   Explanation: {result.get('comprehensive_explanation', 'N/A')}")
     print()
 
+
 async def example_real_time_monitoring():
     """Example 4: Real-time transaction monitoring simulation"""
     print("⚡ Example 4: Real-Time Transaction Monitoring")
@@ -269,29 +281,44 @@ async def example_real_time_monitoring():
     # Simulate a stream of transactions
     transactions = [
         {"id": "txn_001", "amount": 50.00, "merchant": "Coffee Shop", "risk": "low"},
-        {"id": "txn_002", "amount": 500.00, "merchant": "Gas Station", "risk": "medium"},
-        {"id": "txn_003", "amount": 12000.00, "merchant": "Electronics Store", "risk": "high"},
+        {
+            "id": "txn_002",
+            "amount": 500.00,
+            "merchant": "Gas Station",
+            "risk": "medium",
+        },
+        {
+            "id": "txn_003",
+            "amount": 12000.00,
+            "merchant": "Electronics Store",
+            "risk": "high",
+        },
         {"id": "txn_004", "amount": 25.00, "merchant": "Restaurant", "risk": "low"},
-        {"id": "txn_005", "amount": 8000.00, "merchant": "Unknown Merchant", "risk": "high"},
+        {
+            "id": "txn_005",
+            "amount": 8000.00,
+            "merchant": "Unknown Merchant",
+            "risk": "high",
+        },
     ]
 
     print("🔄 Processing transaction stream...")
 
     for i, txn in enumerate(transactions):
-        print(f"\n📦 Transaction {i+1}/{len(transactions)}: {txn['id']}")
+        print(f"\n📦 Transaction {i + 1}/{len(transactions)}: {txn['id']}")
 
         transaction_data = {
             "transaction_id": txn["id"],
             "amount": txn["amount"],
             "merchant": txn["merchant"],
-            "timestamp": (datetime.now() + timedelta(seconds=i*10)).isoformat(),
-            "user_id": "user_stream_test"
+            "timestamp": (datetime.now() + timedelta(seconds=i * 10)).isoformat(),
+            "user_id": "user_stream_test",
         }
 
         # Quick analysis
-        result = await client.call_tool("analyze_transaction", {
-            "transaction_data": transaction_data
-        })
+        result = await client.call_tool(
+            "analyze_transaction", {"transaction_data": transaction_data}
+        )
 
         risk_score = result.get("overall_risk_score", 0)
         risk_level = result.get("risk_level", "UNKNOWN")
@@ -304,13 +331,16 @@ async def example_real_time_monitoring():
         else:
             status_icon = "✅"
 
-        print(f"   {status_icon} Amount: ${txn['amount']:,.2f} | Risk: {risk_level} ({risk_score:.2f})")
+        print(
+            f"   {status_icon} Amount: ${txn['amount']:,.2f} | Risk: {risk_level} ({risk_score:.2f})"
+        )
 
         # Simulate processing delay
         await asyncio.sleep(0.1)
 
     print("\n✅ Real-time monitoring simulation complete")
     print()
+
 
 async def example_fraud_investigation():
     """Example 5: Fraud investigation workflow"""
@@ -327,7 +357,7 @@ async def example_fraud_investigation():
         "location": "Unknown Location",
         "timestamp": "2025-09-26T03:30:00Z",  # 3:30 AM
         "payment_method": "debit_card",
-        "user_id": "user_investigation"
+        "user_id": "user_investigation",
     }
 
     # Potentially compromised behavioral data
@@ -342,27 +372,35 @@ async def example_fraud_investigation():
             "pages_visited": 2,
             "form_interactions": 1,
             "user_agent": "Unknown Browser",
-            "geolocation_mismatch": True
-        }
+            "geolocation_mismatch": True,
+        },
     }
 
     print("🔍 Step 1: Initial Transaction Analysis")
-    basic_result = await client.call_tool("analyze_transaction", {
-        "transaction_data": suspicious_transaction,
-        "include_behavioral": True,
-        "behavioral_data": suspicious_behavioral
-    })
+    basic_result = await client.call_tool(
+        "analyze_transaction",
+        {
+            "transaction_data": suspicious_transaction,
+            "include_behavioral": True,
+            "behavioral_data": suspicious_behavioral,
+        },
+    )
 
     print(f"   Initial Risk Assessment: {basic_result.get('risk_level', 'UNKNOWN')}")
     print(f"   Risk Score: {basic_result.get('overall_risk_score', 0):.2f}")
 
     print("\n🎯 Step 2: Comprehensive Multi-Modal Analysis")
-    comprehensive_result = await client.call_tool("generate_risk_score", {
-        "transaction_data": suspicious_transaction,
-        "behavioral_data": suspicious_behavioral
-    })
+    comprehensive_result = await client.call_tool(
+        "generate_risk_score",
+        {
+            "transaction_data": suspicious_transaction,
+            "behavioral_data": suspicious_behavioral,
+        },
+    )
 
-    print(f"   Comprehensive Risk Score: {comprehensive_result.get('overall_risk_score', 0):.2f}")
+    print(
+        f"   Comprehensive Risk Score: {comprehensive_result.get('overall_risk_score', 0):.2f}"
+    )
     print(f"   Final Risk Level: {comprehensive_result.get('risk_level', 'UNKNOWN')}")
     print("   Recommended Actions:")
 
@@ -378,6 +416,7 @@ async def example_fraud_investigation():
     print("   • Unusually quick session duration")
     print("\n   🚨 RECOMMENDATION: BLOCK TRANSACTION AND INVESTIGATE ACCOUNT")
     print()
+
 
 async def main():
     """Run all fraud detection examples"""
@@ -406,6 +445,7 @@ async def main():
     print("   • Train models on your specific transaction data")
     print("   • Customize risk thresholds for your business needs")
     print("   • Set up real-time monitoring and alerting")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

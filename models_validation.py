@@ -12,6 +12,7 @@ from enum import Enum
 
 class PaymentMethod(str, Enum):
     """Valid payment methods"""
+
     CREDIT_CARD = "credit_card"
     DEBIT_CARD = "debit_card"
     BANK_TRANSFER = "bank_transfer"
@@ -25,6 +26,7 @@ class PaymentMethod(str, Enum):
 
 class RiskLevel(str, Enum):
     """Risk level categories"""
+
     LOW = "LOW"
     MEDIUM = "MEDIUM"
     HIGH = "HIGH"
@@ -34,6 +36,7 @@ class RiskLevel(str, Enum):
 
 class TrafficSource(str, Enum):
     """Traffic source classification"""
+
     HUMAN = "human"
     AGENT = "agent"
     UNKNOWN = "unknown"
@@ -41,24 +44,25 @@ class TrafficSource(str, Enum):
 
 class KeystrokeEvent(BaseModel):
     """Single keystroke event with timing"""
+
     key: str = Field(..., max_length=10)
     press_time: int = Field(..., ge=0, le=10**15)  # Unix timestamp in ms
     release_time: int = Field(..., ge=0, le=10**15)
 
-    @field_validator('release_time')
+    @field_validator("release_time")
     @classmethod
     def validate_release_after_press(cls, v, info):
         """Ensure release happens after press"""
-        if 'press_time' in info.data and v < info.data['press_time']:
-            raise ValueError('Release time must be after press time')
+        if "press_time" in info.data and v < info.data["press_time"]:
+            raise ValueError("Release time must be after press time")
         return v
 
-    @field_validator('key')
+    @field_validator("key")
     @classmethod
     def sanitize_key(cls, v):
         """Remove potentially dangerous characters"""
-        if any(char in v for char in ['<', '>', '&', '"', "'"]):
-            raise ValueError('Invalid characters in key field')
+        if any(char in v for char in ["<", ">", "&", '"', "'"]):
+            raise ValueError("Invalid characters in key field")
         return v
 
 
@@ -69,79 +73,58 @@ class TransactionData(BaseModel):
         ...,
         min_length=1,
         max_length=100,
-        pattern=r'^[a-zA-Z0-9_-]+$',
-        description="Unique transaction identifier"
+        pattern=r"^[a-zA-Z0-9_-]+$",
+        description="Unique transaction identifier",
     )
     user_id: str = Field(
         ...,
         min_length=1,
         max_length=100,
-        pattern=r'^[a-zA-Z0-9_-]+$',
-        description="User identifier"
+        pattern=r"^[a-zA-Z0-9_-]+$",
+        description="User identifier",
     )
     amount: float = Field(
         ...,
         gt=0.0,
         le=10_000_000.0,  # $10M max
-        description="Transaction amount in USD"
+        description="Transaction amount in USD",
     )
     merchant: str = Field(
-        ...,
-        min_length=1,
-        max_length=200,
-        description="Merchant name"
+        ..., min_length=1, max_length=200, description="Merchant name"
     )
     merchant_category: Optional[str] = Field(
-        None,
-        max_length=50,
-        description="Merchant category code"
+        None, max_length=50, description="Merchant category code"
     )
     location: str = Field(
-        ...,
-        min_length=1,
-        max_length=200,
-        description="Transaction location"
+        ..., min_length=1, max_length=200, description="Transaction location"
     )
-    timestamp: datetime = Field(
-        ...,
-        description="Transaction timestamp"
-    )
-    payment_method: PaymentMethod = Field(
-        ...,
-        description="Payment method used"
-    )
+    timestamp: datetime = Field(..., description="Transaction timestamp")
+    payment_method: PaymentMethod = Field(..., description="Payment method used")
 
     # Optional fields
-    device_id: Optional[str] = Field(
-        None,
-        max_length=100,
-        pattern=r'^[a-zA-Z0-9_-]+$'
-    )
+    device_id: Optional[str] = Field(None, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$")
     ip_address: Optional[str] = Field(
         None,
-        pattern=r'^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$'  # IPv4
+        pattern=r"^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$",  # IPv4
     )
     card_type: Optional[str] = Field(None, max_length=50)
-    currency: Optional[str] = Field("USD", max_length=3, pattern=r'^[A-Z]{3}$')
+    currency: Optional[str] = Field("USD", max_length=3, pattern=r"^[A-Z]{3}$")
     merchant_id: Optional[str] = Field(None, max_length=100)
 
     # Agent transaction fields (optional)
     is_agent: Optional[bool] = Field(
-        None,
-        description="Whether this transaction was initiated by an AI agent"
+        None, description="Whether this transaction was initiated by an AI agent"
     )
     agent_identifier: Optional[str] = Field(
         None,
         max_length=200,
-        description="Agent identity string (e.g., 'stripe-acp:agent-123')"
+        description="Agent identity string (e.g., 'stripe-acp:agent-123')",
     )
     user_agent: Optional[str] = Field(
-        None,
-        max_length=500,
-        description="HTTP User-Agent or agent protocol identifier"
+        None, max_length=500, description="HTTP User-Agent or agent protocol identifier"
     )
 
-    @field_validator('timestamp')
+    @field_validator("timestamp")
     @classmethod
     def validate_timestamp(cls, v):
         """Ensure timestamp is reasonable"""
@@ -149,16 +132,16 @@ class TransactionData(BaseModel):
 
         # Not in future
         if v > now + timedelta(hours=1):  # Allow 1 hour clock skew
-            raise ValueError('Timestamp cannot be in the future')
+            raise ValueError("Timestamp cannot be in the future")
 
         # Not too old (reject >1 year old transactions)
         one_year_ago = now - timedelta(days=365)
         if v < one_year_ago:
-            raise ValueError('Timestamp too old (>1 year)')
+            raise ValueError("Timestamp too old (>1 year)")
 
         return v
 
-    @field_validator('merchant', 'location', 'merchant_category')
+    @field_validator("merchant", "location", "merchant_category")
     @classmethod
     def sanitize_text_fields(cls, v):
         """Remove potentially dangerous characters"""
@@ -166,26 +149,35 @@ class TransactionData(BaseModel):
             return v
 
         dangerous = [
-            '<script>', 'javascript:', '--', ';--',
-            'DROP', 'DELETE', 'INSERT', 'UPDATE',
-            '<', '>', 'onclick', 'onerror'
+            "<script>",
+            "javascript:",
+            "--",
+            ";--",
+            "DROP",
+            "DELETE",
+            "INSERT",
+            "UPDATE",
+            "<",
+            ">",
+            "onclick",
+            "onerror",
         ]
         v_upper = v.upper()
 
         for dangerous_str in dangerous:
             if dangerous_str in v_upper:
-                raise ValueError('Invalid characters detected')
+                raise ValueError("Invalid characters detected")
 
         return v.strip()
 
-    @field_validator('amount')
+    @field_validator("amount")
     @classmethod
     def validate_amount_precision(cls, v):
         """Ensure amount has reasonable precision"""
         # Round to 2 decimal places
         return round(v, 2)
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_transaction_logic(self):
         """Cross-field validation"""
         amount = self.amount
@@ -210,26 +202,22 @@ class BehavioralData(BaseModel):
     keystroke_dynamics: Optional[List[KeystrokeEvent]] = Field(
         None,
         max_length=10000,  # Prevent memory exhaustion
-        description="Keystroke timing events"
+        description="Keystroke timing events",
     )
     mouse_patterns: Optional[List[Dict[str, Any]]] = Field(
-        None,
-        max_length=10000,
-        description="Mouse movement patterns"
+        None, max_length=10000, description="Mouse movement patterns"
     )
     session_duration: Optional[int] = Field(
         None,
         ge=0,
         le=86400,  # Max 24 hours
-        description="Session duration in seconds"
+        description="Session duration in seconds",
     )
     session_id: Optional[str] = Field(
-        None,
-        max_length=100,
-        description="Session identifier"
+        None, max_length=100, description="Session identifier"
     )
 
-    @field_validator('keystroke_dynamics')
+    @field_validator("keystroke_dynamics")
     @classmethod
     def validate_keystroke_data(cls, v):
         """Validate keystroke event sequence"""
@@ -238,15 +226,15 @@ class BehavioralData(BaseModel):
 
         # Check for reasonable timing
         for i in range(len(v) - 1):
-            time_gap = v[i+1].press_time - v[i].release_time
+            time_gap = v[i + 1].press_time - v[i].release_time
 
             # Unrealistic if gap > 60 seconds between keys
             if time_gap > 60000:
-                raise ValueError('Unrealistic timing between keystrokes')
+                raise ValueError("Unrealistic timing between keystrokes")
 
             # Unrealistic if negative (time travel)
             if time_gap < 0:
-                raise ValueError('Keystroke events out of order')
+                raise ValueError("Keystroke events out of order")
 
         return v
 
@@ -258,43 +246,39 @@ class NetworkData(BaseModel):
         ...,
         min_length=1,
         max_length=100,
-        pattern=r'^[a-zA-Z0-9_-]+$',
-        description="Entity identifier"
+        pattern=r"^[a-zA-Z0-9_-]+$",
+        description="Entity identifier",
     )
     entity_type: Optional[str] = Field(
-        "user",
-        max_length=50,
-        description="Type of entity (user, merchant, device)"
+        "user", max_length=50, description="Type of entity (user, merchant, device)"
     )
     connections: List[Dict[str, Any]] = Field(
-        default_factory=list,
-        max_length=10000,
-        description="List of connected entities"
+        default_factory=list, max_length=10000, description="List of connected entities"
     )
 
-    @field_validator('connections')
+    @field_validator("connections")
     @classmethod
     def validate_connections(cls, v):
         """Validate connection structure"""
         for conn in v:
-            if 'entity_id' not in conn:
-                raise ValueError('Connection missing entity_id')
+            if "entity_id" not in conn:
+                raise ValueError("Connection missing entity_id")
 
             # Validate entity_id format
-            entity_id = str(conn['entity_id'])
+            entity_id = str(conn["entity_id"])
             if not entity_id or len(entity_id) > 100:
-                raise ValueError('Invalid entity_id in connection')
+                raise ValueError("Invalid entity_id in connection")
 
             # Validate optional fields
-            if 'strength' in conn:
-                strength = float(conn['strength'])
+            if "strength" in conn:
+                strength = float(conn["strength"])
                 if not (0.0 <= strength <= 1.0):
-                    raise ValueError('Connection strength must be between 0 and 1')
+                    raise ValueError("Connection strength must be between 0 and 1")
 
-            if 'transaction_count' in conn:
-                count = int(conn['transaction_count'])
+            if "transaction_count" in conn:
+                count = int(conn["transaction_count"])
                 if count < 0:
-                    raise ValueError('Transaction count cannot be negative')
+                    raise ValueError("Transaction count cannot be negative")
 
         return v
 
@@ -306,8 +290,7 @@ class AnalysisRequest(BaseModel):
     behavioral_data: Optional[BehavioralData] = None
     network_data: Optional[NetworkData] = None
     include_explanation: bool = Field(
-        default=True,
-        description="Include explainable AI reasoning"
+        default=True, description="Include explainable AI reasoning"
     )
 
     model_config = ConfigDict(validate_assignment=True)
@@ -340,39 +323,24 @@ class AnalysisResponse(BaseModel):
 class TrainingRequest(BaseModel):
     """Request to train fraud detection models"""
 
-    training_data_path: str = Field(
-        ...,
-        description="Path to training data CSV/JSON"
-    )
+    training_data_path: str = Field(..., description="Path to training data CSV/JSON")
     test_size: float = Field(
-        default=0.2,
-        ge=0.1,
-        le=0.5,
-        description="Proportion of data for testing"
+        default=0.2, ge=0.1, le=0.5, description="Proportion of data for testing"
     )
     validation_size: float = Field(
-        default=0.1,
-        ge=0.0,
-        le=0.3,
-        description="Proportion of data for validation"
+        default=0.1, ge=0.0, le=0.3, description="Proportion of data for validation"
     )
-    use_smote: bool = Field(
-        default=True,
-        description="Use SMOTE for class balancing"
-    )
-    enable_mlflow: bool = Field(
-        default=True,
-        description="Log to MLflow"
-    )
+    use_smote: bool = Field(default=True, description="Use SMOTE for class balancing")
+    enable_mlflow: bool = Field(default=True, description="Log to MLflow")
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_splits(self):
         """Ensure train/test/val splits sum to <= 1"""
         test = self.test_size
         val = self.validation_size
 
         if test + val >= 1.0:
-            raise ValueError('Test + validation size must be < 1.0')
+            raise ValueError("Test + validation size must be < 1.0")
 
         return self
 
@@ -384,34 +352,31 @@ class BatchAnalysisRequest(BaseModel):
         ...,
         min_length=1,
         max_length=10000,
-        description="Batch of transactions to analyze"
+        description="Batch of transactions to analyze",
     )
-    parallel: bool = Field(
-        default=True,
-        description="Process transactions in parallel"
-    )
+    parallel: bool = Field(default=True, description="Process transactions in parallel")
 
-    @field_validator('transactions')
+    @field_validator("transactions")
     @classmethod
     def validate_unique_ids(cls, v):
         """Ensure transaction IDs are unique"""
         ids = [t.transaction_id for t in v]
         if len(ids) != len(set(ids)):
-            raise ValueError('Transaction IDs must be unique')
+            raise ValueError("Transaction IDs must be unique")
         return v
 
 
 # Export all validation models
 __all__ = [
-    'PaymentMethod',
-    'RiskLevel',
-    'TrafficSource',
-    'KeystrokeEvent',
-    'TransactionData',
-    'BehavioralData',
-    'NetworkData',
-    'AnalysisRequest',
-    'AnalysisResponse',
-    'TrainingRequest',
-    'BatchAnalysisRequest'
+    "PaymentMethod",
+    "RiskLevel",
+    "TrafficSource",
+    "KeystrokeEvent",
+    "TransactionData",
+    "BehavioralData",
+    "NetworkData",
+    "AnalysisRequest",
+    "AnalysisResponse",
+    "TrainingRequest",
+    "BatchAnalysisRequest",
 ]

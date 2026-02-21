@@ -62,6 +62,7 @@ SECURITY_HEADERS = {
 
 class UserRole(str, Enum):
     """User roles for RBAC (Role-Based Access Control)"""
+
     ADMIN = "admin"
     ANALYST = "analyst"
     API_USER = "api_user"
@@ -70,6 +71,7 @@ class UserRole(str, Enum):
 
 class TierLevel(str, Enum):
     """API tier levels for rate limiting"""
+
     FREE = "free"
     PAID = "paid"
     ENTERPRISE = "enterprise"
@@ -78,6 +80,7 @@ class TierLevel(str, Enum):
 
 class TokenType(str, Enum):
     """Token types for different purposes"""
+
     ACCESS = "access"
     REFRESH = "refresh"
     API_KEY = "api_key"
@@ -87,12 +90,13 @@ class TokenType(str, Enum):
 pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto",
-    bcrypt__rounds=12  # OWASP minimum recommendation
+    bcrypt__rounds=12,  # OWASP minimum recommendation
 )
 
 
 class User(BaseModel):
     """User model with security attributes"""
+
     user_id: str
     username: str
     email: str
@@ -111,6 +115,7 @@ class User(BaseModel):
 
 class APIKey(BaseModel):
     """API Key model for API authentication"""
+
     key_id: str
     key_hash: str  # Never store raw keys
     user_id: str
@@ -126,6 +131,7 @@ class APIKey(BaseModel):
 
 class TokenData(BaseModel):
     """JWT token payload data"""
+
     user_id: str
     username: str
     role: UserRole
@@ -154,20 +160,22 @@ class PasswordValidator:
             errors.append(f"Password must not exceed {PASSWORD_MAX_LENGTH} characters")
 
         # Complexity checks
-        if PASSWORD_REQUIRE_UPPERCASE and not re.search(r'[A-Z]', password):
+        if PASSWORD_REQUIRE_UPPERCASE and not re.search(r"[A-Z]", password):
             errors.append("Password must contain at least one uppercase letter")
 
-        if PASSWORD_REQUIRE_LOWERCASE and not re.search(r'[a-z]', password):
+        if PASSWORD_REQUIRE_LOWERCASE and not re.search(r"[a-z]", password):
             errors.append("Password must contain at least one lowercase letter")
 
-        if PASSWORD_REQUIRE_DIGIT and not re.search(r'\d', password):
+        if PASSWORD_REQUIRE_DIGIT and not re.search(r"\d", password):
             errors.append("Password must contain at least one digit")
 
-        if PASSWORD_REQUIRE_SPECIAL and not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        if PASSWORD_REQUIRE_SPECIAL and not re.search(
+            r'[!@#$%^&*(),.?":{}|<>]', password
+        ):
             errors.append("Password must contain at least one special character")
 
         # Common password check (basic - extend with compromised password list)
-        common_passwords = ['password', '12345678', 'qwerty', 'abc123']
+        common_passwords = ["password", "12345678", "qwerty", "abc123"]
         if password.lower() in common_passwords:
             errors.append("Password is too common")
 
@@ -190,10 +198,12 @@ class InputSanitizer:
             raise ValueError("Input must be a string")
 
         # Remove null bytes (can cause issues in C-based systems)
-        value = value.replace('\x00', '')
+        value = value.replace("\x00", "")
 
         # Remove or replace control characters (except newline, tab, carriage return)
-        value = ''.join(char for char in value if char.isprintable() or char in '\n\t\r')
+        value = "".join(
+            char for char in value if char.isprintable() or char in "\n\t\r"
+        )
 
         # Truncate to maximum length
         value = value[:max_length]
@@ -204,7 +214,9 @@ class InputSanitizer:
         return value
 
     @staticmethod
-    def sanitize_dict(data: Dict[str, Any], allowed_keys: Optional[List[str]] = None) -> Dict[str, Any]:
+    def sanitize_dict(
+        data: Dict[str, Any], allowed_keys: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
         """
         Sanitize dictionary to prevent mass assignment vulnerabilities
 
@@ -217,7 +229,7 @@ class InputSanitizer:
     @staticmethod
     def validate_email(email: str) -> bool:
         """Validate email format (basic validation)"""
-        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         return bool(re.match(pattern, email)) and len(email) <= 255
 
 
@@ -234,7 +246,9 @@ class AuthManager:
         Args:
             secret_key: JWT signing key (generated if not provided)
         """
-        self.secret_key = secret_key or config.JWT_SECRET_KEY or secrets.token_urlsafe(32)
+        self.secret_key = (
+            secret_key or config.JWT_SECRET_KEY or secrets.token_urlsafe(32)
+        )
         self.algorithm = config.JWT_ALGORITHM
         self.access_token_expire_minutes = config.ACCESS_TOKEN_EXPIRE_MINUTES
 
@@ -266,9 +280,7 @@ class AuthManager:
             return False
 
     def create_access_token(
-        self,
-        data: TokenData,
-        expires_delta: Optional[timedelta] = None
+        self, data: TokenData, expires_delta: Optional[timedelta] = None
     ) -> str:
         """
         Create JWT access token
@@ -286,13 +298,17 @@ class AuthManager:
         if expires_delta:
             expire = datetime.utcnow() + expires_delta
         else:
-            expire = datetime.utcnow() + timedelta(minutes=self.access_token_expire_minutes)
+            expire = datetime.utcnow() + timedelta(
+                minutes=self.access_token_expire_minutes
+            )
 
-        to_encode.update({
-            "exp": expire,
-            "iat": datetime.utcnow(),
-            "jti": secrets.token_urlsafe(16),  # Unique token ID for revocation
-        })
+        to_encode.update(
+            {
+                "exp": expire,
+                "iat": datetime.utcnow(),
+                "jti": secrets.token_urlsafe(16),  # Unique token ID for revocation
+            }
+        )
 
         # Sign token
         encoded_jwt = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
@@ -321,7 +337,7 @@ class AuthManager:
                 token,
                 self.secret_key,
                 algorithms=[self.algorithm],
-                options={"verify_exp": True}  # Verify expiration
+                options={"verify_exp": True},  # Verify expiration
             )
 
             # Extract token data
@@ -331,7 +347,7 @@ class AuthManager:
                 role=UserRole(payload.get("role")),
                 tier=TierLevel(payload.get("tier")),
                 token_type=TokenType(payload.get("token_type", "access")),
-                scopes=payload.get("scopes", [])
+                scopes=payload.get("scopes", []),
             )
 
             return token_data
@@ -363,7 +379,7 @@ class AuthManager:
         name: str,
         tier: TierLevel = TierLevel.FREE,
         scopes: Optional[List[str]] = None,
-        expires_in_days: Optional[int] = None
+        expires_in_days: Optional[int] = None,
     ) -> Tuple[str, APIKey]:
         """
         Generate API key for user
@@ -388,7 +404,9 @@ class AuthManager:
             tier=tier,
             scopes=scopes or [],
             created_at=datetime.utcnow(),
-            expires_at=datetime.utcnow() + timedelta(days=expires_in_days) if expires_in_days else None
+            expires_at=datetime.utcnow() + timedelta(days=expires_in_days)
+            if expires_in_days
+            else None,
         )
 
         # Store API key
@@ -444,7 +462,7 @@ class AuthManager:
         email: str,
         password: str,
         role: UserRole = UserRole.API_USER,
-        tier: TierLevel = TierLevel.FREE
+        tier: TierLevel = TierLevel.FREE,
     ) -> Optional[User]:
         """
         Create new user with password validation
@@ -488,7 +506,7 @@ class AuthManager:
                 email=email,
                 hashed_password=self.hash_password(password),
                 role=role,
-                tier=tier
+                tier=tier,
             )
 
             self._users[user.user_id] = user
@@ -566,10 +584,10 @@ class RateLimiter:
 
         # Rate limit definitions per tier
         self.rate_limits = {
-            TierLevel.FREE: (10, 60),        # 10 requests per minute
-            TierLevel.PAID: (1000, 60),      # 1000 requests per minute
+            TierLevel.FREE: (10, 60),  # 10 requests per minute
+            TierLevel.PAID: (1000, 60),  # 1000 requests per minute
             TierLevel.ENTERPRISE: (10000, 60),  # 10000 requests per minute
-            TierLevel.INTERNAL: (100000, 60),   # Unlimited (practical limit)
+            TierLevel.INTERNAL: (100000, 60),  # Unlimited (practical limit)
         }
 
         logger.info("RateLimiter initialized")
@@ -578,9 +596,7 @@ class RateLimiter:
         """Initialize Redis connection"""
         try:
             self._redis_client = await redis.from_url(
-                self.redis_url,
-                encoding="utf-8",
-                decode_responses=True
+                self.redis_url, encoding="utf-8", decode_responses=True
             )
             await self._redis_client.ping()
             logger.info("Redis connection established for rate limiting")
@@ -589,9 +605,7 @@ class RateLimiter:
             self._redis_client = None
 
     async def check_rate_limit(
-        self,
-        identifier: str,
-        tier: TierLevel = TierLevel.FREE
+        self, identifier: str, tier: TierLevel = TierLevel.FREE
     ) -> Tuple[bool, Dict[str, Any]]:
         """
         Check if request is within rate limit
@@ -623,7 +637,7 @@ class RateLimiter:
                 return True, {
                     "limit": max_requests,
                     "remaining": max_requests - 1,
-                    "reset": int(datetime.utcnow().timestamp()) + window_seconds
+                    "reset": int(datetime.utcnow().timestamp()) + window_seconds,
                 }
 
             current = int(current)
@@ -635,7 +649,7 @@ class RateLimiter:
                 return False, {
                     "limit": max_requests,
                     "remaining": 0,
-                    "reset": int(datetime.utcnow().timestamp()) + ttl
+                    "reset": int(datetime.utcnow().timestamp()) + ttl,
                 }
 
             # Increment counter
@@ -644,7 +658,8 @@ class RateLimiter:
             return True, {
                 "limit": max_requests,
                 "remaining": max_requests - current - 1,
-                "reset": int(datetime.utcnow().timestamp()) + await self._redis_client.ttl(key)
+                "reset": int(datetime.utcnow().timestamp())
+                + await self._redis_client.ttl(key),
             }
 
         except Exception as e:
@@ -680,11 +695,7 @@ class SecurityMiddleware:
     - Input validation
     """
 
-    def __init__(
-        self,
-        auth_manager: AuthManager,
-        rate_limiter: RateLimiter
-    ):
+    def __init__(self, auth_manager: AuthManager, rate_limiter: RateLimiter):
         """
         Initialize security middleware
 
@@ -712,7 +723,7 @@ class SecurityMiddleware:
             logger.error(f"Security middleware error: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Security processing error"
+                detail="Security processing error",
             )
 
     async def authenticate_request(self, request: Request) -> Optional[TokenData]:
@@ -746,7 +757,7 @@ class SecurityMiddleware:
                         role=user.role,
                         tier=api_key_obj.tier,
                         token_type=TokenType.API_KEY,
-                        scopes=api_key_obj.scopes
+                        scopes=api_key_obj.scopes,
                     )
 
         # Try API key query parameter (last resort)
@@ -763,15 +774,13 @@ class SecurityMiddleware:
                         role=user.role,
                         tier=api_key_obj.tier,
                         token_type=TokenType.API_KEY,
-                        scopes=api_key_obj.scopes
+                        scopes=api_key_obj.scopes,
                     )
 
         return None
 
     async def check_rate_limit(
-        self,
-        request: Request,
-        token_data: Optional[TokenData] = None
+        self, request: Request, token_data: Optional[TokenData] = None
     ) -> Tuple[bool, Dict[str, Any]]:
         """
         Check rate limit for request
@@ -793,7 +802,7 @@ class SecurityMiddleware:
         self,
         token_data: TokenData,
         required_role: UserRole,
-        required_scopes: Optional[List[str]] = None
+        required_scopes: Optional[List[str]] = None,
     ) -> bool:
         """
         Check if user has required permissions (RBAC)
@@ -805,7 +814,7 @@ class SecurityMiddleware:
             UserRole.ADMIN: 3,
             UserRole.ANALYST: 2,
             UserRole.API_USER: 1,
-            UserRole.READ_ONLY: 0
+            UserRole.READ_ONLY: 0,
         }
 
         # Check role level
@@ -825,7 +834,7 @@ class SecurityMiddleware:
 
 def require_auth(
     required_role: UserRole = UserRole.API_USER,
-    required_scopes: Optional[List[str]] = None
+    required_scopes: Optional[List[str]] = None,
 ):
     """
     Decorator for protecting endpoints with authentication
@@ -835,15 +844,16 @@ def require_auth(
         async def admin_only_endpoint():
             pass
     """
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             # Extract request from kwargs
-            request = kwargs.get('request')
+            request = kwargs.get("request")
             if not request:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Request object not found"
+                    detail="Request object not found",
                 )
 
             # Get middleware from app state
@@ -855,14 +865,16 @@ def require_auth(
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Authentication required",
-                    headers={"WWW-Authenticate": "Bearer"}
+                    headers={"WWW-Authenticate": "Bearer"},
                 )
 
             # Check permissions
-            if not middleware.check_permission(token_data, required_role, required_scopes):
+            if not middleware.check_permission(
+                token_data, required_role, required_scopes
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Insufficient permissions"
+                    detail="Insufficient permissions",
                 )
 
             # Check rate limit
@@ -874,16 +886,17 @@ def require_auth(
                     headers={
                         "X-RateLimit-Limit": str(limit_info["limit"]),
                         "X-RateLimit-Remaining": str(limit_info["remaining"]),
-                        "X-RateLimit-Reset": str(limit_info["reset"])
-                    }
+                        "X-RateLimit-Reset": str(limit_info["reset"]),
+                    },
                 )
 
             # Add token data to kwargs
-            kwargs['token_data'] = token_data
+            kwargs["token_data"] = token_data
 
             return await func(*args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
@@ -907,7 +920,7 @@ if __name__ == "__main__":
             email="analyst@example.com",
             password="SecureP@ssw0rd123!",
             role=UserRole.ANALYST,
-            tier=TierLevel.PAID
+            tier=TierLevel.PAID,
         )
 
         if user:
@@ -915,7 +928,9 @@ if __name__ == "__main__":
             print(f"   Role: {user.role.value}, Tier: {user.tier.value}")
 
         print("\n2. Testing authentication...")
-        authenticated_user = auth_manager.authenticate_user("test_analyst", "SecureP@ssw0rd123!")
+        authenticated_user = auth_manager.authenticate_user(
+            "test_analyst", "SecureP@ssw0rd123!"
+        )
         if authenticated_user:
             print(f"   Authentication successful for: {authenticated_user.username}")
 
@@ -925,7 +940,7 @@ if __name__ == "__main__":
             username=user.username,
             role=user.role,
             tier=user.tier,
-            scopes=["read:fraud_detection", "write:fraud_detection"]
+            scopes=["read:fraud_detection", "write:fraud_detection"],
         )
         access_token = auth_manager.create_access_token(token_data)
         print(f"   Token generated: {access_token[:50]}...")
@@ -942,7 +957,7 @@ if __name__ == "__main__":
             name="Test API Key",
             tier=TierLevel.PAID,
             scopes=["read:fraud_detection"],
-            expires_in_days=30
+            expires_in_days=30,
         )
         print(f"   API Key: {raw_key[:30]}...")
         print(f"   Key ID: {api_key.key_id}")
@@ -956,19 +971,15 @@ if __name__ == "__main__":
         print("\n7. Testing rate limiting...")
         for i in range(3):
             allowed, limit_info = await rate_limiter.check_rate_limit(
-                user.user_id,
-                user.tier
+                user.user_id, user.tier
             )
-            print(f"   Request {i+1}: Allowed={allowed}, "
-                  f"Remaining={limit_info['remaining']}/{limit_info['limit']}")
+            print(
+                f"   Request {i + 1}: Allowed={allowed}, "
+                f"Remaining={limit_info['remaining']}/{limit_info['limit']}"
+            )
 
         print("\n8. Testing password validation...")
-        test_passwords = [
-            "weak",
-            "WeakPassword",
-            "WeakP@ssw0rd",
-            "StrongP@ssw0rd123!"
-        ]
+        test_passwords = ["weak", "WeakPassword", "WeakP@ssw0rd", "StrongP@ssw0rd123!"]
         for pwd in test_passwords:
             is_valid, errors = PasswordValidator.validate_password(pwd)
             print(f"   '{pwd}': {'VALID' if is_valid else 'INVALID'}")

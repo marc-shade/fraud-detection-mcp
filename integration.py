@@ -15,12 +15,16 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class SyntheticDataIntegration:
     """Integration with synthetic-data-mcp for fraud detection testing"""
 
     def __init__(self):
         import os
-        base_dir = os.environ.get("FRAUD_DETECTION_DATA_DIR", str(Path(__file__).parent / "test_data"))
+
+        base_dir = os.environ.get(
+            "FRAUD_DETECTION_DATA_DIR", str(Path(__file__).parent / "test_data")
+        )
         self.output_dir = Path(base_dir)
         self.output_dir.mkdir(exist_ok=True)
 
@@ -33,8 +37,12 @@ class SyntheticDataIntegration:
                     "description": "Unusually high transaction amounts",
                     "amount_ranges": [(5000, 50000), (50000, 100000), (100000, 500000)],
                     "frequency": 0.02,  # 2% of transactions
-                    "merchants": ["Electronics Warehouse", "Jewelry Store", "Cash Advance"],
-                    "risk_indicators": ["amount_anomaly", "merchant_risk"]
+                    "merchants": [
+                        "Electronics Warehouse",
+                        "Jewelry Store",
+                        "Cash Advance",
+                    ],
+                    "risk_indicators": ["amount_anomaly", "merchant_risk"],
                 },
                 "velocity_fraud": {
                     "description": "Multiple transactions in short time periods",
@@ -43,7 +51,7 @@ class SyntheticDataIntegration:
                     "time_window": (60, 300),  # 1-5 minutes
                     "amount_range": (100, 2000),
                     "frequency": 0.01,
-                    "risk_indicators": ["velocity_anomaly", "time_clustering"]
+                    "risk_indicators": ["velocity_anomaly", "time_clustering"],
                 },
                 "geographic_anomaly": {
                     "description": "Transactions from unusual locations",
@@ -51,46 +59,58 @@ class SyntheticDataIntegration:
                         "Unknown Location",
                         "High Risk Country A",
                         "Offshore Territory",
-                        "Sanctioned Region"
+                        "Sanctioned Region",
                     ],
                     "frequency": 0.03,
-                    "risk_indicators": ["geographic_risk", "location_anomaly"]
+                    "risk_indicators": ["geographic_risk", "location_anomaly"],
                 },
                 "temporal_anomaly": {
                     "description": "Transactions at unusual times",
                     "unusual_hours": [2, 3, 4, 5],  # 2 AM - 5 AM
                     "unusual_days": ["Sunday", "Holiday"],
                     "frequency": 0.015,
-                    "risk_indicators": ["time_anomaly", "schedule_deviation"]
+                    "risk_indicators": ["time_anomaly", "schedule_deviation"],
                 },
                 "payment_method_fraud": {
                     "description": "High-risk payment methods",
                     "high_risk_methods": ["crypto", "prepaid_card", "money_order"],
                     "frequency": 0.025,
-                    "risk_indicators": ["payment_method_risk"]
-                }
+                    "risk_indicators": ["payment_method_risk"],
+                },
             },
             "behavioral_fraud": {
                 "keystroke_anomalies": {
                     "description": "Abnormal typing patterns indicating account takeover",
                     "patterns": {
-                        "too_slow": {"dwell_time_multiplier": 3.0, "flight_time_multiplier": 2.5},
-                        "too_fast": {"dwell_time_multiplier": 0.3, "flight_time_multiplier": 0.4},
-                        "irregular": {"variation_multiplier": 5.0, "consistency_factor": 0.2}
+                        "too_slow": {
+                            "dwell_time_multiplier": 3.0,
+                            "flight_time_multiplier": 2.5,
+                        },
+                        "too_fast": {
+                            "dwell_time_multiplier": 0.3,
+                            "flight_time_multiplier": 0.4,
+                        },
+                        "irregular": {
+                            "variation_multiplier": 5.0,
+                            "consistency_factor": 0.2,
+                        },
                     },
                     "frequency": 0.008,
-                    "risk_indicators": ["keystroke_anomaly", "behavioral_deviation"]
+                    "risk_indicators": ["keystroke_anomaly", "behavioral_deviation"],
                 },
                 "session_anomalies": {
                     "description": "Unusual session behavior patterns",
                     "patterns": {
                         "too_quick": {"session_duration": (5, 30)},  # Seconds
-                        "unusual_navigation": {"page_jumps": True, "back_button_abuse": True},
-                        "copy_paste_heavy": {"copy_paste_ratio": 0.8}
+                        "unusual_navigation": {
+                            "page_jumps": True,
+                            "back_button_abuse": True,
+                        },
+                        "copy_paste_heavy": {"copy_paste_ratio": 0.8},
                     },
                     "frequency": 0.012,
-                    "risk_indicators": ["session_anomaly", "navigation_risk"]
-                }
+                    "risk_indicators": ["session_anomaly", "navigation_risk"],
+                },
             },
             "network_fraud": {
                 "fraud_rings": {
@@ -98,23 +118,29 @@ class SyntheticDataIntegration:
                     "ring_sizes": [3, 5, 8, 12, 20],
                     "connection_patterns": ["star", "mesh", "chain"],
                     "transaction_patterns": {
-                        "money_laundering": {"circular_transfers": True, "amount_structuring": True},
-                        "account_farming": {"new_accounts": True, "similar_patterns": True}
+                        "money_laundering": {
+                            "circular_transfers": True,
+                            "amount_structuring": True,
+                        },
+                        "account_farming": {
+                            "new_accounts": True,
+                            "similar_patterns": True,
+                        },
                     },
                     "frequency": 0.005,
-                    "risk_indicators": ["network_clustering", "coordinated_activity"]
+                    "risk_indicators": ["network_clustering", "coordinated_activity"],
                 },
                 "synthetic_identity": {
                     "description": "Fake identity creation and usage",
                     "identity_indicators": {
                         "new_account": True,
                         "minimal_history": True,
-                        "inconsistent_data": True
+                        "inconsistent_data": True,
                     },
                     "frequency": 0.007,
-                    "risk_indicators": ["identity_risk", "new_account_risk"]
-                }
-            }
+                    "risk_indicators": ["identity_risk", "new_account_risk"],
+                },
+            },
         }
 
         return fraud_patterns
@@ -132,7 +158,7 @@ class SyntheticDataIntegration:
                     "merchant_category",
                     "location",
                     "timestamp",
-                    "payment_method"
+                    "payment_method",
                 ],
                 "optional_fields": [
                     "device_id",
@@ -142,7 +168,7 @@ class SyntheticDataIntegration:
                     "geolocation_lon",
                     "merchant_id",
                     "card_type",
-                    "currency"
+                    "currency",
                 ],
                 "data_types": {
                     "transaction_id": "string",
@@ -151,41 +177,57 @@ class SyntheticDataIntegration:
                     "merchant": "string",
                     "location": "string",
                     "timestamp": "datetime",
-                    "payment_method": "categorical"
-                }
+                    "payment_method": "categorical",
+                },
             },
             "behavioral_data": {
                 "keystroke_dynamics": {
-                    "fields": ["key", "press_time", "release_time", "user_id", "session_id"],
+                    "fields": [
+                        "key",
+                        "press_time",
+                        "release_time",
+                        "user_id",
+                        "session_id",
+                    ],
                     "data_types": {
                         "key": "string",
                         "press_time": "integer",
                         "release_time": "integer",
                         "user_id": "string",
-                        "session_id": "string"
-                    }
+                        "session_id": "string",
+                    },
                 },
                 "session_data": {
                     "fields": [
-                        "session_id", "user_id", "start_time", "end_time",
-                        "pages_visited", "actions_taken", "form_interactions",
-                        "copy_paste_events", "idle_time"
+                        "session_id",
+                        "user_id",
+                        "start_time",
+                        "end_time",
+                        "pages_visited",
+                        "actions_taken",
+                        "form_interactions",
+                        "copy_paste_events",
+                        "idle_time",
                     ]
-                }
+                },
             },
             "network_data": {
                 "fields": [
-                    "entity_id", "entity_type", "connected_entities",
-                    "relationship_type", "relationship_strength",
-                    "transaction_count", "total_amount"
+                    "entity_id",
+                    "entity_type",
+                    "connected_entities",
+                    "relationship_type",
+                    "relationship_strength",
+                    "transaction_count",
+                    "total_amount",
                 ]
             },
             "labels": {
                 "is_fraud": "boolean",
                 "fraud_type": "categorical",
                 "fraud_confidence": "float",
-                "manual_review": "boolean"
-            }
+                "manual_review": "boolean",
+            },
         }
 
         return schema
@@ -196,7 +238,7 @@ class SyntheticDataIntegration:
         fraud_percentage: float = 5.0,
         include_behavioral: bool = True,
         include_network: bool = True,
-        output_format: str = "csv"
+        output_format: str = "csv",
     ) -> Dict[str, Any]:
         """Generate comprehensive test dataset with all fraud patterns"""
 
@@ -218,7 +260,9 @@ class SyntheticDataIntegration:
                 transactions.append(transaction)
 
                 if include_behavioral:
-                    behavioral = self._generate_normal_behavioral_data(transaction["user_id"])
+                    behavioral = self._generate_normal_behavioral_data(
+                        transaction["user_id"]
+                    )
                     behavioral_data.extend(behavioral)
 
             # Generate fraudulent transactions with specific patterns
@@ -241,7 +285,9 @@ class SyntheticDataIntegration:
 
             # Generate network connections if requested
             if include_network:
-                network_data = self._generate_network_connections(transactions, fraud_patterns)
+                network_data = self._generate_network_connections(
+                    transactions, fraud_patterns
+                )
 
             # Create DataFrames
             transactions_df = pd.DataFrame(transactions)
@@ -252,22 +298,30 @@ class SyntheticDataIntegration:
 
             # Save transaction data
             if output_format == "csv":
-                transactions_path = self.output_dir / f"{base_filename}_transactions.csv"
+                transactions_path = (
+                    self.output_dir / f"{base_filename}_transactions.csv"
+                )
                 transactions_df.to_csv(transactions_path, index=False)
             else:
-                transactions_path = self.output_dir / f"{base_filename}_transactions.json"
-                transactions_df.to_json(transactions_path, orient='records', indent=2)
+                transactions_path = (
+                    self.output_dir / f"{base_filename}_transactions.json"
+                )
+                transactions_df.to_json(transactions_path, orient="records", indent=2)
 
             # Save behavioral data if generated
             behavioral_path = None
             if include_behavioral and behavioral_data:
                 behavioral_df = pd.DataFrame(behavioral_data)
                 if output_format == "csv":
-                    behavioral_path = self.output_dir / f"{base_filename}_behavioral.csv"
+                    behavioral_path = (
+                        self.output_dir / f"{base_filename}_behavioral.csv"
+                    )
                     behavioral_df.to_csv(behavioral_path, index=False)
                 else:
-                    behavioral_path = self.output_dir / f"{base_filename}_behavioral.json"
-                    behavioral_df.to_json(behavioral_path, orient='records', indent=2)
+                    behavioral_path = (
+                        self.output_dir / f"{base_filename}_behavioral.json"
+                    )
+                    behavioral_df.to_json(behavioral_path, orient="records", indent=2)
 
             # Save network data if generated
             network_path = None
@@ -278,10 +332,10 @@ class SyntheticDataIntegration:
                     network_df.to_csv(network_path, index=False)
                 else:
                     network_path = self.output_dir / f"{base_filename}_network.json"
-                    network_df.to_json(network_path, orient='records', indent=2)
+                    network_df.to_json(network_path, orient="records", indent=2)
 
             # Generate statistics
-            fraud_distribution = transactions_df['fraud_type'].value_counts().to_dict()
+            fraud_distribution = transactions_df["fraud_type"].value_counts().to_dict()
 
             result = {
                 "generation_info": {
@@ -291,17 +345,19 @@ class SyntheticDataIntegration:
                     "fraud_percentage": fraud_percentage,
                     "generation_timestamp": datetime.now().isoformat(),
                     "includes_behavioral": include_behavioral,
-                    "includes_network": include_network
+                    "includes_network": include_network,
                 },
                 "dataset_paths": {
                     "transactions": str(transactions_path),
                     "behavioral": str(behavioral_path) if behavioral_path else None,
-                    "network": str(network_path) if network_path else None
+                    "network": str(network_path) if network_path else None,
                 },
                 "fraud_distribution": fraud_distribution,
-                "schema_compliance": self._validate_schema_compliance(transactions_df, schema),
+                "schema_compliance": self._validate_schema_compliance(
+                    transactions_df, schema
+                ),
                 "integration_status": "success",
-                "ready_for_analysis": True
+                "ready_for_analysis": True,
             }
 
             return result
@@ -311,7 +367,7 @@ class SyntheticDataIntegration:
             return {
                 "error": str(e),
                 "status": "generation_failed",
-                "integration_status": "error"
+                "integration_status": "error",
             }
 
     def _generate_legitimate_transaction(self, index: int) -> Dict[str, Any]:
@@ -319,23 +375,41 @@ class SyntheticDataIntegration:
         return {
             "transaction_id": f"legit_{index:08d}",
             "user_id": f"user_{np.random.randint(1000, 9999)}",
-            "amount": round(np.random.lognormal(4.0, 1.0), 2),  # Log-normal distribution
-            "merchant": np.random.choice([
-                "Grocery Store", "Gas Station", "Coffee Shop", "Restaurant",
-                "Pharmacy", "Department Store", "Online Retailer"
-            ]),
+            "amount": round(
+                np.random.lognormal(4.0, 1.0), 2
+            ),  # Log-normal distribution
+            "merchant": np.random.choice(
+                [
+                    "Grocery Store",
+                    "Gas Station",
+                    "Coffee Shop",
+                    "Restaurant",
+                    "Pharmacy",
+                    "Department Store",
+                    "Online Retailer",
+                ]
+            ),
             "merchant_category": "retail",
-            "location": np.random.choice([
-                "New York, NY", "Los Angeles, CA", "Chicago, IL", "Houston, TX",
-                "Phoenix, AZ", "Philadelphia, PA", "San Antonio, TX"
-            ]),
+            "location": np.random.choice(
+                [
+                    "New York, NY",
+                    "Los Angeles, CA",
+                    "Chicago, IL",
+                    "Houston, TX",
+                    "Phoenix, AZ",
+                    "Philadelphia, PA",
+                    "San Antonio, TX",
+                ]
+            ),
             "timestamp": (
                 datetime.now() - timedelta(days=np.random.randint(0, 365))
             ).isoformat(),
-            "payment_method": np.random.choice(np.array(["credit_card", "debit_card", "bank_transfer"])),
+            "payment_method": np.random.choice(
+                np.array(["credit_card", "debit_card", "bank_transfer"])
+            ),
             "is_fraud": False,
             "fraud_type": "none",
-            "fraud_confidence": 0.0
+            "fraud_confidence": 0.0,
         }
 
     def _generate_fraudulent_transaction(
@@ -354,14 +428,18 @@ class SyntheticDataIntegration:
             "payment_method": "credit_card",
             "is_fraud": True,
             "fraud_type": fraud_type,
-            "fraud_confidence": 0.9
+            "fraud_confidence": 0.9,
         }
 
         # Apply specific fraud pattern
         if fraud_type == "high_amount_patterns":
-            amount_range = pattern["amount_ranges"][np.random.randint(0, len(pattern["amount_ranges"]))]
+            amount_range = pattern["amount_ranges"][
+                np.random.randint(0, len(pattern["amount_ranges"]))
+            ]
             base_transaction["amount"] = round(np.random.uniform(*amount_range), 2)
-            base_transaction["merchant"] = np.random.choice(np.array(pattern["merchants"]))
+            base_transaction["merchant"] = np.random.choice(
+                np.array(pattern["merchants"])
+            )
 
         elif fraud_type == "velocity_fraud":
             base_transaction["amount"] = round(
@@ -373,13 +451,14 @@ class SyntheticDataIntegration:
             ).isoformat()
 
         elif fraud_type == "geographic_anomaly":
-            base_transaction["location"] = np.random.choice(np.array(pattern["high_risk_locations"]))
+            base_transaction["location"] = np.random.choice(
+                np.array(pattern["high_risk_locations"])
+            )
 
         elif fraud_type == "temporal_anomaly":
             unusual_hour = np.random.choice(np.array(pattern["unusual_hours"]))
             anomalous_time = datetime.now().replace(
-                hour=unusual_hour,
-                minute=np.random.randint(0, 59)
+                hour=unusual_hour, minute=np.random.randint(0, 59)
             )
             base_transaction["timestamp"] = anomalous_time.isoformat()
 
@@ -401,14 +480,16 @@ class SyntheticDataIntegration:
             press_time = 1000 + i * 150 + np.random.normal(0, 20)
             dwell_time = base_dwell + np.random.normal(0, 15)
 
-            behavioral_data.append({
-                "user_id": user_id,
-                "session_id": f"session_{user_id}",
-                "key": key,
-                "press_time": int(press_time),
-                "release_time": int(press_time + dwell_time),
-                "is_anomaly": False
-            })
+            behavioral_data.append(
+                {
+                    "user_id": user_id,
+                    "session_id": f"session_{user_id}",
+                    "key": key,
+                    "press_time": int(press_time),
+                    "release_time": int(press_time + dwell_time),
+                    "is_anomaly": False,
+                }
+            )
 
         return behavioral_data
 
@@ -427,14 +508,16 @@ class SyntheticDataIntegration:
                 press_time = 1000 + i * 400 + np.random.normal(0, 100)  # More variation
                 dwell_time = base_dwell + np.random.normal(0, 50)
 
-                behavioral_data.append({
-                    "user_id": user_id,
-                    "session_id": f"session_{user_id}",
-                    "key": key,
-                    "press_time": int(press_time),
-                    "release_time": int(press_time + dwell_time),
-                    "is_anomaly": True
-                })
+                behavioral_data.append(
+                    {
+                        "user_id": user_id,
+                        "session_id": f"session_{user_id}",
+                        "key": key,
+                        "press_time": int(press_time),
+                        "release_time": int(press_time + dwell_time),
+                        "is_anomaly": True,
+                    }
+                )
 
         return behavioral_data
 
@@ -456,15 +539,17 @@ class SyntheticDataIntegration:
 
             # Create connections within the ring
             for i, user1 in enumerate(fraud_ring):
-                for user2 in fraud_ring[i+1:]:
-                    network_data.append({
-                        "entity_id": user1,
-                        "connected_entity": user2,
-                        "relationship_type": "frequent_interaction",
-                        "relationship_strength": 0.8,
-                        "transaction_count": np.random.randint(5, 20),
-                        "is_suspicious": True
-                    })
+                for user2 in fraud_ring[i + 1 :]:
+                    network_data.append(
+                        {
+                            "entity_id": user1,
+                            "connected_entity": user2,
+                            "relationship_type": "frequent_interaction",
+                            "relationship_strength": 0.8,
+                            "transaction_count": np.random.randint(5, 20),
+                            "is_suspicious": True,
+                        }
+                    )
 
         # Create normal connections
         normal_users = [u for u in users if u not in fraud_users]
@@ -474,18 +559,20 @@ class SyntheticDataIntegration:
             connected_users = np.random.choice(
                 [u for u in normal_users if u != user],
                 size=min(num_connections, len(normal_users) - 1),
-                replace=False
+                replace=False,
             )
 
             for connected_user in connected_users:
-                network_data.append({
-                    "entity_id": user,
-                    "connected_entity": connected_user,
-                    "relationship_type": "normal_interaction",
-                    "relationship_strength": 0.3,
-                    "transaction_count": np.random.randint(1, 5),
-                    "is_suspicious": False
-                })
+                network_data.append(
+                    {
+                        "entity_id": user,
+                        "connected_entity": connected_user,
+                        "relationship_type": "normal_interaction",
+                        "relationship_strength": 0.3,
+                        "transaction_count": np.random.randint(1, 5),
+                        "is_suspicious": False,
+                    }
+                )
 
         return network_data
 
@@ -498,7 +585,9 @@ class SyntheticDataIntegration:
         optional_fields = schema["transaction_data"]["optional_fields"]
 
         compliance = {
-            "has_required_fields": all(field in df.columns for field in required_fields),
+            "has_required_fields": all(
+                field in df.columns for field in required_fields
+            ),
             "missing_required_fields": [
                 field for field in required_fields if field not in df.columns
             ],
@@ -508,11 +597,10 @@ class SyntheticDataIntegration:
             "data_quality": {
                 "null_values": df.isnull().sum().to_dict(),
                 "duplicate_transactions": df["transaction_id"].duplicated().sum(),
-                "data_types_correct": True  # Simplified validation
+                "data_types_correct": True,  # Simplified validation
             },
             "fraud_labels_present": "is_fraud" in df.columns,
-            "schema_version": "1.0"
+            "schema_version": "1.0",
         }
 
         return compliance
-

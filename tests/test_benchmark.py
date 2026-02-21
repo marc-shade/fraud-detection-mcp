@@ -11,27 +11,32 @@ class TestBenchmarkValidation:
 
     def test_too_few_transactions(self):
         import server
+
         result = server.run_benchmark_impl(num_transactions=5)
         assert "error" in result
         assert result["status"] == "validation_failed"
 
     def test_too_many_transactions(self):
         import server
+
         result = server.run_benchmark_impl(num_transactions=10000)
         assert "error" in result
 
     def test_negative_fraud_percentage(self):
         import server
+
         result = server.run_benchmark_impl(fraud_percentage=-5)
         assert "error" in result
 
     def test_over_100_fraud_percentage(self):
         import server
+
         result = server.run_benchmark_impl(fraud_percentage=150)
         assert "error" in result
 
     def test_valid_min_transactions(self):
         import server
+
         if not server.SYNTHETIC_DATA_AVAILABLE:
             pytest.skip("Synthetic data not available")
         result = server.run_benchmark_impl(num_transactions=10)
@@ -47,11 +52,10 @@ class TestBenchmarkExecution:
     @pytest.fixture
     def benchmark_result(self):
         import server
+
         if not server.SYNTHETIC_DATA_AVAILABLE:
             pytest.skip("Synthetic data not available")
-        return server.run_benchmark_impl(
-            num_transactions=30, fraud_percentage=20.0
-        )
+        return server.run_benchmark_impl(num_transactions=30, fraud_percentage=20.0)
 
     def test_status_success(self, benchmark_result):
         assert benchmark_result["status"] == "success"
@@ -88,6 +92,7 @@ class TestBenchmarkExecution:
 
     def test_without_percentiles(self):
         import server
+
         if not server.SYNTHETIC_DATA_AVAILABLE:
             pytest.skip("Synthetic data not available")
         result = server.run_benchmark_impl(
@@ -114,8 +119,12 @@ class TestBenchmarkExecution:
         assert "false_positives" in acc
         assert "true_negatives" in acc
         assert "false_negatives" in acc
-        total = acc["true_positives"] + acc["false_positives"] + \
-                acc["true_negatives"] + acc["false_negatives"]
+        total = (
+            acc["true_positives"]
+            + acc["false_positives"]
+            + acc["true_negatives"]
+            + acc["false_negatives"]
+        )
         assert total == 30
 
     def test_has_risk_distribution(self, benchmark_result):
@@ -147,26 +156,25 @@ class TestBenchmarkEdgeCases:
 
     def test_zero_fraud(self):
         import server
+
         if not server.SYNTHETIC_DATA_AVAILABLE:
             pytest.skip("Synthetic data not available")
-        result = server.run_benchmark_impl(
-            num_transactions=20, fraud_percentage=0.0
-        )
+        result = server.run_benchmark_impl(num_transactions=20, fraud_percentage=0.0)
         assert result["status"] == "success"
         assert result["benchmark_config"]["actual_fraud_count"] == 0
 
     def test_all_fraud(self):
         import server
+
         if not server.SYNTHETIC_DATA_AVAILABLE:
             pytest.skip("Synthetic data not available")
-        result = server.run_benchmark_impl(
-            num_transactions=20, fraud_percentage=100.0
-        )
+        result = server.run_benchmark_impl(num_transactions=20, fraud_percentage=100.0)
         assert result["status"] == "success"
         assert result["benchmark_config"]["actual_legit_count"] == 0
 
     def test_unavailable_when_no_integration(self):
         import server
+
         original = server.SYNTHETIC_DATA_AVAILABLE
         original_integration = server.synthetic_data_integration
         try:
@@ -188,10 +196,12 @@ class TestBenchmarkMCPRegistration:
 
     def test_run_benchmark_registered(self):
         import server
+
         tools = list(server.mcp._tool_manager._tools.keys())
         assert "run_benchmark" in tools
 
     def test_total_tool_count(self):
         import server
+
         tools = list(server.mcp._tool_manager._tools.keys())
         assert len(tools) >= 13

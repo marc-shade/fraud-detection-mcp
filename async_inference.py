@@ -13,12 +13,7 @@ import json
 import logging
 from collections import OrderedDict
 
-from models_validation import (
-    TransactionData,
-    BehavioralData,
-    NetworkData,
-    RiskLevel
-)
+from models_validation import TransactionData, BehavioralData, NetworkData, RiskLevel
 from feature_engineering import FeatureEngineer
 from explainability import FraudExplainer
 
@@ -69,7 +64,7 @@ class AsyncInferenceEngine:
         feature_engineer: FeatureEngineer,
         explainer: Optional[FraudExplainer] = None,
         cache_size: int = 1000,
-        cache_ttl_seconds: int = 300
+        cache_ttl_seconds: int = 300,
     ):
         """
         Initialize inference engine
@@ -101,7 +96,7 @@ class AsyncInferenceEngine:
         behavioral: Optional[BehavioralData] = None,
         network: Optional[NetworkData] = None,
         use_cache: bool = True,
-        include_explanation: bool = True
+        include_explanation: bool = True,
     ) -> Dict[str, Any]:
         """
         Predict fraud risk for single transaction
@@ -128,9 +123,7 @@ class AsyncInferenceEngine:
                 return cached_result
 
         # Extract features
-        features = await self._extract_features_async(
-            transaction, behavioral, network
-        )
+        features = await self._extract_features_async(transaction, behavioral, network)
 
         # Run prediction
         prediction = await self._predict_async(features)
@@ -142,10 +135,7 @@ class AsyncInferenceEngine:
 
         # Build response
         response = self._build_response(
-            transaction,
-            prediction,
-            explanation_data,
-            start_time
+            transaction, prediction, explanation_data, start_time
         )
 
         # Cache result
@@ -166,7 +156,7 @@ class AsyncInferenceEngine:
         network_data: Optional[List[NetworkData]] = None,
         use_cache: bool = True,
         include_explanation: bool = True,
-        batch_size: int = 100
+        batch_size: int = 100,
     ) -> List[Dict[str, Any]]:
         """
         Predict fraud risk for batch of transactions
@@ -199,9 +189,11 @@ class AsyncInferenceEngine:
             # Create tasks for parallel processing
             tasks = [
                 self.predict_single(
-                    txn, behav, net,
+                    txn,
+                    behav,
+                    net,
                     use_cache=use_cache,
-                    include_explanation=include_explanation
+                    include_explanation=include_explanation,
                 )
                 for txn, behav, net in zip(batch_txns, batch_behav, batch_net)
             ]
@@ -212,13 +204,19 @@ class AsyncInferenceEngine:
             # Handle errors
             for j, result in enumerate(batch_results):
                 if isinstance(result, Exception):
-                    logger.error(f"Prediction failed for transaction {batch_txns[j].transaction_id}: {result}")
+                    logger.error(
+                        f"Prediction failed for transaction {batch_txns[j].transaction_id}: {result}"
+                    )
                     # Create error response
-                    results.append(self._create_error_response(batch_txns[j], str(result)))
+                    results.append(
+                        self._create_error_response(batch_txns[j], str(result))
+                    )
                 else:
                     results.append(result)
 
-            logger.debug(f"Completed batch {i // batch_size + 1} ({batch_end}/{len(transactions)})")
+            logger.debug(
+                f"Completed batch {i // batch_size + 1} ({batch_end}/{len(transactions)})"
+            )
 
         logger.info(f"Batch prediction complete. Processed {len(results)} transactions")
         return results
@@ -227,17 +225,13 @@ class AsyncInferenceEngine:
         self,
         transaction: TransactionData,
         behavioral: Optional[BehavioralData],
-        network: Optional[NetworkData]
+        network: Optional[NetworkData],
     ) -> np.ndarray:
         """Extract features asynchronously"""
         # Feature extraction is CPU-bound, but wrapped for async
         loop = asyncio.get_event_loop()
         features = await loop.run_in_executor(
-            None,
-            self.feature_engineer.transform,
-            transaction,
-            behavioral,
-            network
+            None, self.feature_engineer.transform, transaction, behavioral, network
         )
         return features
 
@@ -251,23 +245,19 @@ class AsyncInferenceEngine:
             features = features.reshape(1, -1)
 
         # Run prediction
-        if hasattr(self.model, 'predict_proba'):
+        if hasattr(self.model, "predict_proba"):
             prediction = await loop.run_in_executor(
-                None,
-                lambda: self.model.predict_proba(features)[0][1]
+                None, lambda: self.model.predict_proba(features)[0][1]
             )
         else:
             prediction = await loop.run_in_executor(
-                None,
-                lambda: self.model.predict(features)[0]
+                None, lambda: self.model.predict(features)[0]
             )
 
         return float(prediction)
 
     async def _explain_async(
-        self,
-        features: np.ndarray,
-        prediction: float
+        self, features: np.ndarray, prediction: float
     ) -> Optional[Dict[str, Any]]:
         """Generate explanation asynchronously"""
         if self.explainer is None:
@@ -279,7 +269,7 @@ class AsyncInferenceEngine:
             self.explainer.explain_prediction,
             features,
             prediction,
-            10  # top_n features
+            10,  # top_n features
         )
         return explanation
 
@@ -288,15 +278,19 @@ class AsyncInferenceEngine:
         transaction: TransactionData,
         prediction: float,
         explanation: Optional[Dict[str, Any]],
-        start_time: datetime
+        start_time: datetime,
     ) -> Dict[str, Any]:
         """Build AnalysisResponse dictionary"""
         # Determine risk level
         risk_level = self._calculate_risk_level(prediction)
 
         # Generate anomalies and recommendations
-        detected_anomalies = self._detect_anomalies(transaction, prediction, explanation)
-        recommended_actions = self._generate_recommendations(risk_level, detected_anomalies)
+        detected_anomalies = self._detect_anomalies(
+            transaction, prediction, explanation
+        )
+        recommended_actions = self._generate_recommendations(
+            risk_level, detected_anomalies
+        )
 
         # Calculate processing time
         processing_time_ms = (datetime.now() - start_time).total_seconds() * 1000
@@ -310,19 +304,19 @@ class AsyncInferenceEngine:
                 explanation_text = "Explanation not available"
 
         response = {
-            'transaction_id': transaction.transaction_id,
-            'risk_score': float(prediction),
-            'risk_level': risk_level.value,
-            'confidence': self._calculate_confidence(prediction),
-            'detected_anomalies': detected_anomalies,
-            'recommended_actions': recommended_actions,
-            'explanation': explanation_text,
-            'model_version': '2.0.0',
-            'analysis_timestamp': datetime.now().isoformat(),
-            'processing_time_ms': processing_time_ms,
-            'transaction_risk_score': float(prediction),
-            'behavioral_risk_score': None,  # Could be separated in future
-            'network_risk_score': None
+            "transaction_id": transaction.transaction_id,
+            "risk_score": float(prediction),
+            "risk_level": risk_level.value,
+            "confidence": self._calculate_confidence(prediction),
+            "detected_anomalies": detected_anomalies,
+            "recommended_actions": recommended_actions,
+            "explanation": explanation_text,
+            "model_version": "2.0.0",
+            "analysis_timestamp": datetime.now().isoformat(),
+            "processing_time_ms": processing_time_ms,
+            "transaction_risk_score": float(prediction),
+            "behavioral_risk_score": None,  # Could be separated in future
+            "network_risk_score": None,
         }
 
         return response
@@ -349,7 +343,7 @@ class AsyncInferenceEngine:
         self,
         transaction: TransactionData,
         risk_score: float,
-        explanation: Optional[Dict[str, Any]]
+        explanation: Optional[Dict[str, Any]],
     ) -> List[str]:
         """Detect specific anomalies"""
         anomalies = []
@@ -368,18 +362,16 @@ class AsyncInferenceEngine:
             anomalies.append("Weekend transaction")
 
         # Use explanation data if available
-        if explanation and 'risk_factors' in explanation:
-            for factor in explanation['risk_factors'][:3]:
-                feature = factor.get('feature', '')
-                if 'crypto' in feature and factor.get('value', 0) > 0.5:
+        if explanation and "risk_factors" in explanation:
+            for factor in explanation["risk_factors"][:3]:
+                feature = factor.get("feature", "")
+                if "crypto" in feature and factor.get("value", 0) > 0.5:
                     anomalies.append("Cryptocurrency payment method")
 
         return anomalies
 
     def _generate_recommendations(
-        self,
-        risk_level: RiskLevel,
-        anomalies: List[str]
+        self, risk_level: RiskLevel, anomalies: List[str]
     ) -> List[str]:
         """Generate recommended actions"""
         recommendations = []
@@ -402,42 +394,40 @@ class AsyncInferenceEngine:
         return recommendations
 
     def _create_error_response(
-        self,
-        transaction: TransactionData,
-        error_message: str
+        self, transaction: TransactionData, error_message: str
     ) -> Dict[str, Any]:
         """Create error response"""
         return {
-            'transaction_id': transaction.transaction_id,
-            'risk_score': 0.5,
-            'risk_level': RiskLevel.UNKNOWN.value,
-            'confidence': 0.0,
-            'detected_anomalies': ['Prediction error occurred'],
-            'recommended_actions': ['Manual review required'],
-            'explanation': f"Error during prediction: {error_message}",
-            'model_version': '2.0.0',
-            'analysis_timestamp': datetime.now().isoformat(),
-            'processing_time_ms': 0.0
+            "transaction_id": transaction.transaction_id,
+            "risk_score": 0.5,
+            "risk_level": RiskLevel.UNKNOWN.value,
+            "confidence": 0.0,
+            "detected_anomalies": ["Prediction error occurred"],
+            "recommended_actions": ["Manual review required"],
+            "explanation": f"Error during prediction: {error_message}",
+            "model_version": "2.0.0",
+            "analysis_timestamp": datetime.now().isoformat(),
+            "processing_time_ms": 0.0,
         }
 
     def _generate_cache_key(
         self,
         transaction: TransactionData,
         behavioral: Optional[BehavioralData],
-        network: Optional[NetworkData]
+        network: Optional[NetworkData],
     ) -> str:
         """Generate cache key from transaction data"""
         # Create deterministic hash
         key_data = {
-            'transaction_id': transaction.transaction_id,
-            'user_id': transaction.user_id,
-            'amount': transaction.amount,
-            'merchant': transaction.merchant,
-            'location': transaction.location,
-            'timestamp': transaction.timestamp.isoformat(),
-            'payment_method': transaction.payment_method,
-            'has_behavioral': behavioral is not None,
-            'has_network': network is not None
+            "transaction_id": transaction.transaction_id,
+            "user_id": transaction.user_id,
+            "amount": transaction.amount,
+            "merchant": transaction.merchant,
+            "location": transaction.location,
+            "timestamp": transaction.timestamp.isoformat(),
+            "payment_method": transaction.payment_method,
+            "has_behavioral": behavioral is not None,
+            "has_network": network is not None,
         }
 
         key_str = json.dumps(key_data, sort_keys=True)
@@ -452,7 +442,7 @@ class AsyncInferenceEngine:
         # Check if expired
         metadata = self.cache_metadata.get(cache_key)
         if metadata:
-            cached_time = metadata.get('timestamp')
+            cached_time = metadata.get("timestamp")
             if cached_time and (datetime.now() - cached_time) > self.cache_ttl:
                 # Expired, remove from cache
                 self.cache.cache.pop(cache_key, None)
@@ -464,9 +454,7 @@ class AsyncInferenceEngine:
     def _put_in_cache(self, cache_key: str, result: Dict[str, Any]):
         """Put prediction in cache"""
         self.cache.put(cache_key, result)
-        self.cache_metadata[cache_key] = {
-            'timestamp': datetime.now()
-        }
+        self.cache_metadata[cache_key] = {"timestamp": datetime.now()}
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get inference statistics"""
@@ -483,11 +471,11 @@ class AsyncInferenceEngine:
         )
 
         return {
-            'total_predictions': self.total_predictions,
-            'cache_hits': self.cache_hits,
-            'cache_hit_rate': cache_hit_rate,
-            'cache_size': self.cache.size(),
-            'average_time_ms': avg_time_ms
+            "total_predictions": self.total_predictions,
+            "cache_hits": self.cache_hits,
+            "cache_hit_rate": cache_hit_rate,
+            "cache_size": self.cache.size(),
+            "average_time_ms": avg_time_ms,
         }
 
     def clear_cache(self):
@@ -507,7 +495,7 @@ class AsyncFraudDetector:
         self,
         fraud_pipeline,
         feature_engineer: FeatureEngineer,
-        use_advanced_models: bool = True
+        use_advanced_models: bool = True,
     ):
         """
         Initialize async fraud detector
@@ -522,10 +510,10 @@ class AsyncFraudDetector:
         self.use_advanced_models = use_advanced_models
 
         # Check which models are available
-        self.has_autoencoder = 'autoencoder' in fraud_pipeline.models
-        self.has_gnn = 'gnn' in fraud_pipeline.models
-        self.has_isolation_forest = 'isolation_forest' in fraud_pipeline.models
-        self.has_xgboost = 'xgboost' in fraud_pipeline.models
+        self.has_autoencoder = "autoencoder" in fraud_pipeline.models
+        self.has_gnn = "gnn" in fraud_pipeline.models
+        self.has_isolation_forest = "isolation_forest" in fraud_pipeline.models
+        self.has_xgboost = "xgboost" in fraud_pipeline.models
 
         logger.info("AsyncFraudDetector initialized:")
         logger.info(f"  - Isolation Forest: {self.has_isolation_forest}")
@@ -550,8 +538,10 @@ class AsyncFraudDetector:
         features_array = np.array(features).reshape(1, -1)
 
         # Scale features if scaler available
-        if 'transaction' in self.pipeline.scalers:
-            features_array = self.pipeline.scalers['transaction'].transform(features_array)
+        if "transaction" in self.pipeline.scalers:
+            features_array = self.pipeline.scalers["transaction"].transform(
+                features_array
+            )
 
         # Collect predictions from available models
         predictions = {}
@@ -559,31 +549,38 @@ class AsyncFraudDetector:
 
         # Traditional models
         if self.has_isolation_forest:
-            iso_score = self.pipeline.models['isolation_forest'].score_samples(features_array)[0]
+            iso_score = self.pipeline.models["isolation_forest"].score_samples(
+                features_array
+            )[0]
             iso_proba = self._anomaly_score_to_proba(iso_score)
-            predictions['isolation_forest'] = 1 if iso_proba > 0.5 else 0
-            probabilities['isolation_forest'] = iso_proba
+            predictions["isolation_forest"] = 1 if iso_proba > 0.5 else 0
+            probabilities["isolation_forest"] = iso_proba
 
         if self.has_xgboost:
-            xgb_proba = self.pipeline.models['xgboost'].predict_proba(features_array)[0, 1]
-            predictions['xgboost'] = 1 if xgb_proba > 0.5 else 0
-            probabilities['xgboost'] = xgb_proba
+            xgb_proba = self.pipeline.models["xgboost"].predict_proba(features_array)[
+                0, 1
+            ]
+            predictions["xgboost"] = 1 if xgb_proba > 0.5 else 0
+            probabilities["xgboost"] = xgb_proba
 
         # Advanced models
         if self.use_advanced_models and self.has_autoencoder:
-            auto_proba = self.pipeline.models['autoencoder'].predict_proba(features_array)[0, 1]
-            predictions['autoencoder'] = 1 if auto_proba > 0.5 else 0
-            probabilities['autoencoder'] = auto_proba
+            auto_proba = self.pipeline.models["autoencoder"].predict_proba(
+                features_array
+            )[0, 1]
+            predictions["autoencoder"] = 1 if auto_proba > 0.5 else 0
+            probabilities["autoencoder"] = auto_proba
 
         if self.use_advanced_models and self.has_gnn:
-            gnn_proba = self.pipeline.models['gnn'].predict_proba(features_array)[0, 1]
-            predictions['gnn'] = 1 if gnn_proba > 0.5 else 0
-            probabilities['gnn'] = gnn_proba
+            gnn_proba = self.pipeline.models["gnn"].predict_proba(features_array)[0, 1]
+            predictions["gnn"] = 1 if gnn_proba > 0.5 else 0
+            probabilities["gnn"] = gnn_proba
 
         # Ensemble prediction (weighted average)
         weights = self._get_model_weights()
-        ensemble_proba = sum(probabilities[name] * weights[name]
-                            for name in probabilities.keys()) / sum(weights[name] for name in probabilities.keys())
+        ensemble_proba = sum(
+            probabilities[name] * weights[name] for name in probabilities.keys()
+        ) / sum(weights[name] for name in probabilities.keys())
 
         # Determine risk level
         if ensemble_proba < 0.3:
@@ -603,7 +600,7 @@ class AsyncFraudDetector:
             "model_predictions": predictions,
             "model_probabilities": probabilities,
             "confidence": float(1.0 - abs(ensemble_proba - 0.5) * 2),
-            "features_analyzed": len(features)
+            "features_analyzed": len(features),
         }
 
     def _anomaly_score_to_proba(self, score: float) -> float:
@@ -620,16 +617,16 @@ class AsyncFraudDetector:
         weights = {}
 
         if self.has_isolation_forest:
-            weights['isolation_forest'] = 0.2
+            weights["isolation_forest"] = 0.2
 
         if self.has_xgboost:
-            weights['xgboost'] = 0.4
+            weights["xgboost"] = 0.4
 
         if self.use_advanced_models and self.has_autoencoder:
-            weights['autoencoder'] = 0.2
+            weights["autoencoder"] = 0.2
 
         if self.use_advanced_models and self.has_gnn:
-            weights['gnn'] = 0.3
+            weights["gnn"] = 0.3
 
         return weights
 
@@ -639,7 +636,7 @@ def create_inference_engine(
     model,
     feature_engineer: FeatureEngineer,
     explainer: Optional[FraudExplainer] = None,
-    cache_size: int = 1000
+    cache_size: int = 1000,
 ) -> AsyncInferenceEngine:
     """
     Create async inference engine
@@ -657,8 +654,13 @@ def create_inference_engine(
         model=model,
         feature_engineer=feature_engineer,
         explainer=explainer,
-        cache_size=cache_size
+        cache_size=cache_size,
     )
 
 
-__all__ = ['AsyncInferenceEngine', 'AsyncFraudDetector', 'create_inference_engine', 'LRUCache']
+__all__ = [
+    "AsyncInferenceEngine",
+    "AsyncFraudDetector",
+    "create_inference_engine",
+    "LRUCache",
+]

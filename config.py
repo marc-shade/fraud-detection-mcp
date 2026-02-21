@@ -45,9 +45,7 @@ class AppConfig(BaseSettings):
     THRESHOLD_MEDIUM_RISK: float = 0.4
 
     # High-risk indicators
-    HIGH_RISK_LOCATIONS: list = Field(
-        default_factory=lambda: ["unknown"]
-    )
+    HIGH_RISK_LOCATIONS: list = Field(default_factory=lambda: ["unknown"])
     HIGH_RISK_PAYMENT_METHODS: list = Field(
         default_factory=lambda: ["crypto", "prepaid_card", "money_order"]
     )
@@ -85,9 +83,7 @@ class AppConfig(BaseSettings):
     LOG_LEVEL: str = Field(default="INFO")
 
     # MLflow settings
-    MLFLOW_TRACKING_URI: Optional[str] = Field(
-        default=None
-    )
+    MLFLOW_TRACKING_URI: Optional[str] = Field(default=None)
     MLFLOW_EXPERIMENT_NAME: str = "fraud-detection"
 
     @field_validator("MODEL_DIR", "DATA_DIR", "TEST_DATA_DIR", "LOG_DIR", "CACHE_DIR")
@@ -104,6 +100,7 @@ class AppConfig(BaseSettings):
         """Generate JWT secret if not provided in production"""
         if v is None and info.data.get("ENVIRONMENT") == "production":
             import secrets
+
             return secrets.token_urlsafe(32)
         return v
 
@@ -127,7 +124,7 @@ class ModelConfig:
             "n_estimators": self.config.ISOLATION_FOREST_N_ESTIMATORS,
             "random_state": 42,
             "n_jobs": -1,
-            "max_samples": 256
+            "max_samples": 256,
         }
 
     def get_xgboost_params(self) -> Dict[str, Any]:
@@ -140,7 +137,7 @@ class ModelConfig:
             "colsample_bytree": 0.8,
             "random_state": 42,
             "n_jobs": -1,
-            "eval_metric": "aucpr"
+            "eval_metric": "aucpr",
         }
 
     def get_autoencoder_params(self) -> Dict[str, Any]:
@@ -150,7 +147,7 @@ class ModelConfig:
             "learning_rate": 0.001,
             "batch_size": 128,
             "epochs": 50,
-            "dropout_rate": 0.2
+            "dropout_rate": 0.2,
         }
 
     def get_gnn_params(self) -> Dict[str, Any]:
@@ -161,7 +158,7 @@ class ModelConfig:
             "learning_rate": 0.01,
             "batch_size": 32,
             "epochs": 100,
-            "dropout": 0.5
+            "dropout": 0.5,
         }
 
 

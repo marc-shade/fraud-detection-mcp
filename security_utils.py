@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional
 # Input Sanitiser
 # ---------------------------------------------------------------------------
 
+
 class InputSanitizer:
     """Sanitise untrusted input before it reaches the analysis pipeline."""
 
@@ -41,7 +42,9 @@ class InputSanitizer:
         return value[:max_length]
 
     @classmethod
-    def sanitize_dict(cls, data: Dict[str, Any], *, max_depth: int = 10) -> Dict[str, Any]:
+    def sanitize_dict(
+        cls, data: Dict[str, Any], *, max_depth: int = 10
+    ) -> Dict[str, Any]:
         """Recursively sanitise every string value inside *data*.
 
         Non-string leaves (int, float, bool, None) are passed through
@@ -53,7 +56,11 @@ class InputSanitizer:
             return data
         out: Dict[str, Any] = {}
         for key, val in data.items():
-            skey = cls.sanitize_string(str(key)) if not isinstance(key, str) else cls.sanitize_string(key)
+            skey = (
+                cls.sanitize_string(str(key))
+                if not isinstance(key, str)
+                else cls.sanitize_string(key)
+            )
             out[skey] = cls._sanitize_value(val, max_depth=max_depth - 1)
         return out
 
@@ -65,7 +72,9 @@ class InputSanitizer:
             if max_depth <= 0:
                 return val
             return {
-                cls.sanitize_string(str(k)): cls._sanitize_value(v, max_depth=max_depth - 1)
+                cls.sanitize_string(str(k)): cls._sanitize_value(
+                    v, max_depth=max_depth - 1
+                )
                 for k, v in val.items()
             }
         if isinstance(val, list):
@@ -77,6 +86,7 @@ class InputSanitizer:
 # ---------------------------------------------------------------------------
 # In-Memory Rate Limiter (sliding window)
 # ---------------------------------------------------------------------------
+
 
 class InMemoryRateLimiter:
     """Simple sliding-window rate limiter backed by an in-memory dict.

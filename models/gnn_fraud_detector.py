@@ -17,6 +17,7 @@ try:
     import torch.nn.functional as F
     from torch_geometric.nn import SAGEConv, global_mean_pool
     from torch_geometric.data import Data
+
     TORCH_GEOMETRIC_AVAILABLE = True
     PYTORCH_AVAILABLE = True
     logger.info("PyTorch Geometric loaded successfully for GNN")
@@ -24,14 +25,18 @@ except ImportError:
     TORCH_GEOMETRIC_AVAILABLE = False
     try:
         import torch
+
         PYTORCH_AVAILABLE = True
-        logger.warning("PyTorch available but PyTorch Geometric missing - using fallback")
+        logger.warning(
+            "PyTorch available but PyTorch Geometric missing - using fallback"
+        )
     except ImportError:
         PYTORCH_AVAILABLE = False
         logger.warning("PyTorch not available - GNN will use fallback implementation")
 
 
 if TORCH_GEOMETRIC_AVAILABLE:
+
     class GNNNetwork(nn.Module):
         """
         Graph Neural Network for fraud detection
@@ -43,7 +48,7 @@ if TORCH_GEOMETRIC_AVAILABLE:
             input_dim: int,
             hidden_dim: int = 64,
             num_layers: int = 2,
-            dropout: float = 0.2
+            dropout: float = 0.2,
         ):
             super(GNNNetwork, self).__init__()
 
@@ -68,7 +73,7 @@ if TORCH_GEOMETRIC_AVAILABLE:
                 nn.Linear(hidden_dim, hidden_dim // 2),
                 nn.ReLU(),
                 nn.Dropout(dropout),
-                nn.Linear(hidden_dim // 2, 2)  # Binary classification
+                nn.Linear(hidden_dim // 2, 2),  # Binary classification
             )
 
         def forward(self, x, edge_index, batch=None):
@@ -112,7 +117,7 @@ class GNNFraudDetector:
         learning_rate: float = 0.001,
         epochs: int = 50,
         batch_size: int = 32,
-        device: Optional[str] = None
+        device: Optional[str] = None,
     ):
         """
         Initialize GNN fraud detector
@@ -138,23 +143,20 @@ class GNNFraudDetector:
 
         # Determine device
         if not TORCH_GEOMETRIC_AVAILABLE:
-            self.device = 'cpu'
+            self.device = "cpu"
             self.fallback_mode = True
             logger.warning("Using fallback mode (no PyTorch Geometric)")
         else:
             if device is None:
-                self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                self.device = "cuda" if torch.cuda.is_available() else "cpu"
             else:
                 self.device = device
             self.fallback_mode = False
             logger.info(f"GNNFraudDetector initialized on device: {self.device}")
 
     def fit(
-        self,
-        X: np.ndarray,
-        y: np.ndarray,
-        edge_index: Optional[np.ndarray] = None
-    ) -> 'GNNFraudDetector':
+        self, X: np.ndarray, y: np.ndarray, edge_index: Optional[np.ndarray] = None
+    ) -> "GNNFraudDetector":
         """
         Fit GNN on transaction network
 
@@ -186,14 +188,14 @@ class GNNFraudDetector:
         data = Data(
             x=torch.FloatTensor(X_normalized),
             edge_index=torch.LongTensor(edge_index),
-            y=torch.LongTensor(y)
+            y=torch.LongTensor(y),
         ).to(self.device)
 
         # Create model
         self.model = GNNNetwork(
             input_dim=self.input_dim,
             hidden_dim=self.hidden_dim,
-            num_layers=self.num_layers
+            num_layers=self.num_layers,
         ).to(self.device)
 
         # Training setup
@@ -218,15 +220,15 @@ class GNNFraudDetector:
                 pred = out.argmax(dim=1)
                 correct = (pred == data.y).sum().item()
                 acc = correct / len(data.y)
-                logger.info(f"Epoch [{epoch+1}/{self.epochs}], Loss: {loss.item():.4f}, Acc: {acc:.4f}")
+                logger.info(
+                    f"Epoch [{epoch + 1}/{self.epochs}], Loss: {loss.item():.4f}, Acc: {acc:.4f}"
+                )
 
         logger.info("GNN training complete")
         return self
 
     def predict(
-        self,
-        X: np.ndarray,
-        edge_index: Optional[np.ndarray] = None
+        self, X: np.ndarray, edge_index: Optional[np.ndarray] = None
     ) -> np.ndarray:
         """
         Predict fraud labels
@@ -253,8 +255,7 @@ class GNNFraudDetector:
 
         # Create data
         data = Data(
-            x=torch.FloatTensor(X_normalized),
-            edge_index=torch.LongTensor(edge_index)
+            x=torch.FloatTensor(X_normalized), edge_index=torch.LongTensor(edge_index)
         ).to(self.device)
 
         # Predict
@@ -265,9 +266,7 @@ class GNNFraudDetector:
             return pred.cpu().numpy()
 
     def predict_proba(
-        self,
-        X: np.ndarray,
-        edge_index: Optional[np.ndarray] = None
+        self, X: np.ndarray, edge_index: Optional[np.ndarray] = None
     ) -> np.ndarray:
         """
         Predict fraud probabilities
@@ -294,8 +293,7 @@ class GNNFraudDetector:
 
         # Create data
         data = Data(
-            x=torch.FloatTensor(X_normalized),
-            edge_index=torch.LongTensor(edge_index)
+            x=torch.FloatTensor(X_normalized), edge_index=torch.LongTensor(edge_index)
         ).to(self.device)
 
         # Predict probabilities
@@ -319,14 +317,14 @@ class GNNFraudDetector:
         from sklearn.neighbors import kneighbors_graph
 
         # Create KNN graph
-        A = kneighbors_graph(X, k, mode='connectivity', include_self=False)
+        A = kneighbors_graph(X, k, mode="connectivity", include_self=False)
 
         # Convert to edge list
         edge_index = np.array(A.nonzero())
 
         return edge_index
 
-    def _fit_fallback(self, X: np.ndarray, y: np.ndarray) -> 'GNNFraudDetector':
+    def _fit_fallback(self, X: np.ndarray, y: np.ndarray) -> "GNNFraudDetector":
         """Fallback fitting using simple classifier"""
         logger.warning("Using fallback mode - limited functionality")
 
@@ -365,23 +363,30 @@ class GNNFraudDetector:
         if self.fallback_mode or not TORCH_GEOMETRIC_AVAILABLE:
             # Save using joblib for sklearn model
             import joblib
-            joblib.dump({
-                'model': self.model,
-                'scaler_mean': self.scaler_mean,
-                'scaler_std': self.scaler_std,
-                'fallback_mode': True
-            }, path)
+
+            joblib.dump(
+                {
+                    "model": self.model,
+                    "scaler_mean": self.scaler_mean,
+                    "scaler_std": self.scaler_std,
+                    "fallback_mode": True,
+                },
+                path,
+            )
             logger.info(f"Fallback model saved to {path}")
         else:
             # Save PyTorch model
-            torch.save({
-                'model_state': self.model.state_dict(),
-                'input_dim': self.input_dim,
-                'hidden_dim': self.hidden_dim,
-                'num_layers': self.num_layers,
-                'scaler_mean': self.scaler_mean,
-                'scaler_std': self.scaler_std
-            }, path)
+            torch.save(
+                {
+                    "model_state": self.model.state_dict(),
+                    "input_dim": self.input_dim,
+                    "hidden_dim": self.hidden_dim,
+                    "num_layers": self.num_layers,
+                    "scaler_mean": self.scaler_mean,
+                    "scaler_std": self.scaler_std,
+                },
+                path,
+            )
             logger.info(f"GNN model saved to {path}")
 
     def load(self, path: str):
@@ -389,27 +394,28 @@ class GNNFraudDetector:
         if self.fallback_mode or not TORCH_GEOMETRIC_AVAILABLE:
             # Load using joblib
             import joblib
+
             data = joblib.load(path)
-            self.model = data['model']
-            self.scaler_mean = data['scaler_mean']
-            self.scaler_std = data['scaler_std']
+            self.model = data["model"]
+            self.scaler_mean = data["scaler_mean"]
+            self.scaler_std = data["scaler_std"]
             self.fallback_mode = True
             logger.info(f"Fallback model loaded from {path}")
         else:
             # Load PyTorch model
             checkpoint = torch.load(path, map_location=self.device)
-            self.input_dim = checkpoint['input_dim']
-            self.hidden_dim = checkpoint['hidden_dim']
-            self.num_layers = checkpoint['num_layers']
-            self.scaler_mean = checkpoint['scaler_mean']
-            self.scaler_std = checkpoint['scaler_std']
+            self.input_dim = checkpoint["input_dim"]
+            self.hidden_dim = checkpoint["hidden_dim"]
+            self.num_layers = checkpoint["num_layers"]
+            self.scaler_mean = checkpoint["scaler_mean"]
+            self.scaler_std = checkpoint["scaler_std"]
 
             self.model = GNNNetwork(
                 input_dim=self.input_dim,
                 hidden_dim=self.hidden_dim,
-                num_layers=self.num_layers
+                num_layers=self.num_layers,
             ).to(self.device)
-            self.model.load_state_dict(checkpoint['model_state'])
+            self.model.load_state_dict(checkpoint["model_state"])
             self.model.eval()
             logger.info(f"GNN model loaded from {path}")
 
@@ -429,8 +435,8 @@ def create_gnn_detector(**kwargs) -> GNNFraudDetector:
 
 
 __all__ = [
-    'GNNFraudDetector',
-    'create_gnn_detector',
-    'TORCH_GEOMETRIC_AVAILABLE',
-    'PYTORCH_AVAILABLE'
+    "GNNFraudDetector",
+    "create_gnn_detector",
+    "TORCH_GEOMETRIC_AVAILABLE",
+    "PYTORCH_AVAILABLE",
 ]
