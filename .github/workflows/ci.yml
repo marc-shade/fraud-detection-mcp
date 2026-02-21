@@ -7,6 +7,20 @@ on:
     branches: [main, master]
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+      - run: python -m pytest tests/ -v --tb=short --cov=server --cov-report=term-missing --cov-fail-under=60
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -14,9 +28,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
       - run: pip install ruff
-      - run: ruff check . --output-format=github || true
-      - run: ruff format --check . || true
+      - run: ruff check . --output-format=github
+      - run: ruff format --check .
 
   security:
     runs-on: ubuntu-latest
@@ -25,13 +40,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install bandit pip-audit
-      - run: bandit -r . -x ./tests,./.venv -ll || true
-      - run: |
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-            pip-audit --strict || true
-          fi
+          cache: 'pip'
+      - run: pip install bandit
+      - run: bandit -r . -x ./tests,./venv -ll
 
   type-check:
     runs-on: ubuntu-latest
@@ -40,8 +51,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
       - run: |
           pip install mypy
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-      - run: |
-          if [ -f server.py ]; then mypy server.py --ignore-missing-imports || true; fi
+          pip install -r requirements.txt
+      - run: mypy server.py --ignore-missing-imports
