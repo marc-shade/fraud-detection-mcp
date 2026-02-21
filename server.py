@@ -1579,6 +1579,56 @@ def explain_decision_impl(
         }
 
 
+def classify_traffic_source_impl(
+    transaction_data: Dict[str, Any],
+    request_metadata: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """Implementation of traffic source classification.
+
+    Determines whether a transaction originates from a human user,
+    an AI agent, or an unknown source.
+
+    Args:
+        transaction_data: Transaction data (may contain agent fields).
+        request_metadata: Optional additional metadata (user_agent, is_agent, etc.).
+
+    Returns:
+        Classification result with source, confidence, agent_type, and signals.
+    """
+    try:
+        if not isinstance(transaction_data, dict):
+            return {
+                "error": "transaction_data must be a dictionary",
+                "status": "validation_failed",
+                "source": "unknown",
+                "confidence": 0.0,
+            }
+
+        # Merge transaction_data agent fields with request_metadata
+        merged = {}
+        for key in ("is_agent", "agent_identifier", "user_agent"):
+            val = None
+            if request_metadata and isinstance(request_metadata, dict):
+                val = request_metadata.get(key)
+            if val is None:
+                val = transaction_data.get(key)
+            if val is not None:
+                merged[key] = val
+
+        result = traffic_classifier.classify(merged)
+        result["classification_timestamp"] = datetime.now().isoformat()
+        return result
+
+    except Exception as e:
+        logger.error(f"Traffic classification failed: {e}")
+        return {
+            "error": str(e),
+            "source": "unknown",
+            "confidence": 0.0,
+            "status": "classification_failed",
+        }
+
+
 def analyze_batch_impl(
     transactions: List[Dict[str, Any]],
     use_cache: bool = True
@@ -2329,6 +2379,30 @@ def explain_decision(
         Detailed explanation of the decision-making process
     """
     return explain_decision_impl(analysis_result, transaction_data)
+
+
+@_monitored("/classify_traffic_source", "TOOL")
+@mcp.tool()
+def classify_traffic_source(
+    transaction_data: Dict[str, Any],
+    request_metadata: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Classify whether a transaction originates from a human, AI agent, or unknown source.
+
+    Analyzes transaction metadata, User-Agent strings, and explicit agent flags
+    to determine traffic source. Recognizes major agent commerce protocols:
+    Stripe ACP, Visa TAP, Mastercard Agent Pay, Google AP2, PayPal Agent Ready,
+    Coinbase x402, OpenAI Operator, and Anthropic Claude agents.
+
+    Args:
+        transaction_data: Transaction details (may include is_agent, agent_identifier, user_agent fields)
+        request_metadata: Optional request metadata (user_agent, is_agent flag, agent_identifier)
+
+    Returns:
+        Classification with source (human/agent/unknown), confidence, agent_type, and signals
+    """
+    return classify_traffic_source_impl(transaction_data, request_metadata)
 
 
 @_monitored("/analyze_batch", "TOOL")

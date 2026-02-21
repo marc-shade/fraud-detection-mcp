@@ -148,3 +148,49 @@ class TestTrafficClassifier:
         })
         assert result["source"] == "agent"
         assert result["agent_type"] == "anthropic"
+
+
+class TestClassifyTrafficSourceImpl:
+    """Tests for the classify_traffic_source_impl function"""
+
+    @pytest.mark.unit
+    def test_impl_returns_valid_result(self):
+        from server import classify_traffic_source_impl
+        result = classify_traffic_source_impl({
+            "user_agent": "Stripe-ACP/1.0",
+            "amount": 100.0
+        })
+        assert result["source"] == "agent"
+        assert "classification_timestamp" in result
+
+    @pytest.mark.unit
+    def test_impl_with_transaction_data_and_metadata(self):
+        from server import classify_traffic_source_impl
+        result = classify_traffic_source_impl(
+            {"amount": 100.0, "merchant": "Store"},
+            {"user_agent": "Mozilla/5.0 Chrome/120", "is_agent": False}
+        )
+        assert result["source"] == "human"
+
+    @pytest.mark.unit
+    def test_impl_invalid_input(self):
+        from server import classify_traffic_source_impl
+        result = classify_traffic_source_impl("not a dict")
+        assert "error" in result
+
+    @pytest.mark.unit
+    def test_impl_metadata_in_transaction_data(self):
+        """Agent fields in transaction_data itself should be detected"""
+        from server import classify_traffic_source_impl
+        result = classify_traffic_source_impl({
+            "amount": 100.0,
+            "is_agent": True,
+            "agent_identifier": "test-agent-1"
+        })
+        assert result["source"] == "agent"
+
+    @pytest.mark.unit
+    def test_impl_empty_input(self):
+        from server import classify_traffic_source_impl
+        result = classify_traffic_source_impl({})
+        assert result["source"] == "unknown"
