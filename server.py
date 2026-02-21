@@ -904,7 +904,7 @@ else:
 
 # Initialize monitoring
 if MONITORING_AVAILABLE:
-    monitor = MonitoringManager(app_name="fraud-detection-mcp", version="2.1.0")
+    monitor = MonitoringManager(app_name="fraud-detection-mcp", version="2.3.0")
 else:
     monitor = None
 
@@ -1101,7 +1101,7 @@ def analyze_transaction_impl(
 
         results["explanation"] = explanation
         results["analysis_timestamp"] = datetime.now().isoformat()
-        results["model_version"] = "v2.1.0"
+        results["model_version"] = "v2.3.0"
 
         # Record monitoring metrics
         if monitor is not None:
@@ -1550,7 +1550,7 @@ def health_check_impl() -> Dict[str, Any]:
     result = {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "version": "2.2.0",
+        "version": "2.3.0",
         "models": {
             "isolation_forest": transaction_analyzer.isolation_forest is not None,
             "feature_engineer": transaction_analyzer.feature_engineer is not None,

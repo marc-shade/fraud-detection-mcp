@@ -4,10 +4,9 @@ Configuration management for fraud detection MCP
 Handles environment variables, paths, and system settings
 """
 
-import os
 from pathlib import Path
 from typing import Optional, Dict, Any
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
@@ -20,9 +19,9 @@ class AppConfig(BaseSettings):
 
     # Application settings
     APP_NAME: str = "fraud-detection-mcp"
-    APP_VERSION: str = "2.0.0"
-    ENVIRONMENT: str = Field(default="development", env="ENVIRONMENT")
-    DEBUG: bool = Field(default=False, env="DEBUG")
+    APP_VERSION: str = "2.3.0"
+    ENVIRONMENT: str = Field(default="development")
+    DEBUG: bool = Field(default=False)
 
     # Paths
     BASE_DIR: Path = Field(default_factory=lambda: Path.cwd())
@@ -66,12 +65,12 @@ class AppConfig(BaseSettings):
     CACHE_TTL_SECONDS: int = 3600
 
     # Database settings (optional)
-    DATABASE_URL: Optional[str] = Field(default=None, env="DATABASE_URL")
-    REDIS_URL: Optional[str] = Field(default="redis://localhost:6379", env="REDIS_URL")
+    DATABASE_URL: Optional[str] = Field(default=None)
+    REDIS_URL: Optional[str] = Field(default="redis://localhost:6379")
 
     # Security settings
     API_KEY_HEADER: str = "X-API-Key"
-    JWT_SECRET_KEY: Optional[str] = Field(default=None, env="JWT_SECRET_KEY")
+    JWT_SECRET_KEY: Optional[str] = Field(default=None)
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
@@ -81,13 +80,13 @@ class AppConfig(BaseSettings):
     RATE_LIMIT_ENTERPRISE: str = "10000/minute"
 
     # Monitoring
-    ENABLE_METRICS: bool = Field(default=True, env="ENABLE_METRICS")
-    METRICS_PORT: int = Field(default=9090, env="METRICS_PORT")
-    LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
+    ENABLE_METRICS: bool = Field(default=True)
+    METRICS_PORT: int = Field(default=9090)
+    LOG_LEVEL: str = Field(default="INFO")
 
     # MLflow settings
     MLFLOW_TRACKING_URI: Optional[str] = Field(
-        default=None, env="MLFLOW_TRACKING_URI"
+        default=None
     )
     MLFLOW_EXPERIMENT_NAME: str = "fraud-detection"
 
@@ -108,10 +107,11 @@ class AppConfig(BaseSettings):
             return secrets.token_urlsafe(32)
         return v
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+    )
 
 
 class ModelConfig:

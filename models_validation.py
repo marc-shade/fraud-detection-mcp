@@ -4,7 +4,7 @@ Pydantic validation models for fraud detection inputs
 Ensures all inputs are validated and sanitized
 """
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from enum import Enum
@@ -151,7 +151,7 @@ class TransactionData(BaseModel):
 
         for dangerous_str in dangerous:
             if dangerous_str in v_upper:
-                raise ValueError(f'Invalid characters detected')
+                raise ValueError('Invalid characters detected')
 
         return v.strip()
 
@@ -175,12 +175,10 @@ class TransactionData(BaseModel):
 
         return self
 
-    class Config:
-        use_enum_values = True
-        validate_assignment = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    model_config = ConfigDict(
+        use_enum_values=True,
+        validate_assignment=True,
+    )
 
 
 class BehavioralData(BaseModel):
@@ -188,12 +186,12 @@ class BehavioralData(BaseModel):
 
     keystroke_dynamics: Optional[List[KeystrokeEvent]] = Field(
         None,
-        max_items=10000,  # Prevent memory exhaustion
+        max_length=10000,  # Prevent memory exhaustion
         description="Keystroke timing events"
     )
     mouse_patterns: Optional[List[Dict[str, Any]]] = Field(
         None,
-        max_items=10000,
+        max_length=10000,
         description="Mouse movement patterns"
     )
     session_duration: Optional[int] = Field(
@@ -247,7 +245,7 @@ class NetworkData(BaseModel):
     )
     connections: List[Dict[str, Any]] = Field(
         default_factory=list,
-        max_items=10000,
+        max_length=10000,
         description="List of connected entities"
     )
 
@@ -289,8 +287,7 @@ class AnalysisRequest(BaseModel):
         description="Include explainable AI reasoning"
     )
 
-    class Config:
-        validate_assignment = True
+    model_config = ConfigDict(validate_assignment=True)
 
 
 class AnalysisResponse(BaseModel):
@@ -303,7 +300,7 @@ class AnalysisResponse(BaseModel):
     detected_anomalies: List[str] = Field(default_factory=list)
     recommended_actions: List[str] = Field(default_factory=list)
     explanation: Optional[str] = None
-    model_version: str = Field(default="2.0.0")
+    model_version: str = Field(default="2.3.0")
     analysis_timestamp: datetime = Field(default_factory=datetime.now)
 
     # Component scores
@@ -314,11 +311,7 @@ class AnalysisResponse(BaseModel):
     # Performance metrics
     processing_time_ms: Optional[float] = None
 
-    class Config:
-        use_enum_values = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class TrainingRequest(BaseModel):
@@ -366,8 +359,8 @@ class BatchAnalysisRequest(BaseModel):
 
     transactions: List[TransactionData] = Field(
         ...,
-        min_items=1,
-        max_items=10000,
+        min_length=1,
+        max_length=10000,
         description="Batch of transactions to analyze"
     )
     parallel: bool = Field(

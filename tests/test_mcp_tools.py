@@ -142,7 +142,7 @@ class TestAnalyzeTransactionTool:
         """Test that model version is included in response"""
         result = analyze_transaction(sample_transaction_data)
 
-        assert result['model_version'] == 'v2.1.0'
+        assert result['model_version'] == 'v2.3.0'
 
     def test_analysis_timestamp_format(self, sample_transaction_data):
         """Test that analysis timestamp is in ISO format"""
