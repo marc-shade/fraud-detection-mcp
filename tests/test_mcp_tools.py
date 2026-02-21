@@ -545,3 +545,32 @@ class TestExplainDecisionTool:
 
         timestamp = datetime.fromisoformat(result['explanation_timestamp'])
         assert isinstance(timestamp, datetime)
+
+
+class TestFeatureExplanation:
+    """Test feature-level explanations from FraudExplainer integration"""
+
+    def test_analyze_transaction_includes_explanation(self, sample_transaction_data):
+        from server import analyze_transaction_impl
+        result = analyze_transaction_impl(sample_transaction_data)
+        assert 'feature_explanation' in result
+        explanation = result['feature_explanation']
+        assert 'method' in explanation
+        assert 'top_features' in explanation
+
+    def test_feature_explanation_has_risk_factors(self, sample_transaction_data):
+        from server import analyze_transaction_impl
+        result = analyze_transaction_impl(sample_transaction_data)
+        explanation = result['feature_explanation']
+        # Should have risk_factors and/or protective_factors
+        assert 'risk_factors' in explanation or 'protective_factors' in explanation
+
+    def test_explain_decision_includes_feature_analysis(self, comprehensive_analysis_result):
+        from server import explain_decision_impl
+        # Add feature_explanation to simulate real analysis output
+        comprehensive_analysis_result['feature_explanation'] = {
+            'method': 'Feature Importance',
+            'top_features': [{'feature': 'amount', 'importance': 0.5, 'value': 150.0}]
+        }
+        result = explain_decision_impl(comprehensive_analysis_result)
+        assert 'feature_analysis' in result

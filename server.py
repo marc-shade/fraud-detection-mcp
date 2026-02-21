@@ -522,6 +522,14 @@ def _dict_to_transaction_data(data: Dict[str, Any]) -> TransactionData:
     )
 
 
+# Initialize explainer with transaction analyzer's trained model
+from explainability import FraudExplainer
+fraud_explainer = FraudExplainer(
+    model=transaction_analyzer.isolation_forest,
+    feature_names=transaction_analyzer.feature_engineer.feature_names
+)
+
+
 # =============================================================================
 # Implementation Functions (testable, import these in tests)
 # =============================================================================
@@ -546,6 +554,16 @@ def analyze_transaction_impl(
         # Primary transaction analysis
         transaction_result = transaction_analyzer.analyze_transaction(transaction_data)
 
+        # Generate feature-level explanation
+        feature_explanation = None
+        try:
+            features = transaction_analyzer._extract_transaction_features(transaction_data)
+            feature_explanation = fraud_explainer.explain_prediction(
+                features, transaction_result.get("risk_score", 0.0)
+            )
+        except Exception as e:
+            logger.warning(f"Feature explanation failed: {e}")
+
         results = {
             "transaction_analysis": transaction_result,
             "overall_risk_score": transaction_result.get("risk_score", 0.0),
@@ -554,6 +572,9 @@ def analyze_transaction_impl(
             "explanations": [],
             "recommended_actions": []
         }
+
+        if feature_explanation:
+            results["feature_explanation"] = feature_explanation
 
         # Add transaction risk factors
         risk_factors = transaction_result.get("risk_factors", [])
@@ -865,6 +886,10 @@ def explain_decision_impl(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
             explanation["alternative_scenarios"].append(
                 "For smaller transaction amounts, this would likely be classified as low risk"
             )
+
+        # Include feature-level analysis if available in input
+        if "feature_explanation" in analysis_result:
+            explanation["feature_analysis"] = analysis_result["feature_explanation"]
 
         return explanation
 
