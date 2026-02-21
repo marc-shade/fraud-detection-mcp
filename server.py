@@ -1244,6 +1244,51 @@ def train_models_impl(
         }
 
 
+def get_model_status_impl() -> Dict[str, Any]:
+    """Return the current status of fraud detection models.
+
+    Returns:
+        Dict with model_source, training availability, model details, and paths.
+    """
+    model_dir = transaction_analyzer._model_dir
+
+    # Check for saved model files
+    iso_path = model_dir / "isolation_forest.joblib"
+    fe_path = model_dir / "feature_engineer.joblib"
+
+    return {
+        "model_source": transaction_analyzer._model_source,
+        "training_available": TRAINING_AVAILABLE,
+        "models": {
+            "isolation_forest": {
+                "loaded": transaction_analyzer.isolation_forest is not None,
+                "n_estimators": getattr(
+                    transaction_analyzer.isolation_forest, "n_estimators", None
+                ),
+                "contamination": getattr(
+                    transaction_analyzer.isolation_forest, "contamination", None
+                ),
+            },
+            "feature_engineer": {
+                "loaded": transaction_analyzer.feature_engineer is not None,
+                "feature_count": len(
+                    transaction_analyzer.feature_engineer.feature_names
+                ) if transaction_analyzer.feature_engineer else 0,
+                "feature_names": (
+                    transaction_analyzer.feature_engineer.feature_names
+                    if transaction_analyzer.feature_engineer else []
+                ),
+            },
+        },
+        "saved_models": {
+            "isolation_forest": str(iso_path) if iso_path.exists() else None,
+            "feature_engineer": str(fe_path) if fe_path.exists() else None,
+        },
+        "model_dir": str(model_dir),
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
 # =============================================================================
 # MCP Tool Wrappers (thin delegates to _impl functions)
 # =============================================================================
@@ -1375,6 +1420,18 @@ def health_check() -> Dict[str, Any]:
         Health status including models loaded, cache performance, and system resource usage
     """
     return health_check_impl()
+
+
+@mcp.tool()
+def get_model_status() -> Dict[str, Any]:
+    """
+    Get current fraud detection model status and configuration.
+
+    Returns:
+        Model source (synthetic/saved/none), training availability,
+        model details (feature count, estimators), and saved model paths
+    """
+    return get_model_status_impl()
 
 
 @_monitored("/train_models", "TOOL")
