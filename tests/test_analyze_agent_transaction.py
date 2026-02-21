@@ -252,3 +252,88 @@ class TestAnalyzeAgentTransactionMCPTool:
         assert "risk_score" in result
         assert "anomalies" in result
         assert "fingerprint_match" in result
+
+
+class TestMandateInAgentTransaction:
+    """Test mandate compliance integration in analyze_agent_transaction_impl."""
+
+    @pytest.mark.unit
+    def test_mandate_compliance_with_mandate(self):
+        """analyze_agent_transaction_impl uses real mandate when provided."""
+        from server import analyze_agent_transaction_impl
+
+        result = analyze_agent_transaction_impl(
+            transaction_data={
+                "amount": 50.0,
+                "merchant": "Amazon",
+                "location": "United States",
+                "timestamp": "2026-02-21T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": True,
+                "agent_identifier": "mandate-test-agent",
+            },
+            mandate={
+                "max_amount": 100.0,
+                "allowed_merchants": ["Amazon"],
+            },
+        )
+        assert result["mandate_compliance"] == 1.0  # fully compliant
+
+    @pytest.mark.unit
+    def test_mandate_violation_reduces_compliance(self):
+        """Mandate violation reduces mandate_compliance below 1.0."""
+        from server import analyze_agent_transaction_impl
+
+        result = analyze_agent_transaction_impl(
+            transaction_data={
+                "amount": 500.0,
+                "merchant": "Casino",
+                "location": "United States",
+                "timestamp": "2026-02-21T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": True,
+                "agent_identifier": "mandate-test-agent-2",
+            },
+            mandate={
+                "max_amount": 100.0,
+                "blocked_merchants": ["Casino"],
+            },
+        )
+        assert result["mandate_compliance"] < 1.0
+
+    @pytest.mark.unit
+    def test_no_mandate_returns_default(self):
+        """No mandate parameter returns mandate_compliance=1.0 (no constraints)."""
+        from server import analyze_agent_transaction_impl
+
+        result = analyze_agent_transaction_impl(
+            transaction_data={
+                "amount": 50.0,
+                "merchant": "Amazon",
+                "location": "United States",
+                "timestamp": "2026-02-21T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": True,
+                "agent_identifier": "mandate-test-agent-3",
+            },
+        )
+        assert result["mandate_compliance"] == 1.0
+
+    @pytest.mark.unit
+    def test_mandate_violations_in_anomalies(self):
+        """Mandate violations appear in anomalies list."""
+        from server import analyze_agent_transaction_impl
+
+        result = analyze_agent_transaction_impl(
+            transaction_data={
+                "amount": 500.0,
+                "merchant": "Amazon",
+                "location": "United States",
+                "timestamp": "2026-02-21T12:00:00",
+                "payment_method": "credit_card",
+                "is_agent": True,
+                "agent_identifier": "mandate-test-agent-4",
+            },
+            mandate={"max_amount": 100.0},
+        )
+        assert any("mandate" in a for a in result["anomalies"])

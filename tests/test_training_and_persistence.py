@@ -435,11 +435,11 @@ class TestMCPToolRegistration:
         assert "get_model_status" in tool_names
 
     def test_total_mcp_tools_count(self):
-        """Server should now have 16 MCP tools registered."""
+        """Server should now have 18 MCP tools registered."""
         from server import mcp
 
         tool_count = len(mcp._tool_manager._tools)
-        assert tool_count == 16
+        assert tool_count == 18
 
 
 # =============================================================================

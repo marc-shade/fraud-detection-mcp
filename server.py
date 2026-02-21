@@ -2706,12 +2706,13 @@ def verify_agent_identity_impl(
 def analyze_agent_transaction_impl(
     transaction_data: Dict[str, Any],
     agent_behavior: Optional[Dict[str, Any]] = None,
+    mandate: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Specialized transaction analysis for agent-initiated transactions.
 
     Combines traffic classification, agent identity verification, behavioral
-    fingerprinting, and standard transaction analysis into a single pipeline
-    optimized for AI agent traffic.
+    fingerprinting, mandate verification, and standard transaction analysis
+    into a single pipeline optimized for AI agent traffic.
 
     Args:
         transaction_data: Transaction details. Should include ``is_agent`` and
@@ -2719,6 +2720,9 @@ def analyze_agent_transaction_impl(
             ``token`` for identity verification.
         agent_behavior: Optional behavioral observation data with keys:
             ``api_timing_ms``, ``decision_pattern``, ``request_structure_hash``.
+        mandate: Optional mandate constraints dict with keys: max_amount,
+            daily_limit, allowed_merchants, blocked_merchants, allowed_locations,
+            time_window (start/end HH:MM).
 
     Returns:
         Dict with risk_score, anomalies, fingerprint_match,
@@ -2785,6 +2789,18 @@ def analyze_agent_transaction_impl(
                 anomalies.append("behavioral_fingerprint_anomaly")
             anomalies.extend(f"fingerprint_{d}" for d in fp_result.get("details", []))
 
+        # --- Mandate verification ---
+        mandate_compliance = 1.0  # default: no mandate = fully compliant
+        if mandate:
+            mandate_result = mandate_verifier.verify(transaction_data, mandate)
+            mandate_compliance = 1.0 - mandate_result.get("drift_score", 0.0)
+            if not mandate_result.get("compliant", True):
+                anomalies.append("mandate_violation")
+                anomalies.extend(
+                    f"mandate_{v.split(':')[0]}"
+                    for v in mandate_result.get("violations", [])
+                )
+
         # --- Standard transaction analysis ---
         txn_result = transaction_analyzer.analyze_transaction(transaction_data)
         txn_risk = txn_result.get("risk_score", 0.0)
@@ -2811,7 +2827,7 @@ def analyze_agent_transaction_impl(
             "anomalies": anomalies,
             "fingerprint_match": fingerprint_match,
             "fingerprint_confidence": fingerprint_confidence,
-            "mandate_compliance": 1.0,  # placeholder until Phase D
+            "mandate_compliance": mandate_compliance,
             "identity_verified": identity_verified,
             "identity_trust_score": identity_trust,
             "traffic_source": traffic_source,
@@ -3820,13 +3836,15 @@ def verify_agent_identity(
 def analyze_agent_transaction(
     transaction_data: Dict[str, Any],
     agent_behavior: Optional[Dict[str, Any]] = None,
+    mandate: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Analyze an AI-agent-initiated transaction for fraud.
 
     Specialized analysis pipeline for agent transactions that combines traffic
-    classification, agent identity verification (API key / JWT), and behavioral
-    fingerprinting (API timing consistency, decision patterns, request structure).
+    classification, agent identity verification (API key / JWT), behavioral
+    fingerprinting (API timing consistency, decision patterns, request structure),
+    and mandate compliance verification.
     Replaces human behavioral biometrics with agent-specific signals.
 
     Args:
@@ -3835,13 +3853,16 @@ def analyze_agent_transaction(
             agent_identifier for best results.  May also include api_key and token.
         agent_behavior: Optional agent behavioral data with api_timing_ms,
             decision_pattern, and request_structure_hash fields.
+        mandate: Optional mandate constraints dict with keys: max_amount,
+            daily_limit, allowed_merchants, blocked_merchants, allowed_locations,
+            time_window (with start/end in HH:MM format).
 
     Returns:
         Analysis result with risk_score (0-1), anomalies list,
         fingerprint_match (0-1, higher is more consistent), mandate_compliance,
         identity_verified status, and per-component scores
     """
-    return analyze_agent_transaction_impl(transaction_data, agent_behavior)
+    return analyze_agent_transaction_impl(transaction_data, agent_behavior, mandate)
 
 
 @_monitored("/verify_transaction_mandate", "TOOL")
