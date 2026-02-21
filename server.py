@@ -27,6 +27,7 @@ import networkx as nx
 from config import get_config
 from models_validation import TransactionData, PaymentMethod
 from feature_engineering import FeatureEngineer
+from async_inference import LRUCache
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -528,6 +529,31 @@ fraud_explainer = FraudExplainer(
     model=transaction_analyzer.isolation_forest,
     feature_names=transaction_analyzer.feature_engineer.feature_names
 )
+
+# Initialize prediction cache and inference statistics
+prediction_cache = LRUCache(capacity=1000)
+_inference_stats = {
+    "total_predictions": 0,
+    "cache_hits": 0,
+    "cache_misses": 0,
+    "total_time_ms": 0.0,
+    "batch_predictions": 0,
+}
+
+
+def _generate_cache_key(transaction_data: Dict[str, Any]) -> str:
+    """Generate a deterministic cache key from transaction data."""
+    key_fields = {
+        "amount": transaction_data.get("amount"),
+        "merchant": transaction_data.get("merchant"),
+        "location": transaction_data.get("location"),
+        "timestamp": transaction_data.get("timestamp"),
+        "payment_method": transaction_data.get("payment_method"),
+        "user_id": transaction_data.get("user_id"),
+    }
+    import json
+    key_str = json.dumps(key_fields, sort_keys=True, default=str)
+    return hashlib.sha256(key_str.encode()).hexdigest()
 
 
 # =============================================================================
