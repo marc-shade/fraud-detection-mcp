@@ -2,6 +2,11 @@
 Pytest fixtures and configuration for fraud-detection-mcp tests
 """
 
+import os
+
+# Prevent OMP segfaults when PyTorch and sklearn coexist in the same process
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+
 import pytest
 import numpy as np
 from datetime import datetime, timedelta

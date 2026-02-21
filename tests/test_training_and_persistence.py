@@ -71,7 +71,7 @@ class TestModelPersistence:
         from server import transaction_analyzer
         paths = transaction_analyzer.save_models(tmp_model_dir)
         assert isinstance(paths, dict)
-        assert len(paths) == 2
+        assert len(paths) >= 2  # isolation_forest + feature_engineer + optional autoencoder
 
     def test_save_models_creates_directory(self, tmp_path):
         """save_models() creates the directory if it doesn't exist."""

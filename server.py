@@ -282,6 +282,8 @@ class TransactionAnalyzer:
 
     def __init__(self, model_dir: Optional[Path] = None):
         self._model_source = "none"
+        self.autoencoder = None
+        self._ensemble_weights = {"isolation_forest": 0.6, "autoencoder": 0.4}
         self._model_dir = model_dir or self.DEFAULT_MODEL_DIR
         self.feature_engineer = FeatureEngineer()
         self.isolation_forest = IsolationForest(
@@ -321,6 +323,21 @@ class TransactionAnalyzer:
         # Fit feature engineer and isolation forest on 46-feature space
         feature_matrix, _ = self.feature_engineer.fit_transform(synthetic_transactions)
         self.isolation_forest.fit(feature_matrix)
+
+        # Train autoencoder on same feature matrix
+        if AUTOENCODER_AVAILABLE and AutoencoderFraudDetector is not None:
+            try:
+                self.autoencoder = AutoencoderFraudDetector(
+                    contamination=0.1,
+                    epochs=20,
+                    batch_size=32,
+                )
+                self.autoencoder.fit(feature_matrix)
+                logger.info("Autoencoder trained on synthetic data")
+            except Exception as e:
+                logger.warning(f"Autoencoder training failed: {e}")
+                self.autoencoder = None
+
         self._model_source = "synthetic"
 
     def analyze_transaction(self, transaction_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -409,6 +426,14 @@ class TransactionAnalyzer:
         joblib.dump(self.feature_engineer, fe_path)
         paths["feature_engineer"] = str(fe_path)
 
+        if self.autoencoder is not None:
+            ae_path = save_dir / "autoencoder.pt"
+            try:
+                self.autoencoder.save(str(ae_path))
+                paths["autoencoder"] = str(ae_path)
+            except Exception as e:
+                logger.warning(f"Failed to save autoencoder: {e}")
+
         logger.info(f"Models saved to {save_dir}")
         return paths
 
@@ -432,6 +457,19 @@ class TransactionAnalyzer:
             self.isolation_forest = joblib.load(iso_path)
             self.feature_engineer = joblib.load(fe_path)
             self._model_source = "saved"
+
+            # Try to load autoencoder
+            if AUTOENCODER_AVAILABLE and AutoencoderFraudDetector is not None:
+                ae_path = load_dir / "autoencoder.pt"
+                if ae_path.exists():
+                    try:
+                        self.autoencoder = AutoencoderFraudDetector(contamination=0.1)
+                        self.autoencoder.load(str(ae_path))
+                        logger.info("Autoencoder loaded from disk")
+                    except Exception as e:
+                        logger.warning(f"Failed to load autoencoder: {e}")
+                        self.autoencoder = None
+
             logger.info(f"Models loaded from {load_dir}")
             return True
         except Exception as e:
