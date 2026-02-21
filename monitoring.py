@@ -19,7 +19,7 @@ import sys
 import psutil
 import platform
 from typing import Dict, Any, Callable, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import structlog
@@ -428,7 +428,7 @@ class MonitoringManager:
 
             health_status = {
                 "status": "healthy" if is_healthy else "degraded",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "app_name": self.app_name,
                 "version": self.version,
                 "uptime_seconds": uptime_seconds,
@@ -462,7 +462,7 @@ class MonitoringManager:
             )
             return {
                 "status": "unhealthy",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "error": str(e)
             }
 
