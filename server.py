@@ -6,11 +6,12 @@ Sophisticated fraud detection using cutting-edge 2024-2025 algorithms
 
 import asyncio
 import json
+import hashlib
 import logging
+import math
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 import numpy as np
-from pathlib import Path
 
 # FastMCP for high-performance MCP server
 from fastmcp import FastMCP
@@ -48,8 +49,12 @@ def validate_transaction_data(data: Dict[str, Any]) -> Tuple[bool, str]:
     # Validate amount if present
     if "amount" in data:
         amount = data["amount"]
+        if isinstance(amount, bool):
+            return False, "amount must be numeric, not boolean"
         if not isinstance(amount, (int, float)):
             return False, "amount must be numeric"
+        if math.isnan(amount) or math.isinf(amount):
+            return False, "amount must be a finite number"
         if amount < 0:
             return False, "amount cannot be negative"
         if amount > 1_000_000_000:  # 1 billion limit

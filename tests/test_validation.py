@@ -2,6 +2,7 @@
 Tests for input validation functions
 """
 
+import math
 import pytest
 from server import validate_transaction_data, validate_behavioral_data
 
@@ -90,6 +91,27 @@ class TestTransactionValidation:
         data = {'amount': 99.99}
         valid, msg = validate_transaction_data(data)
         assert valid is True
+
+    def test_boolean_amount_rejected(self):
+        """Test validation fails with boolean amount"""
+        valid, msg = validate_transaction_data({"amount": True})
+        assert not valid
+        assert "boolean" in msg.lower() or "numeric" in msg.lower()
+
+    def test_nan_amount_rejected(self):
+        """Test validation fails with NaN amount"""
+        valid, msg = validate_transaction_data({"amount": float('nan')})
+        assert not valid
+
+    def test_inf_amount_rejected(self):
+        """Test validation fails with infinity amount"""
+        valid, msg = validate_transaction_data({"amount": float('inf')})
+        assert not valid
+
+    def test_negative_inf_amount_rejected(self):
+        """Test validation fails with negative infinity amount"""
+        valid, msg = validate_transaction_data({"amount": float('-inf')})
+        assert not valid
 
 
 class TestBehavioralValidation:
