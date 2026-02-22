@@ -16,7 +16,7 @@ pip install -r requirements.txt
 # Run MCP server
 python server.py
 
-# Run tests (with coverage, requires 80% minimum)
+# Run tests (with coverage, CI requires 60% minimum)
 python run_tests.py
 
 # Run tests directly
@@ -127,7 +127,7 @@ The server uses try/except imports so it starts even when optional dependencies 
 
 ### Testing Architecture
 
-727 tests across 22 test files. Tests import from `tests/conftest.py` for fixtures and sample data.
+729 tests across 26 test files. Tests import from `tests/conftest.py` for fixtures and sample data.
 
 Available pytest markers: `unit`, `integration`, `slow`, `network`, `behavioral`, `transaction`, `explainability`, `synthetic`, `benchmark`, `error`, `security`, `velocity`.
 
