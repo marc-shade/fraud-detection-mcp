@@ -1873,8 +1873,8 @@ class CollusionDetector:
                         )
                         suspected.update(cycle)
                     score_components.append(min(1.0, len(real_cycles) * 0.3))
-            except Exception:
-                pass  # Cycle detection can fail on certain graph shapes
+            except Exception as e:
+                logger.debug(f"Cycle detection skipped: {e}")
 
         # --- Temporal clustering ---
         cutoff = datetime.now() - timedelta(seconds=window_seconds)
@@ -1941,6 +1941,133 @@ class CollusionDetector:
 
 
 collusion_detector = CollusionDetector()
+
+
+# =============================================================================
+# Agent Reputation Scorer
+# =============================================================================
+
+
+class AgentReputationScorer:
+    """Longitudinal reputation scoring for AI agents.
+
+    Computes a composite reputation from:
+    - Trust score from identity registry (40%)
+    - Transaction history length (25%)
+    - Behavioral consistency from fingerprinter (25%)
+    - Collusion safety from collusion detector (10%)
+    """
+
+    TRUST_WEIGHT = 0.4
+    HISTORY_WEIGHT = 0.25
+    CONSISTENCY_WEIGHT = 0.25
+    COLLUSION_WEIGHT = 0.1
+    HISTORY_CAP = 100  # transactions for full history credit
+
+    def __init__(
+        self,
+        registry: Optional["AgentIdentityRegistry"] = None,
+        fingerprinter: Optional["AgentBehavioralFingerprint"] = None,
+        detector: Optional["CollusionDetector"] = None,
+    ):
+        self._registry = registry
+        self._fingerprinter = fingerprinter
+        self._detector = detector
+
+    def score(self, agent_id: str) -> Dict[str, Any]:
+        """Compute reputation score for an agent.
+
+        Args:
+            agent_id: Agent identifier to score.
+
+        Returns:
+            Dict with reputation_score (0-1), history_length, transaction_count,
+            trust_score, behavioral_consistency, and components breakdown.
+        """
+        registry = self._registry or agent_registry
+        fingerprinter = self._fingerprinter or agent_fingerprinter
+        detector = self._detector or collusion_detector
+
+        # --- Trust score from registry ---
+        entry = registry.lookup(agent_id)
+        if entry:
+            trust = float(entry.get("trust_score", 0.5))
+            txn_count = int(entry.get("transaction_count", 0))
+            first_seen = entry.get("first_seen", "")
+            last_seen = entry.get("last_seen", "")
+        else:
+            trust = 0.0
+            txn_count = 0
+            first_seen = ""
+            last_seen = ""
+
+        # --- History factor ---
+        history_factor = (
+            min(1.0, txn_count / self.HISTORY_CAP) if self.HISTORY_CAP > 0 else 0.0
+        )
+
+        # History length in days
+        history_days = 0
+        if first_seen and last_seen:
+            try:
+                fs = datetime.fromisoformat(first_seen)
+                ls = datetime.fromisoformat(last_seen)
+                history_days = max(0, (ls - fs).days)
+            except (ValueError, TypeError):
+                pass
+
+        # --- Behavioral consistency ---
+        consistency = 0.0
+        baseline = fingerprinter.get_baseline(agent_id)
+        if baseline and baseline.get("observation_count", 0) >= 10:
+            # More observations = more consistent agent
+            obs = baseline["observation_count"]
+            # Low timing std relative to mean = consistent
+            timing_std = baseline.get("timing_std", 0.0)
+            timing_mean = baseline.get("timing_mean", 1.0)
+            if timing_mean > 0:
+                cv = timing_std / timing_mean  # coefficient of variation
+                # CV < 0.3 = very consistent, CV > 1.0 = inconsistent
+                consistency = max(0.0, min(1.0, 1.0 - cv))
+            else:
+                consistency = 0.5
+            # Bonus for having many observations
+            consistency = min(1.0, consistency * min(1.0, obs / 20))
+
+        # --- Collusion safety ---
+        collusion_safety = 1.0
+        try:
+            col_result = detector.detect([agent_id], window_seconds=86400)
+            collusion_score = col_result.get("collusion_score", 0.0)
+            collusion_safety = 1.0 - collusion_score
+        except Exception as e:
+            logger.warning(f"Collusion check failed for {agent_id}: {e}")
+
+        # --- Weighted composite ---
+        reputation = (
+            self.TRUST_WEIGHT * trust
+            + self.HISTORY_WEIGHT * history_factor
+            + self.CONSISTENCY_WEIGHT * consistency
+            + self.COLLUSION_WEIGHT * collusion_safety
+        )
+        reputation = float(max(0.0, min(1.0, reputation)))
+
+        return {
+            "reputation_score": reputation,
+            "history_length": history_days,
+            "transaction_count": txn_count,
+            "trust_score": trust,
+            "behavioral_consistency": consistency,
+            "components": {
+                "trust_score": trust,
+                "history_factor": history_factor,
+                "behavioral_consistency": consistency,
+                "collusion_safety": collusion_safety,
+            },
+        }
+
+
+reputation_scorer = AgentReputationScorer()
 
 
 def _monitored(endpoint: str, method: str = "TOOL"):
