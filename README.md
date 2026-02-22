@@ -243,7 +243,7 @@ Per **Executive Order 13587** and **NITTF** (National Insider Threat Task Force)
 - **28 Behavioral Indicators** from the NITTF Insider Threat Guide covering access anomalies, data movement, evasion, foreign nexus, counter-intelligence, physical security, and personal conduct
 - **User Activity Monitoring (UAM)** aligned with CNSSD 504 requirements
 - **Risk Scoring**: Weighted indicator aggregation producing 0-100 scores
-- **Threat Levels**: Maps to DHS NTAS levels (LOW / GUARDED / ELEVATED / HIGH / SEVERE)
+- **Threat Levels**: 4-tier model aligned with DHS NTAS (BASELINE / ADVISORY / ELEVATED / IMMINENT)
 - **Case Referral Reports**: Formal referral generation with executive summary, risk timeline, and legal notices
 
 ### SIEM Integration
