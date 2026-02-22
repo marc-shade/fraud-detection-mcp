@@ -167,9 +167,9 @@ models/*.pth
 models/*.pkl
 !models/*.py
 !models/__init__.py
-data/*.csv
+*.csv
 data/*.json
-!test_data/
+test_data/
 logs/
 *.db
 *.sqlite
@@ -215,3 +215,8 @@ tmp/
 temp/
 *.tmp
 *.bak
+
+# Additional patterns
+*.pyc
+.env.*
+!.env.example
