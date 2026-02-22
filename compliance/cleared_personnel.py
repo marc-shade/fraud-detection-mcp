@@ -14,14 +14,13 @@ References:
 - ICD 704: Personnel Security Adjudicative Guidelines
 """
 
-import json
 import logging
 import threading
 import uuid
 from collections import defaultdict, deque
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -401,7 +400,7 @@ class ClearedPersonnelRecord:
         self.security_actions: List[Dict[str, Any]] = []
 
         self.created_at = datetime.now(timezone.utc).isoformat()
-        self.last_evaluated = None
+        self.last_evaluated: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize the record for reporting."""
@@ -1246,7 +1245,7 @@ class ClearedPersonnelAnalyzer:
         self,
         findings: List[Dict[str, Any]],
         wpa_result: Dict[str, Any],
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Any]:
         """Calculate overall risk from all evaluation components."""
         # Weight findings by severity
         severity_weights = {

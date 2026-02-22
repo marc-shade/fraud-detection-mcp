@@ -13,8 +13,6 @@ References:
 - DHS NTAS Threat Level System
 """
 
-import hashlib
-import json
 import logging
 import math
 import threading

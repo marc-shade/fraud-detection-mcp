@@ -17,17 +17,14 @@ References:
 - CVSS v3.1 Scoring
 """
 
-import hashlib
-import json
 import logging
 import re
 import threading
-import time
 import uuid
 from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
