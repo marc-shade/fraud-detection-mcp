@@ -19,6 +19,8 @@ References:
 
 import logging
 import re
+import socket
+import ssl
 import threading
 import uuid
 from collections import defaultdict, deque
@@ -506,7 +508,25 @@ class SIEMIntegration:
         format_type: str = "cef",
         enabled: bool = True,
     ) -> Dict[str, Any]:
-        """Register a forwarding destination for events."""
+        """
+        Register a forwarding destination for SIEM events.
+
+        The destination is configured but not connected until events are
+        forwarded. Each call to generate_events() will attempt to send
+        formatted events to all enabled destinations via TCP or TLS sockets.
+
+        Args:
+            name: Human-readable destination name
+            destination_type: e.g. "syslog", "siem", "splunk"
+            host: Destination hostname or IP
+            port: Destination port
+            protocol: "tcp" or "tls"
+            format_type: Event format to send: "cef", "leef", or "syslog"
+            enabled: Whether this destination is active
+
+        Returns:
+            The registered destination configuration
+        """
         dest = {
             "name": name,
             "type": destination_type,
@@ -515,11 +535,93 @@ class SIEMIntegration:
             "protocol": protocol,
             "format": format_type,
             "enabled": enabled,
+            "connected": False,
+            "last_error": None,
+            "events_sent": 0,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         with self._lock:
             self._forwarding_destinations.append(dest)
+        logger.info(
+            "Added forwarding destination '%s' (%s:%d via %s, format=%s)",
+            name, host, port, protocol, format_type,
+        )
         return dest
+
+    def _forward_events(self, events: Dict[str, List[str]]) -> int:
+        """
+        Forward formatted events to all enabled destinations.
+
+        Opens a TCP or TLS socket for each destination, sends events in the
+        destination's configured format, and closes the connection.
+
+        Args:
+            events: Dict mapping format name ("cef", "leef", "syslog") to
+                    lists of formatted event strings.
+
+        Returns:
+            Total number of events successfully forwarded across all destinations.
+        """
+        total_forwarded = 0
+
+        with self._lock:
+            destinations = list(self._forwarding_destinations)
+
+        for dest in destinations:
+            if not dest.get("enabled", False):
+                continue
+
+            fmt = dest.get("format", "cef")
+            event_list = events.get(fmt, [])
+            if not event_list:
+                continue
+
+            host = dest["host"]
+            port = dest["port"]
+            protocol = dest.get("protocol", "tcp")
+            sock = None
+
+            try:
+                raw_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                raw_sock.settimeout(10.0)
+
+                if protocol == "tls":
+                    ctx = ssl.create_default_context()
+                    # Allow self-signed certs in defense environments where
+                    # internal CAs are common; production deployments should
+                    # configure proper CA bundles via ssl context.
+                    ctx.check_hostname = False
+                    ctx.verify_mode = ssl.CERT_NONE
+                    sock = ctx.wrap_socket(raw_sock, server_hostname=host)
+                else:
+                    sock = raw_sock
+
+                sock.connect((host, port))
+                dest["connected"] = True
+
+                for event_str in event_list:
+                    payload = event_str + "\n"
+                    sock.sendall(payload.encode("utf-8"))
+                    total_forwarded += 1
+                    dest["events_sent"] = dest.get("events_sent", 0) + 1
+
+                dest["last_error"] = None
+
+            except (socket.error, ssl.SSLError, OSError) as exc:
+                dest["connected"] = False
+                dest["last_error"] = str(exc)
+                logger.warning(
+                    "Failed to forward events to '%s' (%s:%d): %s",
+                    dest["name"], host, port, exc,
+                )
+            finally:
+                if sock is not None:
+                    try:
+                        sock.close()
+                    except OSError:
+                        pass
+
+        return total_forwarded
 
     def generate_events(
         self,
@@ -704,6 +806,11 @@ class SIEMIntegration:
         # Feed correlation engine
         correlation_alerts = self._check_correlations(user_id, triggered, timestamp)
 
+        # Forward events to registered SIEM destinations
+        forwarded_count = self._forward_events(events)
+        with self._lock:
+            self._stats["events_forwarded"] += forwarded_count
+
         result = {
             "event_id": summary_event_id,
             "timestamp": timestamp,
@@ -719,6 +826,7 @@ class SIEMIntegration:
             },
             "correlation_alerts": correlation_alerts,
             "total_events_generated": sum(len(evts) for evts in events.values()),
+            "events_forwarded": forwarded_count,
         }
 
         return result

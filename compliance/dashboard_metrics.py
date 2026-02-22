@@ -310,10 +310,15 @@ class ComplianceDashboard:
         Calculate the insider threat program maturity level per NITTF framework.
 
         Returns:
-            Maturity assessment with level, score, and per-level analysis
+            Maturity assessment with level, score, and per-level analysis.
+            If no maturity criteria have been seeded, returns assessment_status
+            "NOT_ASSESSED" with data_seeded=False to distinguish from an
+            actual 0% / INITIAL score.
         """
         with self._lock:
             criteria_status = dict(self._maturity_criteria_status)
+
+        data_seeded = len(criteria_status) > 0
 
         levels_assessment: Dict[str, Dict[str, Any]] = {}
         achieved_level = MaturityLevel.INITIAL
@@ -360,6 +365,8 @@ class ComplianceDashboard:
             "criteria_met": met_criteria,
             "framework": "NITTF Insider Threat Program Maturity",
             "levels": levels_assessment,
+            "data_seeded": data_seeded,
+            "assessment_status": "ASSESSED" if data_seeded else "NOT_ASSESSED",
         }
 
     def calculate_kris(self) -> Dict[str, Any]:
@@ -480,10 +487,15 @@ class ComplianceDashboard:
         Score compliance posture against NIST 800-53 PS/PE/AC families.
 
         Returns:
-            Compliance posture with per-family and per-control scores
+            Compliance posture with per-family and per-control scores.
+            If no controls have been assessed, returns assessment_status
+            "NOT_ASSESSED" with data_seeded=False to distinguish from an
+            actual 0% / NON_COMPLIANT score.
         """
         with self._lock:
             assessments = dict(self._control_assessments)
+
+        data_seeded = len(assessments) > 0
 
         status_scores = {
             "implemented": 1.0,
@@ -543,11 +555,16 @@ class ComplianceDashboard:
 
         return {
             "overall_compliance_score": round(overall_pct, 1),
-            "overall_compliance_level": self._score_to_compliance_level(overall_pct),
+            "overall_compliance_level": (
+                self._score_to_compliance_level(overall_pct)
+                if data_seeded else "NOT_ASSESSED"
+            ),
             "families": family_results,
             "assessed_at": datetime.now(timezone.utc).isoformat(),
             "framework": "NIST SP 800-53 Rev 5",
             "families_evaluated": list(COMPLIANCE_CONTROLS.keys()),
+            "data_seeded": data_seeded,
+            "assessment_status": "ASSESSED" if data_seeded else "NOT_ASSESSED",
         }
 
     def detect_model_drift(self) -> Dict[str, Any]:

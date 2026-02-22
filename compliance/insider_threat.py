@@ -251,7 +251,7 @@ _register_indicator(
     "personal", 5.0, ["PS-3"],
     [],
     "Behavioral patterns indicating workplace disgruntlement or dissatisfaction",
-    "NLP analysis of communications, HR incident reports, performance review flags"
+    "Evaluates pre-computed sentiment scores and HR incident report counts against thresholds"
 )
 
 # --- Counter-Intelligence Indicators ---
@@ -268,7 +268,7 @@ _register_indicator(
     "physical", 5.5, ["PE-2"],
     ["T1200"],
     "Physical access anomalies including badge tailgating or piggybacking",
-    "Correlate badge-in events with camera analytics; detect double-entries on single badge"
+    "Evaluates reported physical access anomaly events from badge_anomalies data feed"
 )
 
 # --- Digital Exfiltration Indicators ---
@@ -637,15 +637,27 @@ class InsiderThreatAssessor:
                 if login_hour < start or login_hour > end:
                     hour_dist = profile.get_login_hour_distribution()
                     total = sum(hour_dist.values()) or 1
-                    off_hours_freq = sum(
-                        v for k, v in hour_dist.items() if k < start or k > end
-                    )
-                    ratio = off_hours_freq / total
-                    if ratio < 0.15:  # Less than 15% off-hours logins historically
-                        triggered = True
-                        confidence = min(0.9, 0.5 + (0.15 - ratio) * 3)
-                        details = f"Login at hour {login_hour} outside work hours ({start}-{end})"
-                        evidence.append(f"Off-hours ratio: {ratio:.2%} (threshold: 15%)")
+                    # Require minimum 5 observations to establish a baseline;
+                    # without enough data, skip to avoid cold-start false positives
+                    if total < 5:
+                        details = (
+                            f"Login at hour {login_hour} outside work hours ({start}-{end}), "
+                            f"but baseline insufficient ({total} observations < 5 required)"
+                        )
+                        logger.debug(
+                            "IND-002 skipped for user %s: insufficient baseline (%d observations)",
+                            profile.user_id, total,
+                        )
+                    else:
+                        off_hours_freq = sum(
+                            v for k, v in hour_dist.items() if k < start or k > end
+                        )
+                        ratio = off_hours_freq / total
+                        if ratio < 0.15:  # Less than 15% off-hours logins historically
+                            triggered = True
+                            confidence = min(0.9, 0.5 + (0.15 - ratio) * 3)
+                            details = f"Login at hour {login_hour} outside work hours ({start}-{end})"
+                            evidence.append(f"Off-hours ratio: {ratio:.2%} (threshold: 15%)")
 
         elif ind_id == "IND-003":
             # Mass data download

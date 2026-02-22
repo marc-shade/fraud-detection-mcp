@@ -1050,7 +1050,13 @@ class ClearedPersonnelAnalyzer:
         sf86_data: Dict[str, Any],
         timestamp: str,
     ) -> Dict[str, Any]:
-        """Check SF-86 data for inconsistencies and completeness."""
+        """
+        Check SF-86 data for inconsistencies and completeness.
+
+        Takes an atomic snapshot of the personnel record under lock to
+        prevent TOCTOU races where the record could change between
+        the check phase and the use/update phase.
+        """
         findings: List[Dict[str, Any]] = []
 
         if not sf86_data:
@@ -1059,6 +1065,14 @@ class ClearedPersonnelAnalyzer:
                 "findings": [],
                 "detail": "No SF-86 data provided for consistency check",
             }
+
+        # --- Snapshot phase: capture all needed record state under a single lock ---
+        with record._lock:
+            snapshot_travel = [
+                t.get("destination") for t in record.reported_foreign_travel
+            ]
+            snapshot_last_submitted = record.sf86_last_submitted
+            snapshot_version = len(record.sf86_discrepancies)
 
         # Check for missing required fields
         required_fields = [
@@ -1075,12 +1089,11 @@ class ClearedPersonnelAnalyzer:
                 "nist_control": "PS-3",
             })
 
-        # Check for discrepancies against known data
+        # Check for discrepancies against snapshot of known data
         reported_travel = sf86_data.get("foreign_travel", [])
-        with record._lock:
-            known_travel = [t.get("destination") for t in record.reported_foreign_travel]
-
-        unreported_in_sf86 = [t for t in known_travel if t and t not in str(reported_travel)]
+        unreported_in_sf86 = [
+            t for t in snapshot_travel if t and t not in str(reported_travel)
+        ]
         if unreported_in_sf86:
             findings.append({
                 "type": "sf86_travel_discrepancy",
@@ -1093,17 +1106,20 @@ class ClearedPersonnelAnalyzer:
                 "nist_control": "PS-3",
             })
 
-        # Check submission date
+        # --- Update phase: apply changes only if record hasn't been modified ---
         with record._lock:
-            last_submitted = record.sf86_last_submitted
+            current_version = len(record.sf86_discrepancies)
+            if current_version != snapshot_version:
+                logger.warning(
+                    "SF-86 consistency check for %s: record modified during "
+                    "evaluation (snapshot_version=%d, current=%d). "
+                    "Skipping updates to avoid stale write.",
+                    record.person_id, snapshot_version, current_version,
+                )
+            else:
+                if sf86_data.get("submission_date"):
+                    record.sf86_last_submitted = sf86_data["submission_date"]
 
-        if sf86_data.get("submission_date"):
-            with record._lock:
-                record.sf86_last_submitted = sf86_data["submission_date"]
-
-        # Track discrepancies
-        if findings:
-            with record._lock:
                 for f in findings:
                     if f["type"].startswith("sf86_"):
                         record.sf86_discrepancies.append({
