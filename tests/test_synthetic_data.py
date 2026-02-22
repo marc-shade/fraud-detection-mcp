@@ -893,11 +893,11 @@ class TestSyntheticDataMCPRegistration:
 
     @pytest.mark.synthetic
     @pytest.mark.unit
-    def test_total_tools_count_is_19(self):
+    def test_total_tools_count_is_24(self):
         from server import mcp
 
         tool_count = len(mcp._tool_manager._tools)
-        assert tool_count == 19
+        assert tool_count == 24
 
 
 # ---------------------------------------------------------------------------

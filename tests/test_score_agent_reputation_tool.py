@@ -66,8 +66,8 @@ class TestMCPToolRegistration:
         assert "score_agent_reputation" in tool_names
 
     def test_total_mcp_tools_count_is_19(self):
-        """Server should now have 19 MCP tools registered."""
+        """Server should now have 24 MCP tools registered (19 core + 5 compliance)."""
         from server import mcp
 
         tool_count = len(mcp._tool_manager._tools)
-        assert tool_count == 19
+        assert tool_count == 24
