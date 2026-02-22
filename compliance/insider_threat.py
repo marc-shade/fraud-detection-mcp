@@ -30,26 +30,45 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 class ThreatLevel(Enum):
-    """Threat levels mapped to DHS National Terrorism Advisory System."""
-    LOW = "LOW"                 # Score 0-20: Normal activity
-    GUARDED = "GUARDED"         # Score 21-40: Minor anomalies
-    ELEVATED = "ELEVATED"       # Score 41-60: Notable concerns
-    HIGH = "HIGH"               # Score 61-80: Serious threat indicators
-    SEVERE = "SEVERE"           # Score 81-100: Critical, immediate action required
+    """
+    Insider threat risk levels aligned with DHS National Terrorism Advisory
+    System (NTAS) bulletin structure.
+
+    The DHS NTAS (established 2011, replacing HSAS) uses two active bulletin
+    types plus a baseline state:
+    - BASELINE: No active NTAS bulletin; normal operations
+    - ELEVATED: Credible threat; heightened vigilance
+    - IMMINENT: Credible, specific, and impending threat; immediate action
+
+    For insider threat scoring, we map the 0-100 risk continuum onto four
+    operational tiers that mirror NTAS intent while providing granularity
+    appropriate for continuous monitoring (UAM) workflows:
+    - BASELINE (0-30): Normal activity, routine monitoring per CNSSD 504
+    - ADVISORY (31-60): Anomalies detected, enhanced monitoring warranted
+    - ELEVATED (61-80): Serious indicators, aligned with NTAS Elevated Bulletin
+    - IMMINENT (81-100): Critical, aligned with NTAS Imminent Threat Alert
+    """
+    BASELINE = "BASELINE"       # Score 0-30: Normal activity, routine UAM
+    ADVISORY = "ADVISORY"       # Score 31-60: Anomalies, enhanced monitoring
+    ELEVATED = "ELEVATED"       # Score 61-80: Serious threat indicators (NTAS Elevated)
+    IMMINENT = "IMMINENT"       # Score 81-100: Critical, immediate action (NTAS Imminent)
 
 
 def score_to_threat_level(score: float) -> ThreatLevel:
-    """Map a 0-100 risk score to a DHS NTAS-aligned threat level."""
-    if score <= 20:
-        return ThreatLevel.LOW
-    elif score <= 40:
-        return ThreatLevel.GUARDED
+    """
+    Map a 0-100 risk score to an NTAS-aligned insider threat level.
+
+    Aligns with DHS NTAS (2011-present) bulletin structure, not the
+    retired Homeland Security Advisory System (HSAS, 2002-2011).
+    """
+    if score <= 30:
+        return ThreatLevel.BASELINE
     elif score <= 60:
-        return ThreatLevel.ELEVATED
+        return ThreatLevel.ADVISORY
     elif score <= 80:
-        return ThreatLevel.HIGH
+        return ThreatLevel.ELEVATED
     else:
-        return ThreatLevel.SEVERE
+        return ThreatLevel.IMMINENT
 
 
 # =============================================================================
@@ -552,10 +571,9 @@ class InsiderThreatAssessor:
         self._assessment_history: deque = deque(maxlen=10000)
         self._case_referrals: List[Dict[str, Any]] = []
         self._alert_thresholds = {
-            ThreatLevel.GUARDED: 21,
-            ThreatLevel.ELEVATED: 41,
-            ThreatLevel.HIGH: 61,
-            ThreatLevel.SEVERE: 81,
+            ThreatLevel.ADVISORY: 31,
+            ThreatLevel.ELEVATED: 61,
+            ThreatLevel.IMMINENT: 81,
         }
         logger.info(
             "InsiderThreatAssessor initialized with %d behavioral indicators",
@@ -1094,21 +1112,24 @@ class InsiderThreatAssessor:
         return assessment
 
     def _threat_level_description(self, level: ThreatLevel) -> str:
-        """Human-readable description of threat level."""
+        """Human-readable description of threat level (NTAS-aligned)."""
         descriptions = {
-            ThreatLevel.LOW: "Normal activity. No significant indicators of insider threat.",
-            ThreatLevel.GUARDED: "Minor anomalies detected. Continue routine monitoring.",
-            ThreatLevel.ELEVATED: (
-                "Notable behavioral concerns. Recommend enhanced monitoring "
+            ThreatLevel.BASELINE: (
+                "Normal activity. No significant indicators of insider threat. "
+                "Continue routine UAM monitoring per CNSSD 504."
+            ),
+            ThreatLevel.ADVISORY: (
+                "Behavioral anomalies detected. Recommend enhanced monitoring "
                 "and supervisor notification."
             ),
-            ThreatLevel.HIGH: (
-                "Serious insider threat indicators present. Recommend immediate "
-                "investigation and access review."
+            ThreatLevel.ELEVATED: (
+                "Serious insider threat indicators present (NTAS Elevated equivalent). "
+                "Recommend immediate investigation and access review."
             ),
-            ThreatLevel.SEVERE: (
-                "Critical insider threat assessment. Immediate action required: "
-                "suspend access, initiate formal investigation, notify security officer."
+            ThreatLevel.IMMINENT: (
+                "Critical insider threat assessment (NTAS Imminent equivalent). "
+                "Immediate action required: suspend access, initiate formal "
+                "investigation, notify security officer."
             ),
         }
         return descriptions.get(level, "Unknown threat level")
@@ -1122,19 +1143,18 @@ class InsiderThreatAssessor:
         """Determine recommended actions based on threat level and indicators."""
         actions: List[Dict[str, Any]] = []
 
-        if threat_level == ThreatLevel.LOW:
+        if threat_level == ThreatLevel.BASELINE:
             actions.append({
                 "action": "continue_monitoring",
                 "priority": "routine",
                 "description": "Continue routine UAM monitoring per CNSSD 504",
             })
-        elif threat_level == ThreatLevel.GUARDED:
+        elif threat_level == ThreatLevel.ADVISORY:
             actions.append({
                 "action": "enhanced_monitoring",
-                "priority": "low",
+                "priority": "medium",
                 "description": "Increase monitoring frequency for flagged indicators",
             })
-        elif threat_level == ThreatLevel.ELEVATED:
             actions.append({
                 "action": "supervisor_notification",
                 "priority": "medium",
@@ -1145,7 +1165,7 @@ class InsiderThreatAssessor:
                 "priority": "medium",
                 "description": "Review and validate current access permissions",
             })
-        elif threat_level == ThreatLevel.HIGH:
+        elif threat_level == ThreatLevel.ELEVATED:
             actions.append({
                 "action": "formal_investigation",
                 "priority": "high",
@@ -1161,7 +1181,7 @@ class InsiderThreatAssessor:
                 "priority": "high",
                 "description": "Brief the Facility Security Officer (FSO)",
             })
-        elif threat_level == ThreatLevel.SEVERE:
+        elif threat_level == ThreatLevel.IMMINENT:
             actions.append({
                 "action": "immediate_access_suspension",
                 "priority": "critical",
@@ -1188,7 +1208,7 @@ class InsiderThreatAssessor:
         if "data_movement" in categories:
             actions.append({
                 "action": "dlp_policy_review",
-                "priority": "high" if threat_level.value in ("HIGH", "SEVERE") else "medium",
+                "priority": "high" if threat_level.value in ("ELEVATED", "IMMINENT") else "medium",
                 "description": "Review and tighten DLP policies for this user",
             })
         if "foreign_nexus" in categories:

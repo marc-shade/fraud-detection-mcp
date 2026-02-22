@@ -1282,15 +1282,13 @@ class ClearedPersonnelAnalyzer:
         combined = min(100, finding_score + wpa_score * 0.5)
 
         if combined >= 80:
-            level = "SEVERE"
+            level = "IMMINENT"
         elif combined >= 60:
-            level = "HIGH"
-        elif combined >= 40:
             level = "ELEVATED"
-        elif combined >= 20:
-            level = "GUARDED"
+        elif combined >= 30:
+            level = "ADVISORY"
         else:
-            level = "LOW"
+            level = "BASELINE"
 
         return {
             "score": round(combined, 2),
@@ -1309,7 +1307,7 @@ class ClearedPersonnelAnalyzer:
         actions: List[Dict[str, Any]] = []
         level = overall_risk.get("level", "LOW")
 
-        if level == "SEVERE":
+        if level == "IMMINENT":
             actions.extend([
                 {
                     "action": "suspend_clearance",
@@ -1327,7 +1325,7 @@ class ClearedPersonnelAnalyzer:
                     "description": "Initiate formal adjudicative review per SEAD 4",
                 },
             ])
-        elif level == "HIGH":
+        elif level == "ELEVATED":
             actions.extend([
                 {
                     "action": "enhanced_monitoring",
@@ -1345,7 +1343,7 @@ class ClearedPersonnelAnalyzer:
                     "description": "Conduct supervisor interview regarding concerns",
                 },
             ])
-        elif level == "ELEVATED":
+        elif level == "ADVISORY":
             actions.extend([
                 {
                     "action": "additional_monitoring",
@@ -1358,12 +1356,6 @@ class ClearedPersonnelAnalyzer:
                     "description": "Provide security awareness counseling",
                 },
             ])
-        elif level == "GUARDED":
-            actions.append({
-                "action": "noted_for_review",
-                "priority": "LOW",
-                "description": "Document findings for next periodic review",
-            })
         else:
             actions.append({
                 "action": "routine_monitoring",
