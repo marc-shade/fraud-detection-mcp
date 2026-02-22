@@ -3081,6 +3081,42 @@ def detect_agent_collusion_impl(
         }
 
 
+def score_agent_reputation_impl(
+    agent_id: Any,
+    time_window_days: int = 30,
+) -> Dict[str, Any]:
+    """Compute longitudinal reputation score for an AI agent.
+
+    Args:
+        agent_id: Agent identifier to score.
+        time_window_days: Time window in days for reputation analysis (default 30).
+
+    Returns:
+        Dict with reputation_score, history_length, transaction_count,
+        trust_score, behavioral_consistency, components, and status.
+    """
+    try:
+        if not agent_id or not isinstance(agent_id, str):
+            return {
+                "error": "agent_id must be a non-empty string",
+                "status": "validation_failed",
+            }
+
+        result = reputation_scorer.score(str(agent_id))
+        result["status"] = "scored"
+        result["agent_id"] = str(agent_id)
+        result["analysis_timestamp"] = datetime.now().isoformat()
+        return result
+
+    except Exception as e:
+        logger.error(f"Reputation scoring failed: {e}")
+        return {
+            "error": str(e),
+            "status": "error",
+            "reputation_score": 0.0,
+        }
+
+
 def analyze_batch_impl(
     transactions: List[Dict[str, Any]], use_cache: bool = True
 ) -> Dict[str, Any]:
@@ -4043,6 +4079,31 @@ def detect_agent_collusion(
         evidence (list of findings), and graph_metrics
     """
     return detect_agent_collusion_impl(agent_ids, window_seconds, transactions)
+
+
+@_monitored("/score_agent_reputation", "TOOL")
+@mcp.tool()
+def score_agent_reputation(
+    agent_id: str,
+    time_window_days: int = 30,
+) -> Dict[str, Any]:
+    """
+    Compute longitudinal reputation score for an AI agent.
+
+    Aggregates trust score from identity verification, transaction history length,
+    behavioral consistency from fingerprinting, and collusion safety into a single
+    reputation score. Higher scores indicate more trustworthy agents.
+
+    Args:
+        agent_id: Agent identifier to score (e.g., 'stripe-acp:agent-123').
+        time_window_days: Time window in days for analysis (default 30).
+
+    Returns:
+        Reputation result with reputation_score (0-1, higher is better),
+        history_length (days), transaction_count, trust_score,
+        behavioral_consistency, and per-component breakdown
+    """
+    return score_agent_reputation_impl(agent_id, time_window_days)
 
 
 @_monitored("/analyze_batch", "TOOL")
