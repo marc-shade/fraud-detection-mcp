@@ -5,15 +5,15 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 [![Part of Agentic System](https://img.shields.io/badge/Part_of-Agentic_System-brightgreen)](https://github.com/marc-shade/agentic-system-oss)
 
-> **Fraud detection and anomaly analysis for financial security.**
+> **Fraud detection and anomaly analysis for financial security — now with AI agent-to-agent transaction protection.**
 
 Part of the [Agentic System](https://github.com/marc-shade/agentic-system-oss) - a 24/7 autonomous AI framework with persistent memory.
 
 ## Overview
 
-<img src="assets/bloodhound_avatar.png" alt="Fraud Detection Bloodhound" width="300" style="border-radius: 15px;" align="right">A sophisticated, open-source Model Context Protocol (MCP) server for advanced fraud detection using cutting-edge 2024-2025 algorithms and techniques. This system combines behavioral biometrics, machine learning, and real-time anomaly detection for comprehensive fraud prevention.
+<img src="assets/bloodhound_avatar.png" alt="Fraud Detection Bloodhound" width="300" style="border-radius: 15px;" align="right">A sophisticated, open-source Model Context Protocol (MCP) server for advanced fraud detection using cutting-edge algorithms and techniques. This system combines behavioral biometrics, machine learning, real-time anomaly detection, and **AI agent behavioral fingerprinting** for comprehensive fraud prevention.
 
-**Built for the Modern Threat Landscape** - Designed to detect sophisticated fraud patterns including synthetic identities, account takeovers, and AI-generated attacks.
+**Built for the Modern Threat Landscape** - Designed to detect sophisticated fraud patterns including synthetic identities, account takeovers, AI-generated attacks, and the emerging threat of **agent-to-agent transaction fraud** (McKinsey projects $3-5T in agent-mediated commerce by 2030).
 
 ## Key Features
 
@@ -24,11 +24,19 @@ Part of the [Agentic System](https://github.com/marc-shade/agentic-system-oss) -
 - **Graph Neural Networks**: Network analysis for fraud ring detection
 - **Behavioral Biometrics**: Keystroke dynamics, mouse patterns, and interaction analysis
 
+### Agent-to-Agent Transaction Protection
+- **Traffic Classification**: Automatic detection of AI agent vs human traffic (Stripe ACP, Visa TAP, Mastercard Agent Pay, Google AP2, and more)
+- **Agent Identity Verification**: API key format validation, JWT token expiry checks, agent registry
+- **Agent Behavioral Fingerprinting**: Per-agent Isolation Forest baselines replacing human biometrics
+- **Mandate Compliance**: Spending limits, merchant whitelists, time windows, geographic restrictions
+- **Collusion Detection**: Graph-based circular flow, temporal clustering, and volume anomaly detection
+- **Agent Reputation Scoring**: Longitudinal trust from history, consistency, and collusion safety
+
 ### Advanced Capabilities
 - **Real-time Processing**: Sub-second transaction analysis
 - **Adaptive Learning**: Continuous model improvement from new data
 - **Multi-modal Analysis**: Combines transaction data, behavioral patterns, and network analysis
-- **Explainable AI**: Clear reasoning for fraud decisions
+- **Explainable AI**: Clear reasoning for fraud decisions with agent-specific explanations
 - **Privacy-First**: On-device processing with minimal data exposure
 
 ## Architecture
@@ -58,20 +66,27 @@ Part of the [Agentic System](https://github.com/marc-shade/agentic-system-oss) -
    - Relationship scoring
    - Entity resolution
 
-5. **Risk Scoring Framework**
-   - Multi-factor risk calculation
+5. **Agent Transaction Pipeline** (New)
+   - Traffic source classification (human/agent/unknown)
+   - Agent identity registry and credential verification
+   - Behavioral fingerprinting with per-agent Isolation Forest baselines
+   - Mandate verification (spending limits, merchant/location/time constraints)
+   - Collusion detection via directed graph analysis
+   - Longitudinal reputation scoring
+
+6. **Risk Scoring Framework**
+   - Multi-factor risk calculation with agent-aware weighting
    - Confidence intervals
    - Threshold management
    - Alert prioritization
 
 ## Technical Specifications
 
-- **Language**: Python 3.9+
-- **ML Libraries**: scikit-learn, XGBoost, TensorFlow/PyTorch
-- **Real-time**: Redis, Apache Kafka
-- **Graph Processing**: NetworkX, PyTorch Geometric
-- **API**: FastAPI with MCP protocol
-- **Database**: PostgreSQL, InfluxDB for time-series
+- **Language**: Python 3.10+
+- **ML Libraries**: scikit-learn, XGBoost, PyTorch
+- **Graph Processing**: NetworkX
+- **API**: FastMCP (Model Context Protocol)
+- **Testing**: pytest (727 tests, 80%+ coverage)
 
 ## Installation
 
@@ -114,14 +129,38 @@ Add to your Claude Desktop configuration:
 
 ## Usage
 
-### MCP Tools Available
+### MCP Tools Available (19 tools)
 
-1. **analyze_transaction** - Real-time transaction fraud analysis
-2. **detect_behavioral_anomaly** - Behavioral pattern analysis
-3. **assess_network_risk** - Network-based fraud detection
-4. **generate_risk_score** - Comprehensive risk assessment
-5. **train_custom_model** - Adaptive model training
-6. **explain_decision** - Explainable AI reasoning
+#### Core Fraud Detection
+| Tool | Description |
+|------|-------------|
+| `analyze_transaction` | Real-time transaction fraud analysis |
+| `detect_behavioral_anomaly` | Behavioral biometrics anomaly detection |
+| `assess_network_risk` | Graph-based fraud ring detection |
+| `generate_risk_score` | Comprehensive weighted risk assessment |
+| `explain_decision` | Explainable AI reasoning (human + agent-aware) |
+
+#### Agent-to-Agent Transaction Protection
+| Tool | Description |
+|------|-------------|
+| `classify_traffic_source` | Detect human vs AI agent traffic (supports Stripe ACP, Visa TAP, Mastercard, Google AP2, PayPal, Coinbase, OpenAI, Anthropic) |
+| `verify_agent_identity` | Validate agent credentials (API keys, JWT tokens, registry lookup) |
+| `analyze_agent_transaction` | Full agent-aware analysis pipeline (identity + fingerprint + mandate + transaction) |
+| `verify_transaction_mandate` | Check transactions against agent spending mandates |
+| `detect_agent_collusion` | Graph-based detection of coordinated agent behavior |
+| `score_agent_reputation` | Longitudinal reputation from trust, history, consistency, collusion safety |
+
+#### Model Management & Operations
+| Tool | Description |
+|------|-------------|
+| `train_models` | ML training pipeline with SMOTE and optional Optuna tuning |
+| `get_model_status` | Model source, configuration, and saved model paths |
+| `analyze_batch` | Batch transaction analysis with prediction caching |
+| `get_inference_stats` | Inference engine statistics and cache performance |
+| `generate_synthetic_dataset` | Generate realistic test datasets |
+| `analyze_dataset` | Analyze stored CSV/JSON datasets for fraud patterns |
+| `run_benchmark` | Performance benchmarking of the detection pipeline |
+| `health_check` | System health with model status, cache stats, resource usage |
 
 ### Example Usage
 
