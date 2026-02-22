@@ -2626,37 +2626,121 @@ def explain_decision_impl(
             f"This decision was based on analysis of {len(detected_anomalies)} risk factors."
         )
 
+        # Agent-specific factor descriptions
+        _AGENT_FACTOR_DESCRIPTIONS = {
+            "unverified_agent_identity": (
+                "Agent identity could not be verified through API key "
+                "or JWT token validation"
+            ),
+            "behavioral_fingerprint_anomaly": (
+                "Agent behavior deviates significantly from established "
+                "baseline patterns"
+            ),
+            "agent_behavioral_fingerprint_anomaly": (
+                "Agent behavioral fingerprint does not match historical patterns"
+            ),
+            "mandate_violation": (
+                "Transaction violates the agent's authorized scope or spending mandate"
+            ),
+            "mandate_amount_exceeded": (
+                "Transaction amount exceeds the agent's authorized spending limit"
+            ),
+            "mandate_blocked_merchant": (
+                "Transaction targets a merchant on the agent's blocked list"
+            ),
+            "mandate_merchant_not_allowed": (
+                "Transaction targets a merchant outside the agent's allowed list"
+            ),
+            "mandate_location_not_allowed": (
+                "Transaction originates from a location outside the agent's "
+                "authorized regions"
+            ),
+            "mandate_outside_time_window": (
+                "Transaction occurred outside the agent's authorized operating hours"
+            ),
+            "mandate_daily_limit_exceeded": (
+                "Transaction would push the agent past its daily spending limit"
+            ),
+            "agent_collusion_detected": (
+                "Graph analysis detected coordinated behavior with other agents"
+            ),
+            "missing_agent_identifier": (
+                "Agent transaction lacks an identifier for verification"
+            ),
+        }
+
         # Key contributing factors
         if detected_anomalies:
             explanation["key_factors"] = [
                 {
                     "factor": anomaly,
-                    "impact": "high" if "high" in anomaly else "medium",
-                    "description": f"Detected pattern: {anomaly.replace('_', ' ')}",
+                    "impact": "high"
+                    if any(
+                        k in anomaly
+                        for k in ("unverified", "collusion", "mandate_violation")
+                    )
+                    else ("high" if "high" in anomaly else "medium"),
+                    "description": _AGENT_FACTOR_DESCRIPTIONS.get(
+                        anomaly,
+                        f"Detected pattern: {anomaly.replace('_', ' ')}",
+                    ),
                 }
                 for anomaly in detected_anomalies
             ]
 
         # Algorithm contributions
         component_scores = analysis_result.get("component_scores", {})
+        traffic_source = analysis_result.get("traffic_source")
+
+        # Agent-specific component weight map
+        _AGENT_COMPONENT_WEIGHTS = {
+            "transaction": 0.20,
+            "identity": 0.25,
+            "behavioral_fingerprint": 0.25,
+            "mandate_compliance": 0.15,
+            "collusion": 0.15,
+            "reputation": 0.10,
+            "behavioral": 0.0,  # not used for agent traffic
+            "network": 0.15,
+        }
+        _HUMAN_COMPONENT_WEIGHTS = {
+            "transaction": 0.50,
+            "behavioral": 0.30,
+            "network": 0.20,
+        }
+
         if component_scores:
+            is_agent = traffic_source == "agent"
+            weight_map = (
+                _AGENT_COMPONENT_WEIGHTS if is_agent else _HUMAN_COMPONENT_WEIGHTS
+            )
             for component, score in component_scores.items():
-                if component == "transaction":
-                    weight = (
-                        0.5
-                        if len(component_scores) == 3
-                        else (0.6 if len(component_scores) == 2 else 1.0)
-                    )
-                elif component == "behavioral":
-                    weight = 0.3 if len(component_scores) == 3 else 0.4
-                else:  # network
-                    weight = 0.2 if len(component_scores) == 3 else 0.4
+                if not is_agent:
+                    # Legacy weight logic for human traffic
+                    if component == "transaction":
+                        weight = (
+                            0.5
+                            if len(component_scores) == 3
+                            else (0.6 if len(component_scores) == 2 else 1.0)
+                        )
+                    elif component == "behavioral":
+                        weight = 0.3 if len(component_scores) == 3 else 0.4
+                    else:  # network or other
+                        weight = weight_map.get(component, 0.2)
+                        if component == "network":
+                            weight = 0.2 if len(component_scores) == 3 else 0.4
+                else:
+                    weight = weight_map.get(component, 0.1)
 
                 explanation["algorithm_contributions"][component] = {
                     "score": float(score),
                     "weight": float(weight),
                     "contribution": f"{weight * 100:.1f}% of final decision",
                 }
+
+        # Include traffic source in explanation
+        if traffic_source:
+            explanation["traffic_source"] = traffic_source
 
         # Confidence breakdown
         explanation["confidence_breakdown"] = {

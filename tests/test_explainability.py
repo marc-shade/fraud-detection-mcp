@@ -750,3 +750,112 @@ class TestExplainabilityEndToEnd:
         for individual in batch_result["results"]:
             explanation = explain_decision_impl(individual)
             assert "decision_summary" in explanation
+
+
+# =============================================================================
+# Agent-specific explanations
+# =============================================================================
+
+
+class TestAgentExplanations:
+    """Test explain_decision_impl with agent-specific components."""
+
+    def test_explains_identity_component(self):
+        """Explanation includes identity component details."""
+        from server import explain_decision_impl
+
+        analysis = {
+            "overall_risk_score": 0.6,
+            "risk_level": "HIGH",
+            "detected_anomalies": ["unverified_agent_identity"],
+            "component_scores": {
+                "transaction": 0.3,
+                "identity": 0.8,
+                "behavioral_fingerprint": 0.4,
+            },
+            "traffic_source": "agent",
+        }
+        result = explain_decision_impl(analysis)
+        contributions = result["algorithm_contributions"]
+        assert "identity" in contributions
+        assert "behavioral_fingerprint" in contributions
+
+    def test_explains_mandate_violation(self):
+        """Explanation includes mandate violation factor."""
+        from server import explain_decision_impl
+
+        analysis = {
+            "overall_risk_score": 0.7,
+            "risk_level": "HIGH",
+            "detected_anomalies": ["mandate_violation", "mandate_amount_exceeded"],
+            "component_scores": {"transaction": 0.3, "mandate_compliance": 0.9},
+            "traffic_source": "agent",
+        }
+        result = explain_decision_impl(analysis)
+        factors = [f["factor"] for f in result["key_factors"]]
+        assert "mandate_violation" in factors
+
+    def test_explains_collusion_evidence(self):
+        """Explanation includes collusion component."""
+        from server import explain_decision_impl
+
+        analysis = {
+            "overall_risk_score": 0.8,
+            "risk_level": "CRITICAL",
+            "detected_anomalies": ["agent_collusion_detected"],
+            "component_scores": {"transaction": 0.3, "collusion": 0.9},
+            "traffic_source": "agent",
+        }
+        result = explain_decision_impl(analysis)
+        contributions = result["algorithm_contributions"]
+        assert "collusion" in contributions
+
+    def test_traffic_source_in_explanation(self):
+        """Explanation includes traffic_source when present."""
+        from server import explain_decision_impl
+
+        analysis = {
+            "overall_risk_score": 0.3,
+            "risk_level": "LOW",
+            "detected_anomalies": [],
+            "component_scores": {"transaction": 0.3},
+            "traffic_source": "agent",
+        }
+        result = explain_decision_impl(analysis)
+        assert result.get("traffic_source") == "agent"
+
+    def test_agent_factor_descriptions(self):
+        """Agent-specific anomalies get descriptive explanations."""
+        from server import explain_decision_impl
+
+        analysis = {
+            "overall_risk_score": 0.6,
+            "risk_level": "HIGH",
+            "detected_anomalies": [
+                "unverified_agent_identity",
+                "behavioral_fingerprint_anomaly",
+                "mandate_violation",
+            ],
+            "component_scores": {"transaction": 0.5},
+            "traffic_source": "agent",
+        }
+        result = explain_decision_impl(analysis)
+        # All factors should have descriptions
+        for factor in result["key_factors"]:
+            assert "description" in factor
+            assert len(factor["description"]) > 10
+
+    def test_reputation_component_explained(self):
+        """Reputation component is explained when present."""
+        from server import explain_decision_impl
+
+        analysis = {
+            "overall_risk_score": 0.4,
+            "risk_level": "MEDIUM",
+            "detected_anomalies": [],
+            "component_scores": {"transaction": 0.3, "reputation": 0.5},
+            "traffic_source": "agent",
+        }
+        result = explain_decision_impl(analysis)
+        contributions = result["algorithm_contributions"]
+        assert "reputation" in contributions
