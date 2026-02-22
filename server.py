@@ -4355,5 +4355,566 @@ def run_benchmark(
     )
 
 
+# =============================================================================
+# Defense Compliance Modules (EO 13587, NITTF, SEAD 4/6, NIST 800-53)
+# =============================================================================
+
+# Graceful degradation for compliance modules
+try:
+    from compliance.insider_threat import InsiderThreatAssessor
+    from compliance.siem_integration import SIEMIntegration
+    from compliance.cleared_personnel import ClearedPersonnelAnalyzer
+    from compliance.dashboard_metrics import ComplianceDashboard
+
+    COMPLIANCE_AVAILABLE = True
+except ImportError:
+    COMPLIANCE_AVAILABLE = False
+    InsiderThreatAssessor = None  # type: ignore[assignment,misc]
+    SIEMIntegration = None  # type: ignore[assignment,misc]
+    ClearedPersonnelAnalyzer = None  # type: ignore[assignment,misc]
+    ComplianceDashboard = None  # type: ignore[assignment,misc]
+
+# Initialize compliance singletons (if available)
+_insider_threat_assessor = InsiderThreatAssessor() if COMPLIANCE_AVAILABLE else None
+_siem_integration = SIEMIntegration() if COMPLIANCE_AVAILABLE else None
+_cleared_personnel_analyzer = ClearedPersonnelAnalyzer() if COMPLIANCE_AVAILABLE else None
+_compliance_dashboard = ComplianceDashboard() if COMPLIANCE_AVAILABLE else None
+
+
+def _compliance_not_available() -> Dict[str, Any]:
+    """Return a standardized error when compliance modules are not loaded."""
+    return {
+        "error": "Defense compliance modules are not available",
+        "detail": (
+            "Install compliance module dependencies. Ensure the compliance/ "
+            "package is on the Python path."
+        ),
+        "available": False,
+    }
+
+
+# --- Insider Threat Assessment Tool ---
+
+
+def assess_insider_threat_impl(
+    user_id: str,
+    activity_data: Dict[str, Any],
+    user_profile: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Implementation for assess_insider_threat tool."""
+    if not COMPLIANCE_AVAILABLE or _insider_threat_assessor is None:
+        return _compliance_not_available()
+
+    try:
+        # Update profile if provided
+        if user_profile:
+            _insider_threat_assessor.update_profile(
+                user_id,
+                role=user_profile.get("role"),
+                department=user_profile.get("department"),
+                clearance_level=user_profile.get("clearance_level"),
+                authorized_resources=user_profile.get("authorized_resources"),
+                work_hours=tuple(user_profile["work_hours"])
+                if "work_hours" in user_profile else None,
+            )
+
+        # Run assessment
+        result = _insider_threat_assessor.assess_user(user_id, activity_data)
+        result["compliance_module"] = "insider_threat"
+        result["available"] = True
+        return result
+
+    except Exception as e:
+        logger.error("Insider threat assessment failed for %s: %s", user_id, e)
+        return {
+            "error": f"Assessment failed: {str(e)}",
+            "user_id": user_id,
+            "available": True,
+        }
+
+
+@_monitored("/assess_insider_threat", "TOOL")
+@mcp.tool()
+def assess_insider_threat(
+    user_id: str,
+    activity_data: Dict[str, Any],
+    user_profile: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Run an insider threat assessment on a user's activity data per EO 13587
+    and NITTF guidance.
+
+    Evaluates 28 behavioral indicators aligned with CNSSD 504 UAM requirements,
+    calculates a weighted risk score (0-100), determines DHS NTAS-aligned threat
+    level, and maps findings to NIST 800-53 controls and MITRE ATT&CK techniques.
+
+    Args:
+        user_id: Unique identifier for the user being assessed
+        activity_data: Dictionary of current activity observations. Supported keys:
+            - login_hour (int): Hour of login (0-23)
+            - source_ip (str): Source IP address
+            - login_success (bool): Whether login succeeded
+            - data_volume_bytes (int): Data transfer volume
+            - resource_id (str): Resource being accessed
+            - accessed_classification (str): Classification level of accessed data
+            - removable_media_type (str): Type of removable media detected
+            - device_id (str): Device identifier
+            - approved_devices (list): List of approved device IDs
+            - security_bypass_actions (list): Detected bypass actions
+            - travel_destination (str): Foreign travel destination
+            - foreign_contacts_detected (list): Detected foreign contacts
+            - reported_foreign_contacts (list): Previously reported contacts
+            - financial_indicators (dict): Financial stress flags
+            - disgruntlement_score (float): 0-1 disgruntlement score
+            - hr_incidents (int): Number of HR incidents
+            - ci_indicators (list): Counter-intelligence indicators
+            - badge_anomalies (list): Physical access anomalies
+            - personal_email_forwards (int): Count of personal email forwards
+            - sensitive_attachments_forwarded (int): Sensitive attachment count
+            - print_hour (int): Hour of print job
+            - print_classification (str): Classification of printed document
+            - vpn_location (str): VPN connection location
+            - privilege_escalation_attempts (list): Escalation attempts
+            - failed_login_count (int): Current failed login count
+            - days_since_last_login (int): Days since last login
+            - unauthorized_cloud_uploads (list): Cloud upload events
+            - screen_capture_count (int): Screen capture count
+            - unauthorized_encryption_tools (list): Unauthorized encryption
+            - unauthorized_software (list): Unauthorized software
+            - network_scanning_detected (bool): Network scanning flag
+            - data_staging_detected (bool): Data staging flag
+            - employment_status (str): Current employment status
+            - concurrent_session_ips (list): IPs of concurrent sessions
+            - accessed_compartments (list): Compartments accessed
+            - authorized_compartments (list): Authorized compartments
+            - covert_channel_indicators (list): Covert channel indicators
+        user_profile: Optional profile data to set before assessment:
+            - role (str): User's job role
+            - department (str): User's department
+            - clearance_level (str): Clearance level
+            - authorized_resources (list): Authorized resource IDs
+            - work_hours (list): [start_hour, end_hour]
+
+    Returns:
+        Assessment result with risk_score, threat_level, triggered_indicators,
+        nist_control_violations, and recommended_actions
+    """
+    return assess_insider_threat_impl(user_id, activity_data, user_profile)
+
+
+# --- SIEM Event Generation Tool ---
+
+
+def generate_siem_events_impl(
+    assessment_result: Dict[str, Any],
+    output_formats: Optional[List[str]] = None,
+    batch_export: bool = False,
+    export_filters: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Implementation for generate_siem_events tool."""
+    if not COMPLIANCE_AVAILABLE or _siem_integration is None:
+        return _compliance_not_available()
+
+    try:
+        if batch_export:
+            filters = export_filters or {}
+            result = _siem_integration.batch_export(
+                start_time=filters.get("start_time"),
+                end_time=filters.get("end_time"),
+                user_id=filters.get("user_id"),
+                min_severity=filters.get("min_severity"),
+                output_format=filters.get("output_format", "json"),
+            )
+            result["compliance_module"] = "siem_integration"
+            result["available"] = True
+            return result
+
+        result = _siem_integration.generate_events(
+            assessment_result,
+            output_formats=output_formats,
+        )
+        result["compliance_module"] = "siem_integration"
+        result["available"] = True
+        result["siem_stats"] = _siem_integration.get_stats()
+        return result
+
+    except Exception as e:
+        logger.error("SIEM event generation failed: %s", e)
+        return {
+            "error": f"SIEM event generation failed: {str(e)}",
+            "available": True,
+        }
+
+
+@_monitored("/generate_siem_events", "TOOL")
+@mcp.tool()
+def generate_siem_events(
+    assessment_result: Dict[str, Any],
+    output_formats: Optional[List[str]] = None,
+    batch_export: bool = False,
+    export_filters: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Export fraud and insider threat events in defense-grade SIEM formats.
+
+    Generates events in Common Event Format (CEF) for ArcSight, Log Event
+    Extended Format (LEEF) for IBM QRadar, and Syslog RFC 5424 with structured
+    data. Events are enriched with MITRE ATT&CK technique mappings, classified
+    per DoD 8570/8140 incident categories, and run through correlation rules
+    to detect multi-indicator attack patterns.
+
+    Args:
+        assessment_result: Result from assess_insider_threat or similar
+            assessment containing risk_score, threat_level, triggered_indicators.
+            Required keys: user_id, risk_score, threat_level, triggered_indicators.
+        output_formats: List of formats to generate. Options: "cef", "leef", "syslog".
+            Defaults to all three if not specified.
+        batch_export: If True, export buffered events instead of generating new ones.
+            Use export_filters to control the export.
+        export_filters: Filters for batch export mode:
+            - start_time (str): ISO format start time
+            - end_time (str): ISO format end time
+            - user_id (str): Filter by user
+            - min_severity (str): Minimum severity (INFORMATIONAL/LOW/MEDIUM/HIGH/CRITICAL)
+            - output_format (str): "json" or "csv"
+
+    Returns:
+        Generated events in requested formats with MITRE enrichment,
+        DoD incident category, correlation alerts, and SIEM statistics
+    """
+    return generate_siem_events_impl(
+        assessment_result, output_formats, batch_export, export_filters
+    )
+
+
+# --- Cleared Personnel Evaluation Tool ---
+
+
+def evaluate_cleared_personnel_impl(
+    person_id: str,
+    activity_data: Dict[str, Any],
+    clearance_info: Optional[Dict[str, Any]] = None,
+    polygraph_info: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Implementation for evaluate_cleared_personnel tool."""
+    if not COMPLIANCE_AVAILABLE or _cleared_personnel_analyzer is None:
+        return _compliance_not_available()
+
+    try:
+        # Set clearance info if provided
+        if clearance_info:
+            _cleared_personnel_analyzer.set_clearance(
+                person_id,
+                level=clearance_info.get("level", "UNCLASSIFIED"),
+                status=clearance_info.get("status", "FINAL"),
+                compartments=clearance_info.get("compartments"),
+                sap_accesses=clearance_info.get("sap_accesses"),
+                date_granted=clearance_info.get("date_granted"),
+                date_expires=clearance_info.get("date_expires"),
+                sponsoring_agency=clearance_info.get("sponsoring_agency", ""),
+                investigation_type=clearance_info.get("investigation_type", ""),
+            )
+
+        # Record polygraph if provided
+        if polygraph_info:
+            _cleared_personnel_analyzer.record_polygraph(
+                person_id,
+                polygraph_type=polygraph_info.get("type", "CI"),
+                date=polygraph_info.get("date", ""),
+                result=polygraph_info.get("result", ""),
+                next_due=polygraph_info.get("next_due"),
+            )
+
+        # Run evaluation
+        result = _cleared_personnel_analyzer.evaluate_cleared_personnel(
+            person_id, activity_data
+        )
+        result["compliance_module"] = "cleared_personnel"
+        result["available"] = True
+        return result
+
+    except Exception as e:
+        logger.error(
+            "Cleared personnel evaluation failed for %s: %s", person_id, e
+        )
+        return {
+            "error": f"Evaluation failed: {str(e)}",
+            "person_id": person_id,
+            "available": True,
+        }
+
+
+@_monitored("/evaluate_cleared_personnel", "TOOL")
+@mcp.tool()
+def evaluate_cleared_personnel(
+    person_id: str,
+    activity_data: Dict[str, Any],
+    clearance_info: Optional[Dict[str, Any]] = None,
+    polygraph_info: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Run cleared personnel analytics per SEAD 4/6 for users with
+    security clearances.
+
+    Performs Continuous Evaluation (CE) per SEAD 6, Whole Person Assessment
+    using the 13 adjudicative guidelines from SEAD 4, need-to-know
+    verification per NIST 800-53 AC-3/AC-25, SF-86 consistency checks,
+    reporting compliance validation, and polygraph compliance tracking.
+
+    Args:
+        person_id: Unique identifier for the cleared person
+        activity_data: Dictionary with evaluation data:
+            - accessed_classification (str): Classification of accessed data
+                (UNCLASSIFIED, CUI, CONFIDENTIAL, SECRET, TOP SECRET, SCI)
+            - accessed_compartments (list): SCI compartments accessed
+            - accessed_resource (str): Resource identifier
+            - justification (str): Need-to-know justification
+            - foreign_travel (list): Travel entries with destination, travel_date,
+                reported_date fields
+            - foreign_contacts (list): Contact entries with name, country,
+                reported fields
+            - financial_changes (list): Financial events with type, detail,
+                reported fields
+            - criminal_events (list): Criminal events with type, detail
+            - public_records_flags (list): Public record flags with finding,
+                detail, severity
+            - guideline_data (dict): Data for SEAD 4 adjudicative guidelines
+                keyed by letter (A-M) with boolean indicator fields
+            - sf86_current (dict): Current SF-86 data for consistency check
+        clearance_info: Optional clearance data to set/update:
+            - level (str): Clearance level
+            - status (str): PENDING/INTERIM/FINAL/SUSPENDED/REVOKED/EXPIRED
+            - compartments (list): SCI compartments
+            - sap_accesses (list): SAP accesses
+            - date_granted (str): ISO date granted
+            - date_expires (str): ISO date expires
+            - sponsoring_agency (str): Sponsoring agency
+            - investigation_type (str): Investigation type (T3, T5, SSBI)
+        polygraph_info: Optional polygraph data:
+            - type (str): CI, FS, or LIFESTYLE
+            - date (str): Examination date
+            - result (str): Examination result
+            - next_due (str): Next examination due date
+
+    Returns:
+        Evaluation result with clearance_summary, overall_risk_score,
+        findings, need_to_know_verification, continuous_evaluation,
+        whole_person_assessment, and recommended_actions
+    """
+    return evaluate_cleared_personnel_impl(
+        person_id, activity_data, clearance_info, polygraph_info
+    )
+
+
+# --- Compliance Dashboard Tool ---
+
+
+def get_compliance_dashboard_impl(
+    include_maturity: bool = True,
+    include_kris: bool = True,
+    include_compliance_posture: bool = True,
+    include_model_drift: bool = True,
+    export_format: Optional[str] = None,
+    include_history: bool = False,
+) -> Dict[str, Any]:
+    """Implementation for get_compliance_dashboard tool."""
+    if not COMPLIANCE_AVAILABLE:
+        return _compliance_not_available()
+
+    if _compliance_dashboard is None:
+        return _compliance_not_available()
+
+    try:
+        # If export requested, use the export method
+        if export_format:
+            result = _compliance_dashboard.export_metrics(
+                output_format=export_format,
+                include_history=include_history,
+            )
+            result["compliance_module"] = "dashboard_metrics"
+            result["available"] = True
+            return result
+
+        # Build dashboard response
+        dashboard: Dict[str, Any] = {
+            "compliance_module": "dashboard_metrics",
+            "available": True,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        if include_maturity:
+            dashboard["program_maturity"] = _compliance_dashboard.calculate_maturity_score()
+
+        if include_kris:
+            dashboard["key_risk_indicators"] = _compliance_dashboard.calculate_kris()
+
+        if include_compliance_posture:
+            dashboard["compliance_posture"] = _compliance_dashboard.calculate_compliance_posture()
+
+        if include_model_drift:
+            dashboard["model_drift"] = _compliance_dashboard.detect_model_drift()
+
+        # Include component stats if available
+        component_stats = {}
+        if _insider_threat_assessor:
+            component_stats["insider_threat"] = _insider_threat_assessor.get_assessment_stats()
+        if _siem_integration:
+            component_stats["siem"] = _siem_integration.get_stats()
+        if _cleared_personnel_analyzer:
+            component_stats["cleared_personnel"] = _cleared_personnel_analyzer.get_stats()
+        component_stats["dashboard"] = _compliance_dashboard.get_stats()
+        dashboard["component_stats"] = component_stats
+
+        # Generate executive summary if all components requested
+        if all([include_maturity, include_kris, include_compliance_posture]):
+            dashboard["executive_summary"] = _compliance_dashboard.generate_executive_summary(
+                insider_threat_stats=component_stats.get("insider_threat"),
+                siem_stats=component_stats.get("siem"),
+                personnel_stats=component_stats.get("cleared_personnel"),
+            )
+
+        return dashboard
+
+    except Exception as e:
+        logger.error("Compliance dashboard generation failed: %s", e)
+        return {
+            "error": f"Dashboard generation failed: {str(e)}",
+            "available": True,
+        }
+
+
+@_monitored("/get_compliance_dashboard", "TOOL")
+@mcp.tool()
+def get_compliance_dashboard(
+    include_maturity: bool = True,
+    include_kris: bool = True,
+    include_compliance_posture: bool = True,
+    include_model_drift: bool = True,
+    export_format: Optional[str] = None,
+    include_history: bool = False,
+) -> Dict[str, Any]:
+    """
+    Get defense compliance metrics and dashboard data.
+
+    Provides insider threat program maturity scoring per NITTF framework
+    (Initial through Optimizing), Key Risk Indicators with trend analysis,
+    NIST 800-53 PS/PE/AC compliance posture scoring, MTTD/MTTR tracking,
+    false positive rate monitoring, model drift detection, and executive
+    summary reports suitable for CSO/CISO briefings.
+
+    Args:
+        include_maturity: Include NITTF maturity model scoring (default True)
+        include_kris: Include Key Risk Indicators with trends (default True)
+        include_compliance_posture: Include NIST 800-53 control scoring (default True)
+        include_model_drift: Include model drift detection (default True)
+        export_format: If set, export metrics in this format ("json" or "csv")
+            instead of generating dashboard
+        include_history: Include historical KRI data in export (default False)
+
+    Returns:
+        Dashboard data with program_maturity, key_risk_indicators,
+        compliance_posture, model_drift, component_stats, and
+        executive_summary (when all sections included)
+    """
+    return get_compliance_dashboard_impl(
+        include_maturity, include_kris, include_compliance_posture,
+        include_model_drift, export_format, include_history,
+    )
+
+
+# --- Threat Referral Generation Tool ---
+
+
+def generate_threat_referral_impl(
+    user_id: str,
+    referral_type: str = "insider_threat",
+    assessment_id: Optional[str] = None,
+    additional_context: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Implementation for generate_threat_referral tool."""
+    if not COMPLIANCE_AVAILABLE:
+        return _compliance_not_available()
+
+    try:
+        if referral_type == "insider_threat":
+            if _insider_threat_assessor is None:
+                return _compliance_not_available()
+            result = _insider_threat_assessor.generate_case_referral(
+                user_id,
+                assessment_id=assessment_id,
+                additional_context=additional_context,
+            )
+            result["compliance_module"] = "insider_threat"
+            result["available"] = True
+            return result
+
+        elif referral_type == "personnel_security":
+            if _cleared_personnel_analyzer is None:
+                return _compliance_not_available()
+            result = _cleared_personnel_analyzer.generate_personnel_security_action_report(
+                user_id,
+                action_type="REVIEW",
+                narrative=additional_context,
+            )
+            result["compliance_module"] = "cleared_personnel"
+            result["available"] = True
+            return result
+
+        else:
+            return {
+                "error": f"Unknown referral type: {referral_type}",
+                "supported_types": ["insider_threat", "personnel_security"],
+                "available": True,
+            }
+
+    except Exception as e:
+        logger.error("Threat referral generation failed for %s: %s", user_id, e)
+        return {
+            "error": f"Referral generation failed: {str(e)}",
+            "user_id": user_id,
+            "available": True,
+        }
+
+
+@_monitored("/generate_threat_referral", "TOOL")
+@mcp.tool()
+def generate_threat_referral(
+    user_id: str,
+    referral_type: str = "insider_threat",
+    assessment_id: Optional[str] = None,
+    additional_context: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Generate a formal insider threat case referral or personnel security
+    action report.
+
+    For insider_threat type: Generates a case referral per EO 13587
+    with executive summary, risk timeline, NIST control impacts, MITRE ATT&CK
+    technique mapping, and recommended actions. Marked FOR OFFICIAL USE ONLY
+    and includes legal notices per CNSSD 504.
+
+    For personnel_security type: Generates a Personnel Security Action report
+    with Whole Person Assessment summary, SF-86 discrepancies, reporting
+    violations, and appeal rights per EO 12968.
+
+    Args:
+        user_id: User identifier for the referral subject
+        referral_type: Type of referral to generate:
+            - "insider_threat": Full insider threat case referral
+            - "personnel_security": Personnel security action report
+        assessment_id: Optional specific assessment ID to reference
+        additional_context: Optional free-text narrative from the analyst
+            or security officer to include in the referral
+
+    Returns:
+        Structured referral/report with referral_id, executive_summary,
+        risk_summary, indicator_timeline, recommended_actions, and
+        legal_notice
+    """
+    return generate_threat_referral_impl(
+        user_id, referral_type, assessment_id, additional_context
+    )
+
+
 if __name__ == "__main__":
     mcp.run()

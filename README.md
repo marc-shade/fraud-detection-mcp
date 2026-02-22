@@ -129,7 +129,7 @@ Add to your Claude Desktop configuration:
 
 ## Usage
 
-### MCP Tools Available (19 tools)
+### MCP Tools Available (24 tools)
 
 #### Core Fraud Detection
 | Tool | Description |
@@ -231,6 +231,103 @@ result = mcp_client.call("analyze_transaction", {
 - **Encryption**: All data encrypted at rest and in transit
 - **Audit Trails**: Complete decision logging
 - **Compliance**: GDPR, PCI-DSS, SOX ready
+
+## Defense Insider Threat Compliance
+
+Comprehensive defense-grade insider threat detection and compliance modules aligned with federal standards and executive orders.
+
+### Insider Threat Program
+
+Per **Executive Order 13587** and **NITTF** (National Insider Threat Task Force) guidance:
+
+- **28 Behavioral Indicators** from the NITTF Insider Threat Guide covering access anomalies, data movement, evasion, foreign nexus, counter-intelligence, physical security, and personal conduct
+- **User Activity Monitoring (UAM)** aligned with CNSSD 504 requirements
+- **Risk Scoring**: Weighted indicator aggregation producing 0-100 scores
+- **Threat Levels**: Maps to DHS NTAS levels (LOW / GUARDED / ELEVATED / HIGH / SEVERE)
+- **Case Referral Reports**: Formal referral generation with executive summary, risk timeline, and legal notices
+
+### SIEM Integration
+
+Defense-grade security event correlation and multi-format output:
+
+- **Common Event Format (CEF)** for ArcSight
+- **Log Event Extended Format (LEEF)** for IBM QRadar
+- **Syslog RFC 5424** with structured data
+- **8 Correlation Rules** detecting multi-indicator attack patterns (data exfiltration sequences, credential compromise chains, foreign intelligence patterns, pre-departure exfiltration, and more)
+- **MITRE ATT&CK Enrichment**: Maps all indicators to ATT&CK technique IDs with tactic and reference URLs
+- **DoD 8570/8140 Classification**: Incidents categorized as CAT-1 through CAT-7
+- **Batch Export**: JSON and CSV export for offline analysis with time/severity/user filters
+
+### Cleared Personnel Monitoring
+
+For users with security clearances per **SEAD 4** and **SEAD 6**:
+
+- **Continuous Evaluation (CE)**: Real-time monitoring per SEAD 6 covering financial, criminal, foreign travel, foreign contacts, and public records
+- **Whole Person Assessment**: All 13 adjudicative guidelines from SEAD 4:
+  - (A) Allegiance, (B) Foreign Influence, (C) Foreign Preference, (D) Sexual Behavior, (E) Personal Conduct, (F) Financial Considerations, (G) Alcohol, (H) Drug Involvement, (I) Psychological Conditions, (J) Criminal Conduct, (K) Handling Protected Information, (L) Outside Activities, (M) Use of Information Technology
+- **Need-to-Know Verification** per NIST 800-53 AC-3 and AC-25
+- **SF-86 Consistency Checks**: Cross-reference questionnaire data against known records
+- **Clearance Lifecycle**: Track PENDING / INTERIM / FINAL / SUSPENDED / REVOKED / EXPIRED states
+- **Polygraph Compliance**: CI, Full Scope, and Lifestyle polygraph tracking
+- **Personnel Security Action Reports** per EO 12968
+
+### Compliance Dashboard
+
+Metrics and reporting for executive briefings:
+
+- **NITTF Maturity Scoring**: Five levels from Initial to Optimizing with per-criterion tracking
+- **Key Risk Indicators (KRIs)**: MTTD, MTTR, false positive rate, true positive rate, alert volume with 7-day and 30-day trend analysis
+- **Compliance Posture**: Weighted scoring against NIST 800-53 PS/PE/AC control families
+- **Model Drift Detection**: Statistical z-score testing of model performance metrics
+- **Executive Summary Reports**: Aggregated briefing-ready reports with recommendations
+- **Export**: JSON and CSV export with optional historical data
+
+### Defense Compliance MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `assess_insider_threat` | Run insider threat assessment on user activity (28 behavioral indicators) |
+| `generate_siem_events` | Export events in CEF/LEEF/Syslog with MITRE ATT&CK enrichment |
+| `evaluate_cleared_personnel` | Run SEAD 4/6 cleared personnel analytics and CE checks |
+| `get_compliance_dashboard` | Get NITTF maturity, KRIs, compliance posture, and executive summary |
+| `generate_threat_referral` | Generate formal case referral or personnel security action report |
+
+### NIST 800-53 Control Coverage
+
+| Control ID | Control Name | Coverage |
+|------------|-------------|----------|
+| PS-1 | Personnel Security Policy and Procedures | Maturity assessment |
+| PS-2 | Position Risk Designation | Maturity assessment |
+| PS-3 | Personnel Screening | Insider threat indicators, CE checks, clearance validation |
+| PS-4 | Personnel Termination | Post-termination access detection |
+| PS-5 | Personnel Transfer | Access scope violation detection |
+| PS-6 | Access Agreements | Reporting compliance, agreement violation detection |
+| PS-7 | External Personnel Security | Maturity assessment |
+| PS-8 | Personnel Sanctions | Maturity assessment |
+| PE-2 | Physical Access Authorizations | Badge tailgating, after-hours physical access |
+| PE-3 | Physical Access Control | Physical access anomaly detection |
+| PE-6 | Monitoring Physical Access | Physical security integration |
+| AC-2 | Account Management | Privilege escalation, dormant accounts, credential sharing |
+| AC-3 | Access Enforcement | Need-to-know verification |
+| AC-6 | Least Privilege | Access scope violation detection |
+| AC-25 | Reference Monitor | Compartment access verification |
+
+### Defense Compliance Architecture
+
+```
+compliance/
+  __init__.py                  # Package exports
+  insider_threat.py            # EO 13587 / NITTF insider threat detection
+  siem_integration.py          # CEF/LEEF/Syslog event generation & correlation
+  cleared_personnel.py         # SEAD 4/6 cleared personnel analytics
+  dashboard_metrics.py         # NITTF maturity, KRIs, compliance posture
+```
+
+All compliance modules:
+- Run entirely locally with no external service dependencies
+- Are thread-safe for concurrent assessments
+- Use graceful degradation (server runs without them if not installed)
+- Follow existing server patterns (`@mcp.tool()`, `@_monitored()`, `Dict[str, Any]` returns)
 
 ## Contributing
 
