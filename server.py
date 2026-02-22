@@ -280,7 +280,7 @@ class BehavioralBiometrics:
                         )
                         dwell_times.append(dwell)
                     except (TypeError, ValueError):
-                        pass  # Skip non-numeric timing values
+                        continue  # Skip non-numeric timing values
 
                 # Flight time
                 if i > 0:
@@ -292,7 +292,7 @@ class BehavioralBiometrics:
                             )
                             flight_times.append(flight)
                         except (TypeError, ValueError):
-                            pass  # Skip non-numeric timing values
+                            continue  # Skip non-numeric timing values
 
             if not dwell_times and not flight_times:
                 return [0.0] * 10
@@ -1746,8 +1746,8 @@ class MandateVerifier:
                         violations.append(
                             f"outside_time_window: {txn_time} not in {start}-{end}"
                         )
-            except (ValueError, TypeError):
-                pass  # Skip time check if timestamp unparseable
+            except (ValueError, TypeError) as e:
+                logger.debug(f"Skipping time window check: {e}")
 
         drift_score = len(violations) / checks if checks > 0 else 0.0
 
@@ -2013,8 +2013,8 @@ class AgentReputationScorer:
                 fs = datetime.fromisoformat(first_seen)
                 ls = datetime.fromisoformat(last_seen)
                 history_days = max(0, (ls - fs).days)
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as e:
+                logger.debug(f"History date parse failed: {e}")
 
         # --- Behavioral consistency ---
         consistency = 0.0

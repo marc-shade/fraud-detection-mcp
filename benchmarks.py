@@ -413,8 +413,8 @@ class PerformanceBenchmark:
             try:
                 y_proba = models["isolation_forest"].predict_proba(X_test)[:, 1]
                 models_for_plots.append(("Isolation Forest", y_test, y_proba))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Isolation Forest predict_proba unavailable: {e}")
 
         # 2. XGBoost
         if "xgboost" in models:
@@ -427,8 +427,8 @@ class PerformanceBenchmark:
             try:
                 y_proba = models["xgboost"].predict_proba(X_test)[:, 1]
                 models_for_plots.append(("XGBoost", y_test, y_proba))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"XGBoost predict_proba unavailable: {e}")
 
         # 3. Ensemble
         if "ensemble" in models:
