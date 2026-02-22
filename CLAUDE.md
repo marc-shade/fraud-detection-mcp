@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Advanced Fraud Detection MCP server (v2.3.0) built with FastMCP. Combines behavioral biometrics (keystroke dynamics, mouse patterns), ML-based anomaly detection (Isolation Forest, XGBoost, Autoencoders), graph-based fraud ring detection (NetworkX), SHAP explainability, and a full training/benchmarking pipeline into a unified MCP tool interface with 13 exposed tools.
+Advanced Fraud Detection MCP server built with FastMCP. Combines behavioral biometrics (keystroke dynamics, mouse patterns), ML-based anomaly detection (Isolation Forest, XGBoost, Autoencoders), graph-based fraud ring detection (NetworkX), SHAP explainability, AI agent-to-agent transaction protection, and a full training/benchmarking pipeline into a unified MCP tool interface with 19 exposed tools.
 
 ## Development Commands
 
@@ -52,7 +52,7 @@ mypy server.py --ignore-missing-imports
 
 ### Server Entry Point
 
-`server.py` (~2380 lines) is the active MCP server. It contains four core analyzer classes, validation functions, and 13 MCP tool definitions. Everything runs from this single file with graceful-degradation imports for optional dependencies.
+`server.py` is the active MCP server. It contains all core analyzer classes, agent transaction protection classes, validation functions, and 19 MCP tool definitions. Everything runs from this single file with graceful-degradation imports for optional dependencies.
 
 ### Core Analyzer Classes (server.py)
 
@@ -64,23 +64,53 @@ mypy server.py --ignore-missing-imports
 
 4. **`NetworkAnalyzer`** -- Builds a NetworkX graph of entity connections. Calculates degree, clustering coefficient, betweenness/closeness centrality for fraud ring detection.
 
-### MCP Tools (13 total)
+### Agent Transaction Protection Classes (server.py)
 
-| Tool | Function | Added |
-|------|----------|-------|
-| `analyze_transaction` | Full transaction fraud analysis (46-feature pipeline) | Phase 1 |
-| `detect_behavioral_anomaly` | Behavioral biometrics anomaly detection | Phase 1 |
-| `assess_network_risk` | Graph-based fraud ring detection | Phase 1 |
-| `generate_risk_score` | Weighted composite score (50% txn, 30% behavioral, 20% network) | Phase 1 |
-| `explain_decision` | SHAP-based explainable AI reasoning for any analysis result | Phase 1 |
-| `analyze_batch` | Batch transaction analysis with aggregated statistics | Phase 8 |
-| `get_inference_stats` | LRU cache hit rates and inference performance metrics | Phase 8 |
-| `health_check` | System health with model status, feature counts, capabilities | Phase 8 |
-| `get_model_status` | Detailed model info: source, paths, training availability | Phase 9 |
-| `train_models` | Train models from CSV/JSON with SMOTE and Optuna support | Phase 9 |
-| `generate_synthetic_dataset` | Generate labeled fraud datasets (CSV/JSON) for evaluation | Phase 10 |
-| `analyze_dataset` | Analyze stored datasets for fraud patterns and risk distribution | Phase 11 |
-| `run_benchmark` | Performance benchmark with throughput, latency percentiles, accuracy | Phase 12 |
+5. **`TrafficClassifier`** -- Classifies transactions as human, agent, or unknown. Recognizes 9 agent protocols (Stripe ACP, Visa TAP, Mastercard Agent Pay, Google AP2, PayPal, Coinbase, OpenAI, Anthropic, x402) via user_agent patterns, explicit flags, and agent identifiers.
+
+6. **`AgentIdentityRegistry`** -- Thread-safe JSON-backed registry at `data/agent_registry.json`. Tracks agent_id, agent_type, first_seen, last_seen, transaction_count, trust_score. Methods: `register()`, `lookup()`, `record_transaction()`, `update_trust()`, `list_agents()`.
+
+7. **`AgentIdentityVerifier`** -- Validates agent credentials. Three signals: registry membership, API key format (min 16 chars), JWT token expiry (base64 decode payload, check `exp` claim). Trust = average of signals. Verified = trust >= 0.5 and no critical warnings. Auto-registers unknown agents with trust=0.3.
+
+8. **`AgentBehavioralFingerprint`** -- Per-agent Isolation Forest baselines using 8 features (log_amount, payment_method_hash, merchant_hash, location_hash, hour_of_day, field_completeness, timing_interval, amount_magnitude). Thread-safe, bounded memory (max 1000 observations/agent). MIN_BASELINE=10 observations before anomaly detection activates.
+
+9. **`MandateVerifier`** -- Stateless mandate compliance checker. Validates transactions against caller-supplied mandate dict: max_amount, daily_limit, allowed_merchants, blocked_merchants, allowed_locations, time_window (start/end HH:MM). Returns compliance status, violations, drift_score, and utilization.
+
+10. **`CollusionDetector`** -- Directed graph of agent interactions. Detects circular flows (`nx.simple_cycles`), temporal clustering (3+ agents targeting same entity), and volume anomalies (10+ transactions between pair in window). Memory-bounded with LRU eviction.
+
+11. **`AgentReputationScorer`** -- Longitudinal reputation from existing singletons: trust score (40%), transaction history (25%), behavioral consistency (25%), collusion safety (10%). History caps at 100 transactions for full credit.
+
+### MCP Tools (19 total)
+
+| Tool | Function |
+|------|----------|
+| `analyze_transaction` | Full transaction fraud analysis (46-feature pipeline) |
+| `detect_behavioral_anomaly` | Behavioral biometrics anomaly detection |
+| `assess_network_risk` | Graph-based fraud ring detection |
+| `generate_risk_score` | Weighted composite score (agent-aware: equal weighting; human: 50/30/20) |
+| `explain_decision` | SHAP-based explainable AI with agent-specific reasoning |
+| `classify_traffic_source` | Detect human vs AI agent traffic |
+| `verify_agent_identity` | Validate agent credentials (API keys, JWT, registry) |
+| `analyze_agent_transaction` | Full agent-aware pipeline (identity + fingerprint + mandate + transaction) |
+| `verify_transaction_mandate` | Check transactions against agent spending mandates |
+| `detect_agent_collusion` | Graph-based coordinated agent behavior detection |
+| `score_agent_reputation` | Longitudinal reputation from trust, history, consistency |
+| `analyze_batch` | Batch transaction analysis with aggregated statistics |
+| `get_inference_stats` | LRU cache hit rates and inference performance metrics |
+| `health_check` | System health with model status, feature counts, capabilities |
+| `get_model_status` | Detailed model info: source, paths, training availability |
+| `train_models` | Train models from CSV/JSON with SMOTE and Optuna support |
+| `generate_synthetic_dataset` | Generate labeled fraud datasets (CSV/JSON) for evaluation |
+| `analyze_dataset` | Analyze stored datasets for fraud patterns and risk distribution |
+| `run_benchmark` | Performance benchmark with throughput, latency percentiles, accuracy |
+
+### Risk Scoring
+
+**Human traffic**: Transaction 50%, Behavioral 30%, Network 20%.
+
+**Agent traffic**: Equal weighting across all available components (transaction, identity, behavioral fingerprint, mandate, collusion, network). Automatically adapts as components are added.
+
+Thresholds: CRITICAL >= 0.8, HIGH >= 0.6, MEDIUM >= 0.4, LOW < 0.4.
 
 ### Graceful Degradation
 
@@ -95,31 +125,9 @@ The server uses try/except imports so it starts even when optional dependencies 
 | `integration.py` | `SYNTHETIC_DATA_AVAILABLE` | `generate_synthetic_dataset`, `run_benchmark` |
 | `security_utils.py` | `SECURITY_UTILS_AVAILABLE` | Input sanitization, rate limiting |
 
-### Feature Engineering Pipeline
-
-`feature_engineering.py` extracts 46 features per transaction:
-- Amount features: raw, log-transformed, z-score, percentile rank
-- Temporal features: hour, day-of-week, is-weekend, cyclical sin/cos encodings
-- Location/merchant: hash-based encoding, frequency-based features
-- Payment risk: method risk scoring, high-risk flag
-- Velocity features: per-user transaction count, amount statistics, time-since-last
-- Cross-field: amount-hour interaction, amount-payment interaction
-
-### Risk Scoring
-
-Thresholds defined in both `server.py` and `config.py` (`AppConfig`):
-- CRITICAL >= 0.8
-- HIGH >= 0.6
-- MEDIUM >= 0.4
-- LOW < 0.4
-
-Risk score conversion from Isolation Forest: `max(0, min(1, (0.5 - anomaly_score) * 2))`.
-
-Ensemble scoring (when autoencoder available): weighted combination of Isolation Forest (60%) and Autoencoder reconstruction error (40%).
-
 ### Testing Architecture
 
-533 tests across 17 test files. Tests import from `tests/conftest.py` for fixtures and sample data.
+727 tests across 22 test files. Tests import from `tests/conftest.py` for fixtures and sample data.
 
 Available pytest markers: `unit`, `integration`, `slow`, `network`, `behavioral`, `transaction`, `explainability`, `synthetic`, `benchmark`, `error`, `security`, `velocity`.
 
@@ -127,7 +135,7 @@ Test files map to functionality areas:
 - `test_transaction_analysis.py` -- TransactionAnalyzer, 46-feature pipeline
 - `test_keystroke_analysis.py` -- BehavioralBiometrics
 - `test_network_analysis.py` -- NetworkAnalyzer, graph centrality
-- `test_explainability.py` -- SHAP explanations, fallback behavior
+- `test_explainability.py` -- SHAP explanations, agent-specific reasoning
 - `test_autoencoder_ensemble.py` -- Autoencoder training, ensemble scoring
 - `test_cache_and_batch.py` -- LRU cache, batch analysis
 - `test_user_history.py` -- UserTransactionHistory, velocity checks
@@ -140,6 +148,15 @@ Test files map to functionality areas:
 - `test_mcp_tools.py` -- MCP tool wrappers
 - `test_error_handling.py` -- Edge cases, malformed inputs
 - `test_integration.py` -- End-to-end workflows
+- `test_traffic_classifier.py` -- TrafficClassifier, agent-aware risk scoring
+- `test_agent_identity.py` -- AgentIdentityRegistry, AgentIdentityVerifier, identity in risk scoring
+- `test_agent_behavioral_fingerprint.py` -- AgentBehavioralFingerprint baselines and anomaly detection
+- `test_analyze_agent_transaction.py` -- analyze_agent_transaction_impl pipeline, mandate integration
+- `test_mandate_verifier.py` -- MandateVerifier constraint checking
+- `test_collusion_detector.py` -- CollusionDetector graph analysis
+- `test_mandate_collusion_tools.py` -- MCP tool wrappers for mandate and collusion
+- `test_agent_reputation.py` -- AgentReputationScorer composite scoring
+- `test_score_agent_reputation_tool.py` -- score_agent_reputation MCP tool
 
 ### Advanced Modules
 
@@ -157,23 +174,24 @@ Test files map to functionality areas:
 | `integration.py` | Synthetic data generation pipeline with configurable fraud patterns |
 | `benchmarks.py` | Standalone performance benchmarking suite |
 | `cli.py` | CLI for analyzing stored datasets (CSV/JSON) |
-| `models_validation.py` | Pydantic v2 validation models for all input/output types |
+| `models_validation.py` | Pydantic v2 validation models including `TrafficSource` enum and agent fields |
 | `config.py` | Pydantic-settings based configuration with `.env` file support |
 
 ### Configuration
 
-`config.py` uses Pydantic v2 `BaseSettings` with `ConfigDict` and `.env` file support. Key settings: model hyperparameters, risk thresholds, database URLs, rate limits, JWT config. Field names map directly to environment variables when `case_sensitive=True`. Copy `.env.example` to `.env` for local configuration.
+`config.py` uses Pydantic v2 `BaseSettings` with `ConfigDict` and `.env` file support. Key settings: model hyperparameters, risk thresholds, database URLs, rate limits, JWT config. Copy `.env.example` to `.env` for local configuration.
 
 ### Two Server Versions
 
-- **`server.py`** -- Active MCP server (v2.3.0). Contains all core analyzers, 13 MCP tools, and production logic.
+- **`server.py`** -- Active MCP server. Contains all core analyzers, agent protection classes, 19 MCP tools, and production logic.
 - **`server_v2.py`** -- Extended version integrating additional Pydantic models and the full security layer. Not the active entrypoint.
 
 ## Key Patterns
 
-- Models are initialized with synthetic training data at import time. Replace with real trained models via the `train_models` MCP tool or the training pipeline directly.
+- All MCP tools follow the `_impl` pattern: `analyze_transaction_impl()` is the testable function, `analyze_transaction` is the `@mcp.tool()` wrapper. Tests import and call the `_impl` functions directly.
+- Models are initialized with synthetic training data at import time. Replace with real trained models via the `train_models` MCP tool.
 - Input validation happens in two layers: manual `validate_transaction_data()`/`validate_behavioral_data()` in `server.py`, and Pydantic models in `models_validation.py`.
 - All analysis functions return dicts with `risk_score` (0-1 float), `confidence`, `is_anomaly` boolean, and domain-specific details.
-- The `TransactionAnalyzer` supports model persistence: `save_models()` serializes to `models/saved/`, `load_models()` restores them, and `train_models` triggers hot-reload after training.
-- `UserTransactionHistory` is thread-safe with bounded memory. It tracks per-user velocity and is used automatically during transaction analysis.
-- The LRU cache (`async_inference.py`) caches inference results keyed by transaction data hash.
+- Agent traffic is automatically classified by `TrafficClassifier` and routed through agent-specific analysis (identity verification, behavioral fingerprinting, mandate compliance).
+- The `@_monitored` decorator wraps MCP tools with optional Prometheus metrics when monitoring is available.
+- Thread-safe singletons: `agent_registry`, `agent_verifier`, `agent_fingerprinter`, `mandate_verifier`, `collusion_detector`, `reputation_scorer`.
