@@ -221,9 +221,10 @@ class TestAnalyzeAgentTransactionMCPTool:
     @pytest.mark.unit
     def test_tool_registered(self):
         """analyze_agent_transaction is registered as an MCP tool."""
+        import asyncio
         import server
 
-        tools = list(server.mcp._tool_manager._tools.keys())
+        tools = [t.name for t in asyncio.run(server.mcp.list_tools())]
         assert "analyze_agent_transaction" in tools
 
     @pytest.mark.unit

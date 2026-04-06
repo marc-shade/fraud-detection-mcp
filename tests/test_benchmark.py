@@ -195,13 +195,15 @@ class TestBenchmarkMCPRegistration:
     """Verify MCP tool is registered."""
 
     def test_run_benchmark_registered(self):
+        import asyncio
         import server
 
-        tools = list(server.mcp._tool_manager._tools.keys())
+        tools = [t.name for t in asyncio.run(server.mcp.list_tools())]
         assert "run_benchmark" in tools
 
     def test_total_tool_count(self):
+        import asyncio
         import server
 
-        tools = list(server.mcp._tool_manager._tools.keys())
+        tools = [t.name for t in asyncio.run(server.mcp.list_tools())]
         assert len(tools) >= 13

@@ -878,25 +878,28 @@ class TestSyntheticDataMCPRegistration:
     @pytest.mark.synthetic
     @pytest.mark.unit
     def test_generate_synthetic_dataset_tool_registered(self):
+        import asyncio
         from server import mcp
 
-        tool_names = list(mcp._tool_manager._tools.keys())
+        tool_names = [t.name for t in asyncio.run(mcp.list_tools())]
         assert "generate_synthetic_dataset" in tool_names
 
     @pytest.mark.synthetic
     @pytest.mark.unit
     def test_analyze_dataset_tool_registered(self):
+        import asyncio
         from server import mcp
 
-        tool_names = list(mcp._tool_manager._tools.keys())
+        tool_names = [t.name for t in asyncio.run(mcp.list_tools())]
         assert "analyze_dataset" in tool_names
 
     @pytest.mark.synthetic
     @pytest.mark.unit
     def test_total_tools_count_is_24(self):
+        import asyncio
         from server import mcp
 
-        tool_count = len(mcp._tool_manager._tools)
+        tool_count = len(asyncio.run(mcp.list_tools()))
         assert tool_count == 24
 
 

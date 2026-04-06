@@ -124,21 +124,24 @@ class TestMCPToolRegistration:
 
     def test_mcp_has_verify_transaction_mandate(self):
         """MCP server has verify_transaction_mandate tool."""
+        import asyncio
         from server import mcp
 
-        tool_names = list(mcp._tool_manager._tools.keys())
+        tool_names = [t.name for t in asyncio.run(mcp.list_tools())]
         assert "verify_transaction_mandate" in tool_names
 
     def test_mcp_has_detect_agent_collusion(self):
         """MCP server has detect_agent_collusion tool."""
+        import asyncio
         from server import mcp
 
-        tool_names = list(mcp._tool_manager._tools.keys())
+        tool_names = [t.name for t in asyncio.run(mcp.list_tools())]
         assert "detect_agent_collusion" in tool_names
 
-    def test_total_mcp_tools_count_is_18(self):
-        """Server should now have 24 MCP tools registered (19 core + 5 compliance)."""
+    def test_total_mcp_tools_count_is_24(self):
+        """Server should have 24 MCP tools registered (19 core + 5 compliance)."""
+        import asyncio
         from server import mcp
 
-        tool_count = len(mcp._tool_manager._tools)
+        tool_count = len(asyncio.run(mcp.list_tools()))
         assert tool_count == 24

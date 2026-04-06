@@ -422,23 +422,26 @@ class TestMCPToolRegistration:
 
     def test_mcp_has_train_models(self):
         """MCP server should have train_models registered."""
+        import asyncio
         from server import mcp
 
-        tool_names = list(mcp._tool_manager._tools.keys())
+        tool_names = [t.name for t in asyncio.run(mcp.list_tools())]
         assert "train_models" in tool_names
 
     def test_mcp_has_get_model_status(self):
         """MCP server should have get_model_status registered."""
+        import asyncio
         from server import mcp
 
-        tool_names = list(mcp._tool_manager._tools.keys())
+        tool_names = [t.name for t in asyncio.run(mcp.list_tools())]
         assert "get_model_status" in tool_names
 
     def test_total_mcp_tools_count(self):
-        """Server should now have 24 MCP tools registered (19 core + 5 compliance)."""
+        """Server should have 24 MCP tools registered (19 core + 5 compliance)."""
+        import asyncio
         from server import mcp
 
-        tool_count = len(mcp._tool_manager._tools)
+        tool_count = len(asyncio.run(mcp.list_tools()))
         assert tool_count == 24
 
 

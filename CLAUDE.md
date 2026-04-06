@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Advanced Fraud Detection MCP server built with FastMCP. Combines behavioral biometrics (keystroke dynamics, mouse patterns), ML-based anomaly detection (Isolation Forest, XGBoost, Autoencoders), graph-based fraud ring detection (NetworkX), SHAP explainability, AI agent-to-agent transaction protection, and a full training/benchmarking pipeline into a unified MCP tool interface with 19 exposed tools.
+Advanced Fraud Detection MCP server built with FastMCP. Combines behavioral biometrics (keystroke dynamics, mouse patterns), ML-based anomaly detection (Isolation Forest, Autoencoders), graph-based fraud ring detection (NetworkX), SHAP explainability, AI agent-to-agent transaction protection, defense compliance modules, and a training/benchmarking pipeline into a unified MCP tool interface with 24 exposed tools (19 core + 5 compliance). XGBoost is available optionally via the training pipeline but is not in the default detection path.
 
 ## Development Commands
 
@@ -52,7 +52,7 @@ mypy server.py --ignore-missing-imports
 
 ### Server Entry Point
 
-`server.py` is the active MCP server. It contains all core analyzer classes, agent transaction protection classes, validation functions, and 19 MCP tool definitions. Everything runs from this single file with graceful-degradation imports for optional dependencies.
+`server.py` is the active MCP server. It contains all core analyzer classes, agent transaction protection classes, validation functions, and 24 MCP tool definitions (19 core + 5 defense compliance). Everything runs from this single file with graceful-degradation imports for optional dependencies.
 
 ### Core Analyzer Classes (server.py)
 
@@ -80,7 +80,7 @@ mypy server.py --ignore-missing-imports
 
 11. **`AgentReputationScorer`** -- Longitudinal reputation from existing singletons: trust score (40%), transaction history (25%), behavioral consistency (25%), collusion safety (10%). History caps at 100 transactions for full credit.
 
-### MCP Tools (19 total)
+### MCP Tools (24 total: 19 core + 5 compliance)
 
 | Tool | Function |
 |------|----------|
@@ -103,6 +103,11 @@ mypy server.py --ignore-missing-imports
 | `generate_synthetic_dataset` | Generate labeled fraud datasets (CSV/JSON) for evaluation |
 | `analyze_dataset` | Analyze stored datasets for fraud patterns and risk distribution |
 | `run_benchmark` | Performance benchmark with throughput, latency percentiles, accuracy |
+| `assess_insider_threat` | Insider threat assessment (28 NITTF behavioral indicators) |
+| `generate_siem_events` | Export events in CEF/LEEF/Syslog with MITRE ATT&CK enrichment |
+| `evaluate_cleared_personnel` | SEAD 4/6 cleared personnel analytics and CE checks |
+| `get_compliance_dashboard` | NITTF maturity, KRIs, compliance posture, executive summary |
+| `generate_threat_referral` | Formal case referral or personnel security action report |
 
 ### Risk Scoring
 
@@ -127,7 +132,7 @@ The server uses try/except imports so it starts even when optional dependencies 
 
 ### Testing Architecture
 
-729 tests across 26 test files. Tests import from `tests/conftest.py` for fixtures and sample data.
+830+ tests across 26 test files. Tests import from `tests/conftest.py` for fixtures and sample data.
 
 Available pytest markers: `unit`, `integration`, `slow`, `network`, `behavioral`, `transaction`, `explainability`, `synthetic`, `benchmark`, `error`, `security`, `velocity`.
 
