@@ -216,6 +216,10 @@ temp/
 *.tmp
 *.bak
 
+# Claude Code artifacts
+.claude/
+$HOME/
+
 # Additional patterns
 *.pyc
 .env.*

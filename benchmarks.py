@@ -531,19 +531,32 @@ class PerformanceBenchmark:
 
         print("=" * 100)
 
-    def _validate_performance_claims(self, results: Dict[str, Dict[str, float]]):
-        """Validate performance against claimed metrics"""
+    def _validate_performance_claims(
+        self,
+        results: Dict[str, Dict[str, float]],
+        targets: Optional[Dict[str, float]] = None,
+    ):
+        """Validate performance against target metrics.
+
+        Args:
+            results: Benchmark results from model evaluation.
+            targets: Optional custom targets. Defaults are aspirational goals,
+                     NOT measured baselines. Run this on your hardware/data to
+                     establish real baselines.
+        """
 
         print("\n" + "=" * 60)
-        print("PERFORMANCE CLAIMS VALIDATION")
+        print("PERFORMANCE TARGET VALIDATION")
         print("=" * 60)
 
-        claims = {
-            "detection_rate": 0.95,  # Claimed >95%
-            "false_positive_rate": 0.02,  # Claimed <2%
-            "latency_ms": 100,  # Claimed <100ms
-            "throughput_tps": 10000,  # Claimed 10,000+ TPS
+        # Default targets are aspirational goals — not measured claims
+        default_targets = {
+            "detection_rate": 0.95,
+            "false_positive_rate": 0.02,
+            "latency_ms": 100,
+            "throughput_tps": 10000,
         }
+        claims = targets or default_targets
 
         # Check ensemble or best model
         best_model = None
