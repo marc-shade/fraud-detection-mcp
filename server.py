@@ -15,7 +15,7 @@ import logging
 import math
 import threading
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 import numpy as np
@@ -998,7 +998,11 @@ else:
 
 # Initialize monitoring
 if MONITORING_AVAILABLE:
-    monitor = MonitoringManager(app_name="fraud-detection-mcp", version="2.3.0")
+    monitor = MonitoringManager(app_name="fraud-detection-mcp", version="2.4.0")
+    # Start Prometheus metrics endpoint (default :9090/metrics)
+    _metrics_port = int(os.environ.get("FRAUD_DETECT_METRICS_PORT", "9090"))
+    if _metrics_port > 0:
+        monitor.start_metrics_server(port=_metrics_port)
 else:
     monitor = None
 

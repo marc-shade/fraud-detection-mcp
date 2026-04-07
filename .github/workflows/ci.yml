@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements-dev.txt
       - run: python -m pytest tests/ -v --tb=short --cov=server --cov-report=term-missing --cov-fail-under=60
 
   lint:
@@ -54,5 +54,5 @@ jobs:
           cache: 'pip'
       - run: |
           pip install mypy
-          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
       - run: mypy server.py --ignore-missing-imports

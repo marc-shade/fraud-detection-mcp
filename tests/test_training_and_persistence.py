@@ -420,6 +420,26 @@ class TestMCPToolRegistration:
 
         assert callable(get_model_status_impl)
 
+    def test_get_model_status_returns_valid_structure(self):
+        """get_model_status_impl returns expected keys and types."""
+        from server import get_model_status_impl
+
+        result = get_model_status_impl()
+        assert isinstance(result, dict)
+        assert "model_source" in result
+        assert result["model_source"] in ("synthetic", "saved", "none")
+        assert "training_available" in result
+        assert isinstance(result["training_available"], bool)
+        assert "models" in result
+        models = result["models"]
+        assert "isolation_forest" in models
+        assert models["isolation_forest"]["loaded"] is True
+        assert "feature_engineer" in models
+        assert models["feature_engineer"]["loaded"] is True
+        assert models["feature_engineer"]["feature_count"] > 0
+        assert "autoencoder" in models
+        assert "explainer" in models
+
     def test_mcp_has_train_models(self):
         """MCP server should have train_models registered."""
         import asyncio

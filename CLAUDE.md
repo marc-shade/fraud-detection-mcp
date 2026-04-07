@@ -172,13 +172,11 @@ Test files map to functionality areas:
 | `async_inference.py` | LRU cache for inference results with configurable TTL and max size |
 | `explainability.py` | SHAP-based explanations with graceful fallback when SHAP unavailable |
 | `security_utils.py` | Input sanitization (XSS/SQLi prevention) and in-memory rate limiter |
-| `security.py` | OWASP security layer: JWT auth, RBAC, rate limiting |
 | `monitoring.py` | Prometheus metrics, structlog, health checks, Grafana dashboard config |
 | `models/autoencoder.py` | PyTorch autoencoder for anomaly detection (reconstruction error scoring) |
 | `models/gnn_fraud_detector.py` | Graph Neural Network fraud detector |
 | `integration.py` | Synthetic data generation pipeline with configurable fraud patterns |
 | `benchmarks.py` | Standalone performance benchmarking suite |
-| `cli.py` | CLI for analyzing stored datasets (CSV/JSON) |
 | `models_validation.py` | Pydantic v2 validation models including `TrafficSource` enum and agent fields |
 | `config.py` | Pydantic-settings based configuration with `.env` file support |
 
@@ -186,10 +184,9 @@ Test files map to functionality areas:
 
 `config.py` uses Pydantic v2 `BaseSettings` with `ConfigDict` and `.env` file support. Key settings: model hyperparameters, risk thresholds, database URLs, rate limits, JWT config. Copy `.env.example` to `.env` for local configuration.
 
-### Two Server Versions
+### Server Entry
 
-- **`server.py`** -- Active MCP server. Contains all core analyzers, agent protection classes, 19 MCP tools, and production logic.
-- **`server_v2.py`** -- Extended version integrating additional Pydantic models and the full security layer. Not the active entrypoint.
+- **`server.py`** -- The MCP server. Contains all core analyzers, agent protection classes, 24 MCP tools (19 core + 5 compliance), and production logic.
 
 ## Key Patterns
 

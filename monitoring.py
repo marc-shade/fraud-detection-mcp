@@ -29,6 +29,7 @@ from prometheus_client import (
     Info,
     CollectorRegistry,
     generate_latest,
+    start_http_server,
 )
 
 
@@ -431,6 +432,19 @@ class MonitoringManager:
     def get_metrics(self) -> bytes:
         """Get Prometheus metrics in exposition format."""
         return generate_latest(REGISTRY)
+
+    def start_metrics_server(self, port: int = 9090) -> bool:
+        """Start Prometheus metrics HTTP server on the given port.
+
+        Returns True if server started, False if port is unavailable.
+        """
+        try:
+            start_http_server(port, registry=REGISTRY)
+            self.logger.info("metrics_server_started", port=port)
+            return True
+        except OSError as e:
+            self.logger.warning("metrics_server_failed", port=port, error=str(e))
+            return False
 
     @staticmethod
     def _categorize_risk(risk_score: float) -> str:

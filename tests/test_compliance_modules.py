@@ -1179,8 +1179,7 @@ class TestComplianceServerIntegration:
     """Test the _impl functions that bridge compliance modules to MCP tools."""
 
     def test_assess_insider_threat_impl(self):
-        """assess_insider_threat_impl returns valid results."""
-        # Import from server (may fail if server.py deps missing, skip gracefully)
+        """assess_insider_threat_impl returns valid results with data assertions."""
         try:
             from server import assess_insider_threat_impl
         except ImportError:
@@ -1193,10 +1192,17 @@ class TestComplianceServerIntegration:
             pytest.skip("Compliance modules not available in server context")
         assert result.get("available") is True
         assert "risk_score" in result
+        assert isinstance(result["risk_score"], (int, float))
+        assert 0 <= result["risk_score"] <= 100
         assert "threat_level" in result
+        assert result["threat_level"] in ("BASELINE", "ADVISORY", "ELEVATED", "IMMINENT")
+        assert "user_id" in result
+        assert result["user_id"] == "test-user"
+        assert "triggered_indicators" in result
+        assert isinstance(result["triggered_indicators"], list)
 
     def test_generate_siem_events_impl(self):
-        """generate_siem_events_impl returns valid results."""
+        """generate_siem_events_impl returns formatted events."""
         try:
             from server import generate_siem_events_impl
         except ImportError:
@@ -1211,9 +1217,13 @@ class TestComplianceServerIntegration:
         if "error" in result and "not available" in result.get("error", ""):
             pytest.skip("Compliance modules not available in server context")
         assert result.get("available") is True
+        assert "events" in result
+        assert isinstance(result["events"], dict)
+        assert "total_events_generated" in result
+        assert "siem_stats" in result
 
     def test_evaluate_cleared_personnel_impl(self):
-        """evaluate_cleared_personnel_impl returns valid results."""
+        """evaluate_cleared_personnel_impl returns clearance assessment."""
         try:
             from server import evaluate_cleared_personnel_impl
         except ImportError:
@@ -1223,9 +1233,15 @@ class TestComplianceServerIntegration:
         if "error" in result and "not available" in result.get("error", ""):
             pytest.skip("Compliance modules not available in server context")
         assert result.get("available") is True
+        assert "person_id" in result
+        assert result["person_id"] == "test-person"
+        assert "overall_risk_score" in result
+        assert isinstance(result["overall_risk_score"], (int, float))
+        assert "findings" in result
+        assert isinstance(result["findings"], list)
 
     def test_get_compliance_dashboard_impl(self):
-        """get_compliance_dashboard_impl returns valid results."""
+        """get_compliance_dashboard_impl returns dashboard metrics."""
         try:
             from server import get_compliance_dashboard_impl
         except ImportError:
@@ -1235,9 +1251,12 @@ class TestComplianceServerIntegration:
         if "error" in result and "not available" in result.get("error", ""):
             pytest.skip("Compliance modules not available in server context")
         assert result.get("available") is True
+        assert "compliance_module" in result
+        assert result["compliance_module"] == "dashboard_metrics"
+        assert "generated_at" in result
 
     def test_generate_threat_referral_impl(self):
-        """generate_threat_referral_impl returns valid results."""
+        """generate_threat_referral_impl returns referral document."""
         try:
             from server import generate_threat_referral_impl
         except ImportError:
@@ -1247,3 +1266,8 @@ class TestComplianceServerIntegration:
         if "error" in result and "not available" in result.get("error", ""):
             pytest.skip("Compliance modules not available in server context")
         assert result.get("available") is True
+        assert "referral_id" in result
+        assert "executive_summary" in result
+        assert "classification" in result
+        assert "subject_user_id" in result
+        assert result["subject_user_id"] == "test-user"
