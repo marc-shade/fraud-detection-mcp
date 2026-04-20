@@ -35,13 +35,15 @@ logger = logging.getLogger(__name__)
 # Event Severity (CVSS-aligned)
 # =============================================================================
 
+
 class EventSeverity(Enum):
     """CVSS v3.1-aligned severity levels."""
-    INFORMATIONAL = 0   # CVSS 0.0
-    LOW = 1             # CVSS 0.1-3.9
-    MEDIUM = 2          # CVSS 4.0-6.9
-    HIGH = 3            # CVSS 7.0-8.9
-    CRITICAL = 4        # CVSS 9.0-10.0
+
+    INFORMATIONAL = 0  # CVSS 0.0
+    LOW = 1  # CVSS 0.1-3.9
+    MEDIUM = 2  # CVSS 4.0-6.9
+    HIGH = 3  # CVSS 7.0-8.9
+    CRITICAL = 4  # CVSS 9.0-10.0
 
     @classmethod
     def from_risk_score(cls, score: float) -> "EventSeverity":
@@ -69,8 +71,10 @@ DOD_INCIDENT_CATEGORIES = {
         "response_time": "1 hour",
         "priority": "critical",
         "indicators": [
-            "privilege_escalation", "unauthorized_admin_access",
-            "rootkit_detection", "system_compromise"
+            "privilege_escalation",
+            "unauthorized_admin_access",
+            "rootkit_detection",
+            "system_compromise",
         ],
     },
     "CAT-2": {
@@ -79,8 +83,10 @@ DOD_INCIDENT_CATEGORIES = {
         "response_time": "4 hours",
         "priority": "high",
         "indicators": [
-            "unauthorized_access", "credential_theft",
-            "session_hijacking", "account_compromise"
+            "unauthorized_access",
+            "credential_theft",
+            "session_hijacking",
+            "account_compromise",
         ],
     },
     "CAT-3": {
@@ -89,8 +95,10 @@ DOD_INCIDENT_CATEGORIES = {
         "response_time": "24 hours",
         "priority": "medium",
         "indicators": [
-            "failed_login_brute_force", "blocked_exploit",
-            "firewall_block", "ids_alert"
+            "failed_login_brute_force",
+            "blocked_exploit",
+            "firewall_block",
+            "ids_alert",
         ],
     },
     "CAT-4": {
@@ -99,8 +107,10 @@ DOD_INCIDENT_CATEGORIES = {
         "response_time": "2 hours",
         "priority": "high",
         "indicators": [
-            "dos_attack", "resource_exhaustion",
-            "service_degradation", "bandwidth_flood"
+            "dos_attack",
+            "resource_exhaustion",
+            "service_degradation",
+            "bandwidth_flood",
         ],
     },
     "CAT-5": {
@@ -109,8 +119,10 @@ DOD_INCIDENT_CATEGORIES = {
         "response_time": "72 hours",
         "priority": "low",
         "indicators": [
-            "policy_violation", "configuration_drift",
-            "unauthorized_software", "removable_media"
+            "policy_violation",
+            "configuration_drift",
+            "unauthorized_software",
+            "removable_media",
         ],
     },
     "CAT-6": {
@@ -119,8 +131,10 @@ DOD_INCIDENT_CATEGORIES = {
         "response_time": "24 hours",
         "priority": "medium",
         "indicators": [
-            "port_scan", "network_mapping",
-            "service_enumeration", "vulnerability_scan"
+            "port_scan",
+            "network_mapping",
+            "service_enumeration",
+            "vulnerability_scan",
         ],
     },
     "CAT-7": {
@@ -128,10 +142,7 @@ DOD_INCIDENT_CATEGORIES = {
         "description": "Installation of malicious software",
         "response_time": "4 hours",
         "priority": "high",
-        "indicators": [
-            "malware_detection", "trojan",
-            "ransomware", "worm"
-        ],
+        "indicators": ["malware_detection", "trojan", "ransomware", "worm"],
     },
 }
 
@@ -142,54 +153,183 @@ DOD_INCIDENT_CATEGORIES = {
 
 MITRE_ATTACK_MAP: Dict[str, Dict[str, str]] = {
     # Initial Access
-    "T1078": {"tactic": "Initial Access", "name": "Valid Accounts", "url": "https://attack.mitre.org/techniques/T1078/"},
-    "T1078.004": {"tactic": "Initial Access", "name": "Valid Accounts: Cloud Accounts", "url": "https://attack.mitre.org/techniques/T1078/004/"},
-    "T1133": {"tactic": "Initial Access", "name": "External Remote Services", "url": "https://attack.mitre.org/techniques/T1133/"},
-    "T1200": {"tactic": "Initial Access", "name": "Hardware Additions", "url": "https://attack.mitre.org/techniques/T1200/"},
+    "T1078": {
+        "tactic": "Initial Access",
+        "name": "Valid Accounts",
+        "url": "https://attack.mitre.org/techniques/T1078/",
+    },
+    "T1078.004": {
+        "tactic": "Initial Access",
+        "name": "Valid Accounts: Cloud Accounts",
+        "url": "https://attack.mitre.org/techniques/T1078/004/",
+    },
+    "T1133": {
+        "tactic": "Initial Access",
+        "name": "External Remote Services",
+        "url": "https://attack.mitre.org/techniques/T1133/",
+    },
+    "T1200": {
+        "tactic": "Initial Access",
+        "name": "Hardware Additions",
+        "url": "https://attack.mitre.org/techniques/T1200/",
+    },
     # Execution
-    "T1059": {"tactic": "Execution", "name": "Command and Scripting Interpreter", "url": "https://attack.mitre.org/techniques/T1059/"},
-    "T1204": {"tactic": "Execution", "name": "User Execution", "url": "https://attack.mitre.org/techniques/T1204/"},
+    "T1059": {
+        "tactic": "Execution",
+        "name": "Command and Scripting Interpreter",
+        "url": "https://attack.mitre.org/techniques/T1059/",
+    },
+    "T1204": {
+        "tactic": "Execution",
+        "name": "User Execution",
+        "url": "https://attack.mitre.org/techniques/T1204/",
+    },
     # Persistence
-    "T1098": {"tactic": "Persistence", "name": "Account Manipulation", "url": "https://attack.mitre.org/techniques/T1098/"},
+    "T1098": {
+        "tactic": "Persistence",
+        "name": "Account Manipulation",
+        "url": "https://attack.mitre.org/techniques/T1098/",
+    },
     # Privilege Escalation
-    "T1548": {"tactic": "Privilege Escalation", "name": "Abuse Elevation Control Mechanism", "url": "https://attack.mitre.org/techniques/T1548/"},
-    "T1068": {"tactic": "Privilege Escalation", "name": "Exploitation for Privilege Escalation", "url": "https://attack.mitre.org/techniques/T1068/"},
+    "T1548": {
+        "tactic": "Privilege Escalation",
+        "name": "Abuse Elevation Control Mechanism",
+        "url": "https://attack.mitre.org/techniques/T1548/",
+    },
+    "T1068": {
+        "tactic": "Privilege Escalation",
+        "name": "Exploitation for Privilege Escalation",
+        "url": "https://attack.mitre.org/techniques/T1068/",
+    },
     # Defense Evasion
-    "T1562": {"tactic": "Defense Evasion", "name": "Impair Defenses", "url": "https://attack.mitre.org/techniques/T1562/"},
-    "T1036": {"tactic": "Defense Evasion", "name": "Masquerading", "url": "https://attack.mitre.org/techniques/T1036/"},
-    "T1027": {"tactic": "Defense Evasion", "name": "Obfuscated Files or Information", "url": "https://attack.mitre.org/techniques/T1027/"},
+    "T1562": {
+        "tactic": "Defense Evasion",
+        "name": "Impair Defenses",
+        "url": "https://attack.mitre.org/techniques/T1562/",
+    },
+    "T1036": {
+        "tactic": "Defense Evasion",
+        "name": "Masquerading",
+        "url": "https://attack.mitre.org/techniques/T1036/",
+    },
+    "T1027": {
+        "tactic": "Defense Evasion",
+        "name": "Obfuscated Files or Information",
+        "url": "https://attack.mitre.org/techniques/T1027/",
+    },
     # Discovery
-    "T1083": {"tactic": "Discovery", "name": "File and Directory Discovery", "url": "https://attack.mitre.org/techniques/T1083/"},
-    "T1135": {"tactic": "Discovery", "name": "Network Share Discovery", "url": "https://attack.mitre.org/techniques/T1135/"},
-    "T1046": {"tactic": "Discovery", "name": "Network Service Discovery", "url": "https://attack.mitre.org/techniques/T1046/"},
-    "T1018": {"tactic": "Discovery", "name": "Remote System Discovery", "url": "https://attack.mitre.org/techniques/T1018/"},
+    "T1083": {
+        "tactic": "Discovery",
+        "name": "File and Directory Discovery",
+        "url": "https://attack.mitre.org/techniques/T1083/",
+    },
+    "T1135": {
+        "tactic": "Discovery",
+        "name": "Network Share Discovery",
+        "url": "https://attack.mitre.org/techniques/T1135/",
+    },
+    "T1046": {
+        "tactic": "Discovery",
+        "name": "Network Service Discovery",
+        "url": "https://attack.mitre.org/techniques/T1046/",
+    },
+    "T1018": {
+        "tactic": "Discovery",
+        "name": "Remote System Discovery",
+        "url": "https://attack.mitre.org/techniques/T1018/",
+    },
     # Collection
-    "T1005": {"tactic": "Collection", "name": "Data from Local System", "url": "https://attack.mitre.org/techniques/T1005/"},
-    "T1039": {"tactic": "Collection", "name": "Data from Network Shared Drive", "url": "https://attack.mitre.org/techniques/T1039/"},
-    "T1119": {"tactic": "Collection", "name": "Automated Collection", "url": "https://attack.mitre.org/techniques/T1119/"},
-    "T1074": {"tactic": "Collection", "name": "Data Staged", "url": "https://attack.mitre.org/techniques/T1074/"},
-    "T1113": {"tactic": "Collection", "name": "Screen Capture", "url": "https://attack.mitre.org/techniques/T1113/"},
-    "T1560": {"tactic": "Collection", "name": "Archive Collected Data", "url": "https://attack.mitre.org/techniques/T1560/"},
+    "T1005": {
+        "tactic": "Collection",
+        "name": "Data from Local System",
+        "url": "https://attack.mitre.org/techniques/T1005/",
+    },
+    "T1039": {
+        "tactic": "Collection",
+        "name": "Data from Network Shared Drive",
+        "url": "https://attack.mitre.org/techniques/T1039/",
+    },
+    "T1119": {
+        "tactic": "Collection",
+        "name": "Automated Collection",
+        "url": "https://attack.mitre.org/techniques/T1119/",
+    },
+    "T1074": {
+        "tactic": "Collection",
+        "name": "Data Staged",
+        "url": "https://attack.mitre.org/techniques/T1074/",
+    },
+    "T1113": {
+        "tactic": "Collection",
+        "name": "Screen Capture",
+        "url": "https://attack.mitre.org/techniques/T1113/",
+    },
+    "T1560": {
+        "tactic": "Collection",
+        "name": "Archive Collected Data",
+        "url": "https://attack.mitre.org/techniques/T1560/",
+    },
     # Command and Control
-    "T1071": {"tactic": "Command and Control", "name": "Application Layer Protocol", "url": "https://attack.mitre.org/techniques/T1071/"},
-    "T1572": {"tactic": "Command and Control", "name": "Protocol Tunneling", "url": "https://attack.mitre.org/techniques/T1572/"},
+    "T1071": {
+        "tactic": "Command and Control",
+        "name": "Application Layer Protocol",
+        "url": "https://attack.mitre.org/techniques/T1071/",
+    },
+    "T1572": {
+        "tactic": "Command and Control",
+        "name": "Protocol Tunneling",
+        "url": "https://attack.mitre.org/techniques/T1572/",
+    },
     # Exfiltration
-    "T1048": {"tactic": "Exfiltration", "name": "Exfiltration Over Alternative Protocol", "url": "https://attack.mitre.org/techniques/T1048/"},
-    "T1052": {"tactic": "Exfiltration", "name": "Exfiltration Over Physical Medium", "url": "https://attack.mitre.org/techniques/T1052/"},
-    "T1567": {"tactic": "Exfiltration", "name": "Exfiltration Over Web Service", "url": "https://attack.mitre.org/techniques/T1567/"},
-    "T1567.002": {"tactic": "Exfiltration", "name": "Exfiltration to Cloud Storage", "url": "https://attack.mitre.org/techniques/T1567/002/"},
-    "T1091": {"tactic": "Lateral Movement", "name": "Replication Through Removable Media", "url": "https://attack.mitre.org/techniques/T1091/"},
+    "T1048": {
+        "tactic": "Exfiltration",
+        "name": "Exfiltration Over Alternative Protocol",
+        "url": "https://attack.mitre.org/techniques/T1048/",
+    },
+    "T1052": {
+        "tactic": "Exfiltration",
+        "name": "Exfiltration Over Physical Medium",
+        "url": "https://attack.mitre.org/techniques/T1052/",
+    },
+    "T1567": {
+        "tactic": "Exfiltration",
+        "name": "Exfiltration Over Web Service",
+        "url": "https://attack.mitre.org/techniques/T1567/",
+    },
+    "T1567.002": {
+        "tactic": "Exfiltration",
+        "name": "Exfiltration to Cloud Storage",
+        "url": "https://attack.mitre.org/techniques/T1567/002/",
+    },
+    "T1091": {
+        "tactic": "Lateral Movement",
+        "name": "Replication Through Removable Media",
+        "url": "https://attack.mitre.org/techniques/T1091/",
+    },
     # Credential Access
-    "T1110": {"tactic": "Credential Access", "name": "Brute Force", "url": "https://attack.mitre.org/techniques/T1110/"},
+    "T1110": {
+        "tactic": "Credential Access",
+        "name": "Brute Force",
+        "url": "https://attack.mitre.org/techniques/T1110/",
+    },
     # Resource Development
-    "T1583": {"tactic": "Resource Development", "name": "Acquire Infrastructure", "url": "https://attack.mitre.org/techniques/T1583/"},
-    "T1589": {"tactic": "Resource Development", "name": "Gather Victim Identity Information", "url": "https://attack.mitre.org/techniques/T1589/"},
+    "T1583": {
+        "tactic": "Resource Development",
+        "name": "Acquire Infrastructure",
+        "url": "https://attack.mitre.org/techniques/T1583/",
+    },
+    "T1589": {
+        "tactic": "Resource Development",
+        "name": "Gather Victim Identity Information",
+        "url": "https://attack.mitre.org/techniques/T1589/",
+    },
 }
 
 
 # =============================================================================
 # Correlation Rule Engine
 # =============================================================================
+
 
 class CorrelationRule:
     """A rule that detects multi-indicator patterns within a time window."""
@@ -220,7 +360,8 @@ class CorrelationRule:
 # Built-in correlation rules
 CORRELATION_RULES: List[CorrelationRule] = [
     CorrelationRule(
-        "CR-001", "Data Exfiltration Sequence",
+        "CR-001",
+        "Data Exfiltration Sequence",
         "Detects reconnaissance followed by data staging and exfiltration within a time window",
         ["IND-023", "IND-024", "IND-003", "IND-013"],
         time_window_minutes=480,  # 8 hours
@@ -230,7 +371,8 @@ CORRELATION_RULES: List[CorrelationRule] = [
         mitre_techniques=["T1046", "T1074", "T1005", "T1048"],
     ),
     CorrelationRule(
-        "CR-002", "Credential Compromise Chain",
+        "CR-002",
+        "Credential Compromise Chain",
         "Multiple failed logins followed by successful access and privilege escalation",
         ["IND-017", "IND-018", "IND-016", "IND-006"],
         time_window_minutes=60,
@@ -240,7 +382,8 @@ CORRELATION_RULES: List[CorrelationRule] = [
         mitre_techniques=["T1110", "T1078", "T1548"],
     ),
     CorrelationRule(
-        "CR-003", "Foreign Intelligence Pattern",
+        "CR-003",
+        "Foreign Intelligence Pattern",
         "Foreign contact violations combined with classified access and data movement",
         ["IND-008", "IND-001", "IND-003", "IND-011"],
         time_window_minutes=1440,  # 24 hours
@@ -250,7 +393,8 @@ CORRELATION_RULES: List[CorrelationRule] = [
         mitre_techniques=["T1583", "T1589", "T1005"],
     ),
     CorrelationRule(
-        "CR-004", "Pre-Departure Exfiltration",
+        "CR-004",
+        "Pre-Departure Exfiltration",
         "Signs of data collection and removal before employment termination",
         ["IND-003", "IND-005", "IND-019", "IND-024", "IND-014"],
         time_window_minutes=10080,  # 7 days
@@ -260,7 +404,8 @@ CORRELATION_RULES: List[CorrelationRule] = [
         mitre_techniques=["T1005", "T1052", "T1567", "T1074"],
     ),
     CorrelationRule(
-        "CR-005", "Evasion and Exfiltration",
+        "CR-005",
+        "Evasion and Exfiltration",
         "Security control bypass combined with covert channel or encrypted exfiltration",
         ["IND-006", "IND-021", "IND-028"],
         time_window_minutes=240,  # 4 hours
@@ -270,7 +415,8 @@ CORRELATION_RULES: List[CorrelationRule] = [
         mitre_techniques=["T1562", "T1027", "T1071", "T1572"],
     ),
     CorrelationRule(
-        "CR-006", "After-Hours Suspicious Activity",
+        "CR-006",
+        "After-Hours Suspicious Activity",
         "After-hours access combined with printing, data downloads, or email forwarding",
         ["IND-002", "IND-014", "IND-003", "IND-013"],
         time_window_minutes=480,  # 8 hours
@@ -280,7 +426,8 @@ CORRELATION_RULES: List[CorrelationRule] = [
         mitre_techniques=["T1078.004", "T1005"],
     ),
     CorrelationRule(
-        "CR-007", "Insider Recon and Staging",
+        "CR-007",
+        "Insider Recon and Staging",
         "Network scanning or file discovery followed by data staging",
         ["IND-023", "IND-004", "IND-024"],
         time_window_minutes=360,  # 6 hours
@@ -290,7 +437,8 @@ CORRELATION_RULES: List[CorrelationRule] = [
         mitre_techniques=["T1046", "T1083", "T1074"],
     ),
     CorrelationRule(
-        "CR-008", "Compartment Breach Sequence",
+        "CR-008",
+        "Compartment Breach Sequence",
         "Clearance scope violations combined with unauthorized access patterns",
         ["IND-027", "IND-001", "IND-004"],
         time_window_minutes=1440,  # 24 hours
@@ -305,6 +453,7 @@ CORRELATION_RULES: List[CorrelationRule] = [
 # =============================================================================
 # Event Formatters
 # =============================================================================
+
 
 def _escape_cef_value(value: str) -> str:
     """Escape special characters for CEF format."""
@@ -367,7 +516,7 @@ class EventFormatter:
         # Build extension key-value pairs
         ext_parts = []
         for key, value in extensions.items():
-            safe_key = re.sub(r'[^a-zA-Z0-9]', '', key)
+            safe_key = re.sub(r"[^a-zA-Z0-9]", "", key)
             safe_val = _escape_cef_value(str(value))
             ext_parts.append(f"{safe_key}={safe_val}")
 
@@ -432,10 +581,10 @@ class EventFormatter:
         """
         # RFC 5424 severity mapping (0=Emergency ... 7=Debug)
         severity_map = {
-            EventSeverity.CRITICAL: 2,     # Critical
-            EventSeverity.HIGH: 3,         # Error
-            EventSeverity.MEDIUM: 4,       # Warning
-            EventSeverity.LOW: 5,          # Notice
+            EventSeverity.CRITICAL: 2,  # Critical
+            EventSeverity.HIGH: 3,  # Error
+            EventSeverity.MEDIUM: 4,  # Warning
+            EventSeverity.LOW: 5,  # Notice
             EventSeverity.INFORMATIONAL: 6,  # Informational
         }
         sev_val = severity_map.get(severity, 6)
@@ -453,8 +602,10 @@ class EventFormatter:
         sd_id = "insider-threat@2acrestudios"
         params = []
         for key, value in structured_data.items():
-            safe_key = re.sub(r'[^a-zA-Z0-9._-]', '', str(key))[:32]
-            safe_val = str(value).replace("\\", "\\\\").replace('"', '\\"').replace("]", "\\]")
+            safe_key = re.sub(r"[^a-zA-Z0-9._-]", "", str(key))[:32]
+            safe_val = (
+                str(value).replace("\\", "\\\\").replace('"', '\\"').replace("]", "\\]")
+            )
             params.append(f'{safe_key}="{safe_val}"')
         sd_element = f"[{sd_id} {' '.join(params)}]"
         sd_parts.append(sd_element)
@@ -470,6 +621,7 @@ class EventFormatter:
 # =============================================================================
 # SIEM Integration Engine
 # =============================================================================
+
 
 class SIEMIntegration:
     """
@@ -544,7 +696,11 @@ class SIEMIntegration:
             self._forwarding_destinations.append(dest)
         logger.info(
             "Added forwarding destination '%s' (%s:%d via %s, format=%s)",
-            name, host, port, protocol, format_type,
+            name,
+            host,
+            port,
+            protocol,
+            format_type,
         )
         return dest
 
@@ -612,7 +768,10 @@ class SIEMIntegration:
                 dest["last_error"] = str(exc)
                 logger.warning(
                     "Failed to forward events to '%s' (%s:%d): %s",
-                    dest["name"], host, port, exc,
+                    dest["name"],
+                    host,
+                    port,
+                    exc,
                 )
             finally:
                 if sock is not None:
@@ -764,25 +923,31 @@ class SIEMIntegration:
                 if "leef" in output_formats:
                     events["leef"].append(
                         EventFormatter.to_leef(
-                            ind_event_id, ind_name, ind_severity, {
+                            ind_event_id,
+                            ind_name,
+                            ind_severity,
+                            {
                                 "indicatorId": indicator["indicator_id"],
                                 "indicatorName": indicator["indicator_name"],
                                 "category": indicator["category"],
                                 "weight": str(indicator["weight"]),
                                 "confidence": str(indicator["confidence"]),
                                 "details": indicator.get("details", ""),
-                            }
+                            },
                         )
                     )
                 if "syslog" in output_formats:
                     events["syslog"].append(
                         EventFormatter.to_syslog_rfc5424(
-                            ind_event_id, ind_name, ind_severity, {
+                            ind_event_id,
+                            ind_name,
+                            ind_severity,
+                            {
                                 "indicatorId": indicator["indicator_id"],
                                 "category": indicator["category"],
                                 "weight": str(indicator["weight"]),
                                 "confidence": str(indicator["confidence"]),
-                            }
+                            },
                         )
                     )
 
@@ -818,12 +983,8 @@ class SIEMIntegration:
             "severity": severity.name,
             "dod_incident_category": dod_category,
             "mitre_enrichment": mitre_enrichment,
-            "events": {
-                fmt: evts for fmt, evts in events.items() if evts
-            },
-            "event_counts": {
-                fmt: len(evts) for fmt, evts in events.items() if evts
-            },
+            "events": {fmt: evts for fmt, evts in events.items() if evts},
+            "event_counts": {fmt: len(evts) for fmt, evts in events.items() if evts},
             "correlation_alerts": correlation_alerts,
             "total_events_generated": sum(len(evts) for evts in events.values()),
             "events_forwarded": forwarded_count,
@@ -844,7 +1005,6 @@ class SIEMIntegration:
 
         # Check categories by priority (CAT-1 highest)
         indicator_ids = set(t["indicator_id"] for t in triggered_indicators)
-        categories_set = set(t.get("category", "") for t in triggered_indicators)
 
         # CAT-1: Root level intrusion indicators
         cat1_indicators = {"IND-016", "IND-006", "IND-025"}
@@ -883,19 +1043,23 @@ class SIEMIntegration:
         for tech_id in technique_ids:
             if tech_id in MITRE_ATTACK_MAP:
                 info = MITRE_ATTACK_MAP[tech_id]
-                enriched.append({
-                    "technique_id": tech_id,
-                    "technique_name": info["name"],
-                    "tactic": info["tactic"],
-                    "reference_url": info["url"],
-                })
+                enriched.append(
+                    {
+                        "technique_id": tech_id,
+                        "technique_name": info["name"],
+                        "tactic": info["tactic"],
+                        "reference_url": info["url"],
+                    }
+                )
             else:
-                enriched.append({
-                    "technique_id": tech_id,
-                    "technique_name": "Unknown",
-                    "tactic": "Unknown",
-                    "reference_url": f"https://attack.mitre.org/techniques/{tech_id}/",
-                })
+                enriched.append(
+                    {
+                        "technique_id": tech_id,
+                        "technique_name": "Unknown",
+                        "tactic": "Unknown",
+                        "reference_url": f"https://attack.mitre.org/techniques/{tech_id}/",
+                    }
+                )
         return enriched
 
     def _check_correlations(
@@ -912,16 +1076,16 @@ class SIEMIntegration:
         with self._lock:
             # Add to per-user correlation buffer
             for ind_id in indicator_ids:
-                self._correlation_buffer[user_id].append({
-                    "indicator_id": ind_id,
-                    "timestamp": timestamp,
-                })
+                self._correlation_buffer[user_id].append(
+                    {
+                        "indicator_id": ind_id,
+                        "timestamp": timestamp,
+                    }
+                )
 
             # Check each correlation rule
             for rule in CORRELATION_RULES:
-                matched = self._evaluate_correlation_rule(
-                    rule, user_id, timestamp
-                )
+                matched = self._evaluate_correlation_rule(rule, user_id, timestamp)
                 if matched:
                     alert = {
                         "alert_id": f"CORR-{uuid.uuid4().hex[:8].upper()}",
@@ -941,7 +1105,9 @@ class SIEMIntegration:
                     self._stats["correlation_alerts"] += 1
                     logger.warning(
                         "Correlation alert %s fired for user %s: %s",
-                        alert["alert_id"], user_id, rule.name
+                        alert["alert_id"],
+                        user_id,
+                        rule.name,
                     )
 
         return alerts
@@ -1022,8 +1188,10 @@ class SIEMIntegration:
             try:
                 min_idx = severity_order.index(min_severity.upper())
                 filtered = [
-                    e for e in filtered
-                    if severity_order.index(e.get("severity", "INFORMATIONAL")) >= min_idx
+                    e
+                    for e in filtered
+                    if severity_order.index(e.get("severity", "INFORMATIONAL"))
+                    >= min_idx
                 ]
             except ValueError:
                 pass
@@ -1031,9 +1199,13 @@ class SIEMIntegration:
         if output_format == "csv":
             # Generate CSV representation
             if not filtered:
-                csv_content = "event_id,user_id,risk_score,threat_level,severity,timestamp\n"
+                csv_content = (
+                    "event_id,user_id,risk_score,threat_level,severity,timestamp\n"
+                )
             else:
-                lines = ["event_id,user_id,risk_score,threat_level,severity,dod_category,timestamp"]
+                lines = [
+                    "event_id,user_id,risk_score,threat_level,severity,dod_category,timestamp"
+                ]
                 for e in filtered:
                     lines.append(
                         f"{e.get('event_id', '')},{e.get('user_id', '')},"

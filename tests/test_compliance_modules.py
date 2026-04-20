@@ -9,12 +9,8 @@ Covers:
 - NTAS alignment verification across all modules
 """
 
-import json
-import re
 import threading
-import uuid
-from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
+from datetime import datetime, timezone
 
 import pytest
 
@@ -31,7 +27,6 @@ from compliance import (
     ClearanceLevel,
     ClearanceStatus,
     ClearedPersonnelAnalyzer,
-    ClearedPersonnelRecord,
     ComplianceDashboard,
     CorrelationRule,
     EventFormatter,
@@ -66,7 +61,17 @@ class TestNTASAlignment:
 
     def test_no_hsas_values_in_threat_level(self):
         """No deprecated HSAS values (LOW, GUARDED, HIGH, SEVERE, GREEN, BLUE, YELLOW, ORANGE, RED)."""
-        hsas_values = {"LOW", "GUARDED", "HIGH", "SEVERE", "GREEN", "BLUE", "YELLOW", "ORANGE", "RED"}
+        hsas_values = {
+            "LOW",
+            "GUARDED",
+            "HIGH",
+            "SEVERE",
+            "GREEN",
+            "BLUE",
+            "YELLOW",
+            "ORANGE",
+            "RED",
+        }
         actual_values = {level.value for level in ThreatLevel}
         assert actual_values & hsas_values == set(), (
             f"HSAS values found in ThreatLevel enum: {actual_values & hsas_values}"
@@ -91,17 +96,26 @@ class TestNTASAlignment:
         """ClearedPersonnelAnalyzer._calculate_overall_risk uses NTAS values."""
         analyzer = ClearedPersonnelAnalyzer()
         # Check all risk levels produced by _calculate_overall_risk
-        for score, expected in [(0, "BASELINE"), (29, "BASELINE"),
-                                (30, "ADVISORY"), (59, "ADVISORY"),
-                                (60, "ELEVATED"), (79, "ELEVATED"),
-                                (80, "IMMINENT"), (100, "IMMINENT")]:
+        for score, expected in [
+            (0, "BASELINE"),
+            (29, "BASELINE"),
+            (30, "ADVISORY"),
+            (59, "ADVISORY"),
+            (60, "ELEVATED"),
+            (79, "ELEVATED"),
+            (80, "IMMINENT"),
+            (100, "IMMINENT"),
+        ]:
             result = analyzer._calculate_overall_risk(
                 [{"severity": "CRITICAL"}] * (score // 25),
                 {"aggregate_risk_score": 0},
             )
-            assert result["level"] in {"BASELINE", "ADVISORY", "ELEVATED", "IMMINENT"}, (
-                f"Non-NTAS risk level '{result['level']}' produced for score ~{score}"
-            )
+            assert result["level"] in {
+                "BASELINE",
+                "ADVISORY",
+                "ELEVATED",
+                "IMMINENT",
+            }, f"Non-NTAS risk level '{result['level']}' produced for score ~{score}"
 
     def test_assessor_threat_descriptions_use_ntas(self):
         """InsiderThreatAssessor descriptions reference NTAS, not HSAS."""
@@ -111,7 +125,9 @@ class TestNTASAlignment:
             assert "HSAS" not in desc, f"HSAS reference in {level.value} description"
             # ELEVATED and IMMINENT should reference NTAS
             if level in (ThreatLevel.ELEVATED, ThreatLevel.IMMINENT):
-                assert "NTAS" in desc, f"Missing NTAS reference in {level.value} description"
+                assert "NTAS" in desc, (
+                    f"Missing NTAS reference in {level.value} description"
+                )
 
 
 # =============================================================================
@@ -139,19 +155,37 @@ class TestBehavioralIndicators:
             assert indicator.indicator_id == ind_id
             assert indicator.name, f"{ind_id} missing name"
             assert indicator.category, f"{ind_id} missing category"
-            assert isinstance(indicator.weight, (int, float)), f"{ind_id} weight not numeric"
-            assert 0 < indicator.weight <= 10, f"{ind_id} weight {indicator.weight} out of range"
-            assert isinstance(indicator.nist_controls, list), f"{ind_id} nist_controls not a list"
-            assert len(indicator.nist_controls) > 0, f"{ind_id} has no NIST control mappings"
-            assert isinstance(indicator.mitre_techniques, list), f"{ind_id} mitre_techniques not a list"
+            assert isinstance(indicator.weight, (int, float)), (
+                f"{ind_id} weight not numeric"
+            )
+            assert 0 < indicator.weight <= 10, (
+                f"{ind_id} weight {indicator.weight} out of range"
+            )
+            assert isinstance(indicator.nist_controls, list), (
+                f"{ind_id} nist_controls not a list"
+            )
+            assert len(indicator.nist_controls) > 0, (
+                f"{ind_id} has no NIST control mappings"
+            )
+            assert isinstance(indicator.mitre_techniques, list), (
+                f"{ind_id} mitre_techniques not a list"
+            )
             assert indicator.description, f"{ind_id} missing description"
             assert indicator.detection_logic, f"{ind_id} missing detection_logic"
 
     def test_indicator_categories_coverage(self):
         """Indicators cover expected threat categories."""
         categories = {ind.category for ind in BEHAVIORAL_INDICATORS.values()}
-        expected = {"access", "data_movement", "evasion", "foreign_nexus",
-                    "personal", "ci", "physical", "reconnaissance"}
+        expected = {
+            "access",
+            "data_movement",
+            "evasion",
+            "foreign_nexus",
+            "personal",
+            "ci",
+            "physical",
+            "reconnaissance",
+        }
         assert expected.issubset(categories), (
             f"Missing categories: {expected - categories}"
         )
@@ -210,9 +244,12 @@ class TestInsiderThreatAssessor:
     def test_unauthorized_classified_access_triggers(self):
         """IND-001 fires for classification breach."""
         self.assessor.update_profile("user-002", clearance_level="SECRET")
-        result = self.assessor.assess_user("user-002", {
-            "accessed_classification": "SCI",
-        })
+        result = self.assessor.assess_user(
+            "user-002",
+            {
+                "accessed_classification": "SCI",
+            },
+        )
         triggered_ids = [t["indicator_id"] for t in result["triggered_indicators"]]
         assert "IND-001" in triggered_ids
 
@@ -237,9 +274,12 @@ class TestInsiderThreatAssessor:
         profile = self.assessor.get_or_create_profile("user-004")
         for _ in range(10):
             profile.record_data_transfer(1000, "internal")
-        result = self.assessor.assess_user("user-004", {
-            "data_volume_bytes": 50000,
-        })
+        result = self.assessor.assess_user(
+            "user-004",
+            {
+                "data_volume_bytes": 50000,
+            },
+        )
         triggered_ids = [t["indicator_id"] for t in result["triggered_indicators"]]
         assert "IND-003" in triggered_ids
 
@@ -248,43 +288,58 @@ class TestInsiderThreatAssessor:
         self.assessor.update_profile(
             "user-005", authorized_resources=["proj-alpha", "proj-beta"]
         )
-        result = self.assessor.assess_user("user-005", {
-            "resource_id": "proj-classified-gamma",
-        })
+        result = self.assessor.assess_user(
+            "user-005",
+            {
+                "resource_id": "proj-classified-gamma",
+            },
+        )
         triggered_ids = [t["indicator_id"] for t in result["triggered_indicators"]]
         assert "IND-004" in triggered_ids
 
     def test_removable_media_triggers(self):
         """IND-005 fires for unauthorized removable media."""
-        result = self.assessor.assess_user("user-006", {
-            "removable_media_type": "USB",
-            "device_id": "DEV-UNKNOWN",
-            "approved_devices": ["DEV-001", "DEV-002"],
-        })
+        result = self.assessor.assess_user(
+            "user-006",
+            {
+                "removable_media_type": "USB",
+                "device_id": "DEV-UNKNOWN",
+                "approved_devices": ["DEV-001", "DEV-002"],
+            },
+        )
         triggered_ids = [t["indicator_id"] for t in result["triggered_indicators"]]
         assert "IND-005" in triggered_ids
 
     def test_security_bypass_triggers(self):
         """IND-006 fires for security control bypass."""
-        result = self.assessor.assess_user("user-007", {
-            "security_bypass_actions": ["proxy_avoidance", "av_disabled"],
-        })
+        result = self.assessor.assess_user(
+            "user-007",
+            {
+                "security_bypass_actions": ["proxy_avoidance", "av_disabled"],
+            },
+        )
         triggered_ids = [t["indicator_id"] for t in result["triggered_indicators"]]
         assert "IND-006" in triggered_ids
 
     def test_foreign_travel_to_adversary_triggers(self):
         """IND-007 fires for travel to adversary nation."""
-        result = self.assessor.assess_user("user-008", {
-            "travel_destination": "CN-Beijing",
-        })
+        result = self.assessor.assess_user(
+            "user-008",
+            {
+                "travel_destination": "CN-Beijing",
+            },
+        )
         triggered_ids = [t["indicator_id"] for t in result["triggered_indicators"]]
         assert "IND-007" in triggered_ids
 
     def test_post_termination_access_triggers(self):
         """IND-025 fires for terminated employee access."""
-        result = self.assessor.assess_user("user-025", {
-            "employment_status": "terminated",
-        })
+        result = self.assessor.assess_user(
+            "user-025",
+            {
+                "employment_status": "terminated",
+            },
+        )
         triggered_ids = [t["indicator_id"] for t in result["triggered_indicators"]]
         assert "IND-025" in triggered_ids
         # Should be IMMINENT-level due to high weight
@@ -293,15 +348,19 @@ class TestInsiderThreatAssessor:
     def test_multiple_indicators_increase_score(self):
         """Multiple triggered indicators produce higher risk score."""
         self.assessor.update_profile(
-            "user-multi", clearance_level="SECRET",
+            "user-multi",
+            clearance_level="SECRET",
             authorized_resources=["proj-alpha"],
         )
-        result = self.assessor.assess_user("user-multi", {
-            "accessed_classification": "SCI",
-            "resource_id": "classified-system",
-            "security_bypass_actions": ["proxy_avoidance"],
-            "employment_status": "terminated",
-        })
+        result = self.assessor.assess_user(
+            "user-multi",
+            {
+                "accessed_classification": "SCI",
+                "resource_id": "classified-system",
+                "security_bypass_actions": ["proxy_avoidance"],
+                "employment_status": "terminated",
+            },
+        )
         assert result["indicators_triggered"] >= 3
         assert result["risk_score"] > 30  # Multiple indicators push well above BASELINE
 
@@ -315,9 +374,12 @@ class TestInsiderThreatAssessor:
     def test_nist_violations_populated(self):
         """NIST control violations are populated when indicators fire."""
         self.assessor.update_profile("user-nist", clearance_level="SECRET")
-        result = self.assessor.assess_user("user-nist", {
-            "accessed_classification": "SCI",
-        })
+        result = self.assessor.assess_user(
+            "user-nist",
+            {
+                "accessed_classification": "SCI",
+            },
+        )
         if result["indicators_triggered"] > 0:
             assert len(result["nist_control_violations"]) > 0
             violation = result["nist_control_violations"][0]
@@ -334,9 +396,12 @@ class TestInsiderThreatAssessor:
 
     def test_case_referral_generation(self):
         """Case referral produces a complete report."""
-        self.assessor.assess_user("user-referral", {
-            "employment_status": "terminated",
-        })
+        self.assessor.assess_user(
+            "user-referral",
+            {
+                "employment_status": "terminated",
+            },
+        )
         referral = self.assessor.generate_case_referral("user-referral")
         assert referral["referral_id"].startswith("ITCR-")
         assert "executive_summary" in referral
@@ -357,10 +422,13 @@ class TestInsiderThreatAssessor:
         def assess_user(user_id):
             try:
                 for _ in range(10):
-                    self.assessor.assess_user(user_id, {
-                        "login_hour": 14,
-                        "data_volume_bytes": 500,
-                    })
+                    self.assessor.assess_user(
+                        user_id,
+                        {
+                            "login_hour": 14,
+                            "data_volume_bytes": 500,
+                        },
+                    )
             except Exception as e:
                 errors.append(str(e))
 
@@ -386,9 +454,12 @@ class TestInsiderThreatAssessor:
 
     def test_indicator_evaluation_returns_evidence(self):
         """Triggered indicators include evidence details."""
-        result = self.assessor.assess_user("user-evidence", {
-            "employment_status": "terminated",
-        })
+        result = self.assessor.assess_user(
+            "user-evidence",
+            {
+                "employment_status": "terminated",
+            },
+        )
         for trigger in result["triggered_indicators"]:
             assert "evidence" in trigger
             assert "details" in trigger
@@ -403,14 +474,17 @@ class TestInsiderThreatAssessor:
         assert 0 <= r1["risk_score"] <= 100
 
         # Maximum indicators
-        r2 = self.assessor.assess_user("user-bound-max", {
-            "employment_status": "terminated",
-            "security_bypass_actions": ["proxy_avoidance"],
-            "network_scanning_detected": True,
-            "scan_targets": 100,
-            "covert_channel_indicators": ["dns_tunnel"],
-            "accessed_classification": "SCI",
-        })
+        r2 = self.assessor.assess_user(
+            "user-bound-max",
+            {
+                "employment_status": "terminated",
+                "security_bypass_actions": ["proxy_avoidance"],
+                "network_scanning_detected": True,
+                "scan_targets": 100,
+                "covert_channel_indicators": ["dns_tunnel"],
+                "accessed_classification": "SCI",
+            },
+        )
         assert 0 <= r2["risk_score"] <= 100
 
 
@@ -428,7 +502,9 @@ class TestSIEMIntegration:
     def test_cef_format_header(self):
         """CEF output follows ArcSight CEF standard format."""
         cef = EventFormatter.to_cef(
-            "EVT-001", "Test Event", EventSeverity.HIGH,
+            "EVT-001",
+            "Test Event",
+            EventSeverity.HIGH,
             {"src": "user1", "msg": "test"},
         )
         assert cef.startswith("CEF:0|")
@@ -455,7 +531,9 @@ class TestSIEMIntegration:
     def test_cef_escaping(self):
         """CEF values are properly escaped."""
         cef = EventFormatter.to_cef(
-            "EVT|002", "Name|With|Pipes", EventSeverity.LOW,
+            "EVT|002",
+            "Name|With|Pipes",
+            EventSeverity.LOW,
             {"key": "val=ue", "msg": "line1\nline2"},
         )
         # Pipes in event name should be escaped
@@ -466,7 +544,9 @@ class TestSIEMIntegration:
     def test_leef_format_header(self):
         """LEEF output follows IBM QRadar format."""
         leef = EventFormatter.to_leef(
-            "EVT-001", "Test Event", EventSeverity.MEDIUM,
+            "EVT-001",
+            "Test Event",
+            EventSeverity.MEDIUM,
             {"usrName": "user1"},
         )
         assert leef.startswith("LEEF:2.0|")
@@ -477,7 +557,9 @@ class TestSIEMIntegration:
     def test_syslog_rfc5424_format(self):
         """Syslog output follows RFC 5424 format."""
         syslog = EventFormatter.to_syslog_rfc5424(
-            "EVT-001", "Test Event", EventSeverity.HIGH,
+            "EVT-001",
+            "Test Event",
+            EventSeverity.HIGH,
             {"userId": "user1", "riskScore": "75"},
         )
         # RFC 5424: <PRI>VERSION TIMESTAMP HOSTNAME APP-NAME PROCID MSGID [SD] MSG
@@ -568,16 +650,27 @@ class TestSIEMIntegration:
     def test_dod_category_classification(self):
         """Events are classified into DoD incident categories."""
         # CAT-1: Root level intrusion (privilege escalation)
-        result = self.siem.generate_events({
-            "user_id": "u", "risk_score": 80, "threat_level": "IMMINENT",
-            "triggered_indicators": [
-                {"indicator_id": "IND-016", "indicator_name": "Priv Esc",
-                 "category": "access", "weight": 8.5, "confidence": 0.9,
-                 "details": "", "evidence": [], "nist_controls": ["AC-2"],
-                 "mitre_techniques": ["T1548"],
-                 "timestamp": datetime.now(timezone.utc).isoformat()},
-            ],
-        })
+        result = self.siem.generate_events(
+            {
+                "user_id": "u",
+                "risk_score": 80,
+                "threat_level": "IMMINENT",
+                "triggered_indicators": [
+                    {
+                        "indicator_id": "IND-016",
+                        "indicator_name": "Priv Esc",
+                        "category": "access",
+                        "weight": 8.5,
+                        "confidence": 0.9,
+                        "details": "",
+                        "evidence": [],
+                        "nist_controls": ["AC-2"],
+                        "mitre_techniques": ["T1548"],
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                ],
+            }
+        )
         assert result["dod_incident_category"]["category_id"] == "CAT-1"
 
     def test_8_correlation_rules_defined(self):
@@ -603,21 +696,39 @@ class TestSIEMIntegration:
         # CR-002: Credential Compromise Chain needs IND-017 + IND-016 in 60 min
         ts = datetime.now(timezone.utc).isoformat()
         indicators = [
-            {"indicator_id": "IND-017", "indicator_name": "Failed Logins",
-             "category": "access", "weight": 5.5, "confidence": 0.8,
-             "details": "", "evidence": [], "nist_controls": ["AC-2"],
-             "mitre_techniques": ["T1110"], "timestamp": ts},
-            {"indicator_id": "IND-016", "indicator_name": "Priv Esc",
-             "category": "access", "weight": 8.5, "confidence": 0.9,
-             "details": "", "evidence": [], "nist_controls": ["AC-2"],
-             "mitre_techniques": ["T1548"], "timestamp": ts},
+            {
+                "indicator_id": "IND-017",
+                "indicator_name": "Failed Logins",
+                "category": "access",
+                "weight": 5.5,
+                "confidence": 0.8,
+                "details": "",
+                "evidence": [],
+                "nist_controls": ["AC-2"],
+                "mitre_techniques": ["T1110"],
+                "timestamp": ts,
+            },
+            {
+                "indicator_id": "IND-016",
+                "indicator_name": "Priv Esc",
+                "category": "access",
+                "weight": 8.5,
+                "confidence": 0.9,
+                "details": "",
+                "evidence": [],
+                "nist_controls": ["AC-2"],
+                "mitre_techniques": ["T1548"],
+                "timestamp": ts,
+            },
         ]
-        result = self.siem.generate_events({
-            "user_id": "user-corr",
-            "risk_score": 70,
-            "threat_level": "ELEVATED",
-            "triggered_indicators": indicators,
-        })
+        result = self.siem.generate_events(
+            {
+                "user_id": "user-corr",
+                "risk_score": 70,
+                "threat_level": "ELEVATED",
+                "triggered_indicators": indicators,
+            }
+        )
         # Should fire CR-002
         alert_rule_ids = [a["rule_id"] for a in result.get("correlation_alerts", [])]
         assert "CR-002" in alert_rule_ids
@@ -650,20 +761,28 @@ class TestSIEMIntegration:
     def test_batch_export_json(self):
         """Batch export produces valid JSON output."""
         # Generate some events first
-        self.siem.generate_events({
-            "user_id": "u1", "risk_score": 50, "threat_level": "ADVISORY",
-            "triggered_indicators": [],
-        })
+        self.siem.generate_events(
+            {
+                "user_id": "u1",
+                "risk_score": 50,
+                "threat_level": "ADVISORY",
+                "triggered_indicators": [],
+            }
+        )
         result = self.siem.batch_export(output_format="json")
         assert result["format"] == "json"
         assert "event_count" in result
 
     def test_batch_export_csv(self):
         """Batch export produces valid CSV output."""
-        self.siem.generate_events({
-            "user_id": "u1", "risk_score": 50, "threat_level": "ADVISORY",
-            "triggered_indicators": [],
-        })
+        self.siem.generate_events(
+            {
+                "user_id": "u1",
+                "risk_score": 50,
+                "threat_level": "ADVISORY",
+                "triggered_indicators": [],
+            }
+        )
         result = self.siem.batch_export(output_format="csv")
         assert result["format"] == "csv"
         assert "content" in result
@@ -672,18 +791,26 @@ class TestSIEMIntegration:
     def test_forwarding_destination_registration(self):
         """Forwarding destinations can be registered."""
         dest = self.siem.add_forwarding_destination(
-            "test-siem", "syslog", "10.0.0.1", 514,
-            protocol="tcp", format_type="cef",
+            "test-siem",
+            "syslog",
+            "10.0.0.1",
+            514,
+            protocol="tcp",
+            format_type="cef",
         )
         assert dest["name"] == "test-siem"
         assert dest["enabled"] is True
 
     def test_stats_tracking(self):
         """SIEM stats are tracked correctly."""
-        self.siem.generate_events({
-            "user_id": "u1", "risk_score": 40, "threat_level": "ADVISORY",
-            "triggered_indicators": [],
-        })
+        self.siem.generate_events(
+            {
+                "user_id": "u1",
+                "risk_score": 40,
+                "threat_level": "ADVISORY",
+                "triggered_indicators": [],
+            }
+        )
         stats = self.siem.get_stats()
         assert stats["events_generated"] >= 1
         assert "correlation_rules_count" in stats
@@ -745,8 +872,15 @@ class TestClearedPersonnelAnalyzer:
 
     def test_clearance_status_values(self):
         """All expected clearance statuses exist."""
-        expected = {"PENDING", "INTERIM", "FINAL", "SUSPENDED",
-                    "REVOKED", "EXPIRED", "DENIED"}
+        expected = {
+            "PENDING",
+            "INTERIM",
+            "FINAL",
+            "SUSPENDED",
+            "REVOKED",
+            "EXPIRED",
+            "DENIED",
+        }
         actual = {s.value for s in ClearanceStatus}
         assert actual == expected
 
@@ -759,7 +893,9 @@ class TestClearedPersonnelAnalyzer:
     def test_set_clearance(self):
         """Setting clearance data is reflected in the record."""
         record = self.analyzer.set_clearance(
-            "person-001", "TOP SECRET", "FINAL",
+            "person-001",
+            "TOP SECRET",
+            "FINAL",
             compartments=["HCS", "SI"],
             sap_accesses=["SAP-1"],
             date_granted="2024-01-15",
@@ -774,7 +910,10 @@ class TestClearedPersonnelAnalyzer:
     def test_record_polygraph(self):
         """Polygraph data is recorded."""
         self.analyzer.record_polygraph(
-            "person-poly", "CI", "2024-06-01", "PASS",
+            "person-poly",
+            "CI",
+            "2024-06-01",
+            "PASS",
             next_due="2029-06-01",
         )
         record = self.analyzer.get_or_create_record("person-poly")
@@ -784,59 +923,78 @@ class TestClearedPersonnelAnalyzer:
     def test_ntk_verification_approved(self):
         """NTK passes for user with correct clearance and compartments."""
         self.analyzer.set_clearance(
-            "person-ntk", "TOP SECRET", "FINAL", compartments=["HCS"],
+            "person-ntk",
+            "TOP SECRET",
+            "FINAL",
+            compartments=["HCS"],
         )
-        result = self.analyzer.evaluate_cleared_personnel("person-ntk", {
-            "accessed_classification": "SECRET",
-            "accessed_compartments": ["HCS"],
-            "justification": "Mission requirement",
-        })
+        result = self.analyzer.evaluate_cleared_personnel(
+            "person-ntk",
+            {
+                "accessed_classification": "SECRET",
+                "accessed_compartments": ["HCS"],
+                "justification": "Mission requirement",
+            },
+        )
         ntk = result["need_to_know_verification"]
         assert ntk["verification_status"] == "APPROVED"
 
     def test_ntk_denied_clearance_insufficient(self):
         """NTK denied when clearance level is insufficient."""
         self.analyzer.set_clearance("person-ntk-low", "CONFIDENTIAL", "FINAL")
-        result = self.analyzer.evaluate_cleared_personnel("person-ntk-low", {
-            "accessed_classification": "TOP SECRET",
-        })
+        result = self.analyzer.evaluate_cleared_personnel(
+            "person-ntk-low",
+            {
+                "accessed_classification": "TOP SECRET",
+            },
+        )
         ntk = result["need_to_know_verification"]
         assert ntk["verification_status"] == "DENIED"
 
     def test_ntk_denied_unauthorized_compartment(self):
         """NTK denied for unauthorized compartment access."""
         self.analyzer.set_clearance(
-            "person-ntk-comp", "TOP SECRET", "FINAL", compartments=["HCS"],
+            "person-ntk-comp",
+            "TOP SECRET",
+            "FINAL",
+            compartments=["HCS"],
         )
-        result = self.analyzer.evaluate_cleared_personnel("person-ntk-comp", {
-            "accessed_compartments": ["SI", "TK"],
-        })
+        result = self.analyzer.evaluate_cleared_personnel(
+            "person-ntk-comp",
+            {
+                "accessed_compartments": ["SI", "TK"],
+            },
+        )
         ntk = result["need_to_know_verification"]
         assert ntk["verification_status"] == "DENIED"
 
     def test_continuous_evaluation_financial(self):
         """CE detects financial stress events."""
         self.analyzer.set_clearance("person-ce-fin", "SECRET", "FINAL")
-        result = self.analyzer.evaluate_cleared_personnel("person-ce-fin", {
-            "financial_changes": [
-                {"type": "bankruptcy", "detail": "Chapter 7 filing"},
-            ],
-        })
+        result = self.analyzer.evaluate_cleared_personnel(
+            "person-ce-fin",
+            {
+                "financial_changes": [
+                    {"type": "bankruptcy", "detail": "Chapter 7 filing"},
+                ],
+            },
+        )
         ce = result["continuous_evaluation"]
         assert ce["total_findings"] > 0
-        financial_findings = [
-            f for f in ce["findings"] if f["type"] == "ce_financial"
-        ]
+        financial_findings = [f for f in ce["findings"] if f["type"] == "ce_financial"]
         assert len(financial_findings) > 0
 
     def test_continuous_evaluation_unreported_travel(self):
         """CE detects unreported foreign travel."""
         self.analyzer.set_clearance("person-ce-travel", "SECRET", "FINAL")
-        result = self.analyzer.evaluate_cleared_personnel("person-ce-travel", {
-            "foreign_travel": [
-                {"destination": "Iran", "travel_date": "2024-06-01"},
-            ],
-        })
+        result = self.analyzer.evaluate_cleared_personnel(
+            "person-ce-travel",
+            {
+                "foreign_travel": [
+                    {"destination": "Iran", "travel_date": "2024-06-01"},
+                ],
+            },
+        )
         findings = result["findings"]
         travel_findings = [f for f in findings if f["type"] == "ce_unreported_travel"]
         assert len(travel_findings) > 0
@@ -844,15 +1002,18 @@ class TestClearedPersonnelAnalyzer:
     def test_whole_person_assessment(self):
         """WPA evaluates all 13 adjudicative guidelines."""
         self.analyzer.set_clearance("person-wpa", "SECRET", "FINAL")
-        result = self.analyzer.evaluate_cleared_personnel("person-wpa", {
-            "guideline_data": {
-                "F": {
-                    "delinquent_debts": True,
-                    "unexplained_affluence": True,
-                    "good_faith_debt_resolution": True,
+        result = self.analyzer.evaluate_cleared_personnel(
+            "person-wpa",
+            {
+                "guideline_data": {
+                    "F": {
+                        "delinquent_debts": True,
+                        "unexplained_affluence": True,
+                        "good_faith_debt_resolution": True,
+                    },
                 },
             },
-        })
+        )
         wpa = result["whole_person_assessment"]
         assert wpa["guidelines_evaluated"] == 13
         assert wpa["framework"] == "SEAD 4 Whole Person Assessment"
@@ -864,12 +1025,15 @@ class TestClearedPersonnelAnalyzer:
     def test_sf86_consistency_check(self):
         """SF-86 consistency check detects missing fields."""
         self.analyzer.set_clearance("person-sf86", "SECRET", "FINAL")
-        result = self.analyzer.evaluate_cleared_personnel("person-sf86", {
-            "sf86_current": {
-                "full_name": "John Doe",
-                # Missing many required fields
+        result = self.analyzer.evaluate_cleared_personnel(
+            "person-sf86",
+            {
+                "sf86_current": {
+                    "full_name": "John Doe",
+                    # Missing many required fields
+                },
             },
-        })
+        )
         sf86 = result["sf86_consistency"]
         assert sf86["status"] == "REVIEWED"
         assert sf86["discrepancies_found"] > 0
@@ -877,10 +1041,13 @@ class TestClearedPersonnelAnalyzer:
     def test_polygraph_compliance_missing(self):
         """Polygraph compliance flags missing polygraph for SCI."""
         self.analyzer.set_clearance(
-            "person-poly-miss", "SCI", "FINAL",
+            "person-poly-miss",
+            "SCI",
+            "FINAL",
         )
         result = self.analyzer.evaluate_cleared_personnel(
-            "person-poly-miss", {},
+            "person-poly-miss",
+            {},
         )
         poly = result["polygraph_compliance"]
         poly_findings = [
@@ -893,7 +1060,8 @@ class TestClearedPersonnelAnalyzer:
         self.analyzer.set_clearance("person-revoked", "SECRET", "REVOKED")
         result = self.analyzer.evaluate_cleared_personnel("person-revoked", {})
         revoked_findings = [
-            f for f in result["findings"]
+            f
+            for f in result["findings"]
             if f.get("finding", "").startswith("Clearance has been REVOKED")
         ]
         assert len(revoked_findings) > 0
@@ -902,11 +1070,14 @@ class TestClearedPersonnelAnalyzer:
     def test_reporting_compliance_unreported_contact(self):
         """Unreported foreign contact generates finding."""
         self.analyzer.set_clearance("person-contact", "SECRET", "FINAL")
-        result = self.analyzer.evaluate_cleared_personnel("person-contact", {
-            "foreign_contacts": [
-                {"name": "Li Wei", "country": "China", "reported": False},
-            ],
-        })
+        result = self.analyzer.evaluate_cleared_personnel(
+            "person-contact",
+            {
+                "foreign_contacts": [
+                    {"name": "Li Wei", "country": "China", "reported": False},
+                ],
+            },
+        )
         rc = result["reporting_compliance"]
         assert rc["violations_found"] > 0
 
@@ -927,7 +1098,10 @@ class TestClearedPersonnelAnalyzer:
         self.analyzer.set_clearance("person-ntas", "SECRET", "FINAL")
         result = self.analyzer.evaluate_cleared_personnel("person-ntas", {})
         assert result["overall_risk_level"] in {
-            "BASELINE", "ADVISORY", "ELEVATED", "IMMINENT"
+            "BASELINE",
+            "ADVISORY",
+            "ELEVATED",
+            "IMMINENT",
         }
 
     def test_stats(self):
@@ -1021,8 +1195,6 @@ class TestComplianceDashboard:
 
     def test_kri_calculation(self):
         """KRIs are calculated with proper structure."""
-        # Record some data
-        now = datetime.now(timezone.utc)
         self.dashboard.record_detection_time("evt-1", 1800)
         self.dashboard.record_response_time("evt-1", 7200)
         self.dashboard.record_alert_outcome("alert-1", "true_positive")
@@ -1185,9 +1357,12 @@ class TestComplianceServerIntegration:
         except ImportError:
             pytest.skip("server.py dependencies not available")
 
-        result = assess_insider_threat_impl("test-user", {
-            "employment_status": "terminated",
-        })
+        result = assess_insider_threat_impl(
+            "test-user",
+            {
+                "employment_status": "terminated",
+            },
+        )
         if "error" in result and "not available" in result.get("error", ""):
             pytest.skip("Compliance modules not available in server context")
         assert result.get("available") is True
@@ -1195,7 +1370,12 @@ class TestComplianceServerIntegration:
         assert isinstance(result["risk_score"], (int, float))
         assert 0 <= result["risk_score"] <= 100
         assert "threat_level" in result
-        assert result["threat_level"] in ("BASELINE", "ADVISORY", "ELEVATED", "IMMINENT")
+        assert result["threat_level"] in (
+            "BASELINE",
+            "ADVISORY",
+            "ELEVATED",
+            "IMMINENT",
+        )
         assert "user_id" in result
         assert result["user_id"] == "test-user"
         assert "triggered_indicators" in result
@@ -1208,12 +1388,14 @@ class TestComplianceServerIntegration:
         except ImportError:
             pytest.skip("server.py dependencies not available")
 
-        result = generate_siem_events_impl({
-            "user_id": "test-siem",
-            "risk_score": 50,
-            "threat_level": "ADVISORY",
-            "triggered_indicators": [],
-        })
+        result = generate_siem_events_impl(
+            {
+                "user_id": "test-siem",
+                "risk_score": 50,
+                "threat_level": "ADVISORY",
+                "triggered_indicators": [],
+            }
+        )
         if "error" in result and "not available" in result.get("error", ""):
             pytest.skip("Compliance modules not available in server context")
         assert result.get("available") is True

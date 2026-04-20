@@ -21,8 +21,8 @@ class MockMCPClient:
         self, tool_name: str, parameters: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Mock tool call - in real implementation, this would call the MCP server"""
-        print(f"🔧 Calling tool: {tool_name}")
-        print(f"📊 Parameters: {json.dumps(parameters, indent=2)}")
+        print(f"Calling tool: {tool_name}")
+        print(f"Parameters: {json.dumps(parameters, indent=2)}")
 
         # Mock response based on tool
         if tool_name == "analyze_transaction":
@@ -124,7 +124,7 @@ class MockMCPClient:
 
 async def example_basic_transaction_analysis():
     """Example 1: Basic transaction fraud analysis"""
-    print("🚀 Example 1: Basic Transaction Analysis")
+    print("Example 1: Basic Transaction Analysis")
     print("=" * 50)
 
     client = MockMCPClient()
@@ -148,7 +148,7 @@ async def example_basic_transaction_analysis():
         {"transaction_data": transaction_data, "include_behavioral": False},
     )
 
-    print("📊 Analysis Result:")
+    print("Analysis Result:")
     print(f"   Risk Score: {result.get('overall_risk_score', 0):.2f}")
     print(f"   Risk Level: {result.get('risk_level', 'UNKNOWN')}")
     print(f"   Anomalies: {', '.join(result.get('detected_anomalies', []))}")
@@ -199,7 +199,7 @@ async def example_behavioral_biometrics_analysis():
 
 async def example_comprehensive_fraud_detection():
     """Example 3: Comprehensive multi-modal fraud detection"""
-    print("🎯 Example 3: Comprehensive Multi-Modal Analysis")
+    print("Example 3: Comprehensive Multi-Modal Analysis")
     print("=" * 50)
 
     client = MockMCPClient()
@@ -255,7 +255,7 @@ async def example_comprehensive_fraud_detection():
         },
     )
 
-    print("🎯 Comprehensive Analysis Result:")
+    print("Comprehensive Analysis Result:")
     print(f"   Overall Risk Score: {result.get('overall_risk_score', 0):.2f}")
     print(f"   Risk Level: {result.get('risk_level', 'UNKNOWN')}")
     print(f"   Confidence: {result.get('confidence', 0):.2f}")
@@ -273,7 +273,7 @@ async def example_comprehensive_fraud_detection():
 
 async def example_real_time_monitoring():
     """Example 4: Real-time transaction monitoring simulation"""
-    print("⚡ Example 4: Real-Time Transaction Monitoring")
+    print("Example 4: Real-Time Transaction Monitoring")
     print("=" * 50)
 
     client = MockMCPClient()
@@ -323,13 +323,12 @@ async def example_real_time_monitoring():
         risk_score = result.get("overall_risk_score", 0)
         risk_level = result.get("risk_level", "UNKNOWN")
 
-        # Color coding for terminal output
         if risk_level == "HIGH":
-            status_icon = "🚨"
+            status_icon = "[HIGH]"
         elif risk_level == "MEDIUM":
-            status_icon = "⚠️"
+            status_icon = "[WARN]"
         else:
-            status_icon = "✅"
+            status_icon = "[OK]  "
 
         print(
             f"   {status_icon} Amount: ${txn['amount']:,.2f} | Risk: {risk_level} ({risk_score:.2f})"
@@ -338,13 +337,13 @@ async def example_real_time_monitoring():
         # Simulate processing delay
         await asyncio.sleep(0.1)
 
-    print("\n✅ Real-time monitoring simulation complete")
+    print("\n[OK] Real-time monitoring simulation complete")
     print()
 
 
 async def example_fraud_investigation():
     """Example 5: Fraud investigation workflow"""
-    print("🕵️ Example 5: Fraud Investigation Workflow")
+    print("Example 5: Fraud Investigation Workflow")
     print("=" * 50)
 
     client = MockMCPClient()
@@ -389,7 +388,7 @@ async def example_fraud_investigation():
     print(f"   Initial Risk Assessment: {basic_result.get('risk_level', 'UNKNOWN')}")
     print(f"   Risk Score: {basic_result.get('overall_risk_score', 0):.2f}")
 
-    print("\n🎯 Step 2: Comprehensive Multi-Modal Analysis")
+    print("\nStep 2: Comprehensive Multi-Modal Analysis")
     comprehensive_result = await client.call_tool(
         "generate_risk_score",
         {
@@ -414,13 +413,13 @@ async def example_fraud_investigation():
     print("   • High-risk merchant category (cash advance)")
     print("   • Geolocation mismatch")
     print("   • Unusually quick session duration")
-    print("\n   🚨 RECOMMENDATION: BLOCK TRANSACTION AND INVESTIGATE ACCOUNT")
+    print("\n   [HIGH] RECOMMENDATION: BLOCK TRANSACTION AND INVESTIGATE ACCOUNT")
     print()
 
 
 async def main():
     """Run all fraud detection examples"""
-    print("🛡️  Advanced Fraud Detection MCP - Example Usage")
+    print(" Advanced Fraud Detection MCP - Example Usage")
     print("=" * 60)
     print()
 
@@ -433,7 +432,7 @@ async def main():
 
     print("🎉 All examples completed successfully!")
     print()
-    print("💡 Key Takeaways:")
+    print("Key Takeaways:")
     print("   • Multi-modal analysis provides better fraud detection")
     print("   • Behavioral biometrics add an extra security layer")
     print("   • Real-time processing enables immediate fraud prevention")

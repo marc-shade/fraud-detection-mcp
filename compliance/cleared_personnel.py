@@ -29,15 +29,17 @@ logger = logging.getLogger(__name__)
 # Clearance Levels and States
 # =============================================================================
 
+
 class ClearanceLevel(Enum):
     """Security clearance levels in ascending order."""
+
     UNCLASSIFIED = 0
-    CUI = 1             # Controlled Unclassified Information
+    CUI = 1  # Controlled Unclassified Information
     CONFIDENTIAL = 2
     SECRET = 3
     TOP_SECRET = 4
-    SCI = 5              # Sensitive Compartmented Information
-    SAP = 6              # Special Access Program
+    SCI = 5  # Sensitive Compartmented Information
+    SAP = 6  # Special Access Program
 
     @classmethod
     def from_string(cls, level: str) -> "ClearanceLevel":
@@ -58,6 +60,7 @@ class ClearanceLevel(Enum):
 
 class ClearanceStatus(Enum):
     """Clearance lifecycle status."""
+
     PENDING = "PENDING"
     INTERIM = "INTERIM"
     FINAL = "FINAL"
@@ -69,14 +72,16 @@ class ClearanceStatus(Enum):
 
 class PolygraphType(Enum):
     """Types of polygraph examinations."""
-    CI = "CI"               # Counter-Intelligence
-    FS = "FS"               # Full Scope
+
+    CI = "CI"  # Counter-Intelligence
+    FS = "FS"  # Full Scope
     LIFESTYLE = "LIFESTYLE"  # Lifestyle polygraph
 
 
 # =============================================================================
 # SEAD 4: 13 Adjudicative Guidelines (Whole Person Assessment)
 # =============================================================================
+
 
 class AdjudicativeGuideline:
     """Single SEAD 4 adjudicative guideline for the Whole Person Assessment."""
@@ -110,8 +115,12 @@ def _register_guideline(
     mitigating_factors: List[str],
 ) -> AdjudicativeGuideline:
     g = AdjudicativeGuideline(
-        guideline_id, letter, name, description,
-        risk_indicators, mitigating_factors,
+        guideline_id,
+        letter,
+        name,
+        description,
+        risk_indicators,
+        mitigating_factors,
     )
     ADJUDICATIVE_GUIDELINES[guideline_id] = g
     return g
@@ -119,7 +128,9 @@ def _register_guideline(
 
 # Guideline A: Allegiance to the United States
 _register_guideline(
-    "SEAD4-A", "A", "Allegiance to the United States",
+    "SEAD4-A",
+    "A",
+    "Allegiance to the United States",
     "Conditions that could raise a security concern about an individual's allegiance",
     [
         "involvement_in_acts_against_us",
@@ -136,7 +147,9 @@ _register_guideline(
 
 # Guideline B: Foreign Influence
 _register_guideline(
-    "SEAD4-B", "B", "Foreign Influence",
+    "SEAD4-B",
+    "B",
+    "Foreign Influence",
     "Foreign contacts and interests that may present a security concern",
     [
         "close_foreign_family_members",
@@ -155,7 +168,9 @@ _register_guideline(
 
 # Guideline C: Foreign Preference
 _register_guideline(
-    "SEAD4-C", "C", "Foreign Preference",
+    "SEAD4-C",
+    "C",
+    "Foreign Preference",
     "Actions indicating a preference for a foreign country over the United States",
     [
         "dual_citizenship_exercise",
@@ -173,7 +188,9 @@ _register_guideline(
 
 # Guideline D: Sexual Behavior
 _register_guideline(
-    "SEAD4-D", "D", "Sexual Behavior",
+    "SEAD4-D",
+    "D",
+    "Sexual Behavior",
     "Sexual behavior that involves a criminal offense or creates vulnerability",
     [
         "criminal_sexual_conduct",
@@ -190,7 +207,9 @@ _register_guideline(
 
 # Guideline E: Personal Conduct
 _register_guideline(
-    "SEAD4-E", "E", "Personal Conduct",
+    "SEAD4-E",
+    "E",
+    "Personal Conduct",
     "Conduct involving questionable judgment, lack of candor, or unwillingness to comply",
     [
         "deliberate_omission_or_falsification",
@@ -208,7 +227,9 @@ _register_guideline(
 
 # Guideline F: Financial Considerations
 _register_guideline(
-    "SEAD4-F", "F", "Financial Considerations",
+    "SEAD4-F",
+    "F",
+    "Financial Considerations",
     "Inability or unwillingness to satisfy debts and meet financial obligations",
     [
         "delinquent_debts",
@@ -228,7 +249,9 @@ _register_guideline(
 
 # Guideline G: Alcohol Consumption
 _register_guideline(
-    "SEAD4-G", "G", "Alcohol Consumption",
+    "SEAD4-G",
+    "G",
+    "Alcohol Consumption",
     "Excessive alcohol consumption leading to questionable judgment",
     [
         "alcohol_related_incidents",
@@ -245,7 +268,9 @@ _register_guideline(
 
 # Guideline H: Drug Involvement and Substance Misuse
 _register_guideline(
-    "SEAD4-H", "H", "Drug Involvement and Substance Misuse",
+    "SEAD4-H",
+    "H",
+    "Drug Involvement and Substance Misuse",
     "Use of controlled substances or misuse of prescription drugs",
     [
         "illegal_drug_use",
@@ -264,7 +289,9 @@ _register_guideline(
 
 # Guideline I: Psychological Conditions
 _register_guideline(
-    "SEAD4-I", "I", "Psychological Conditions",
+    "SEAD4-I",
+    "I",
+    "Psychological Conditions",
     "Conditions that may impair judgment, reliability, or trustworthiness",
     [
         "condition_impairing_judgment",
@@ -280,7 +307,9 @@ _register_guideline(
 
 # Guideline J: Criminal Conduct
 _register_guideline(
-    "SEAD4-J", "J", "Criminal Conduct",
+    "SEAD4-J",
+    "J",
+    "Criminal Conduct",
     "Criminal activity that creates doubt about judgment and trustworthiness",
     [
         "single_serious_crime",
@@ -298,7 +327,9 @@ _register_guideline(
 
 # Guideline K: Handling Protected Information
 _register_guideline(
-    "SEAD4-K", "K", "Handling Protected Information",
+    "SEAD4-K",
+    "K",
+    "Handling Protected Information",
     "Deliberate or negligent mishandling of protected information",
     [
         "unauthorized_disclosure",
@@ -315,7 +346,9 @@ _register_guideline(
 
 # Guideline L: Outside Activities
 _register_guideline(
-    "SEAD4-L", "L", "Outside Activities",
+    "SEAD4-L",
+    "L",
+    "Outside Activities",
     "Involvement with foreign governments or entities that may create a conflict",
     [
         "service_for_foreign_government",
@@ -332,7 +365,9 @@ _register_guideline(
 
 # Guideline M: Use of Information Technology
 _register_guideline(
-    "SEAD4-M", "M", "Use of Information Technology",
+    "SEAD4-M",
+    "M",
+    "Use of Information Technology",
     "Failure to comply with rules for information technology systems",
     [
         "unauthorized_system_modification",
@@ -351,6 +386,7 @@ _register_guideline(
 # =============================================================================
 # Cleared Personnel Record
 # =============================================================================
+
 
 class ClearedPersonnelRecord:
     """Maintains the security clearance record and CE data for a single individual."""
@@ -415,7 +451,9 @@ class ClearedPersonnelRecord:
                 "date_expires": self.date_expires,
                 "sponsoring_agency": self.sponsoring_agency,
                 "investigation_type": self.investigation_type,
-                "polygraph_type": self.polygraph_type.value if self.polygraph_type else None,
+                "polygraph_type": self.polygraph_type.value
+                if self.polygraph_type
+                else None,
                 "polygraph_date": self.polygraph_date,
                 "polygraph_next_due": self.polygraph_next_due,
                 "sf86_last_submitted": self.sf86_last_submitted,
@@ -435,6 +473,7 @@ class ClearedPersonnelRecord:
 # Cleared Personnel Analyzer (Core Engine)
 # =============================================================================
 
+
 class ClearedPersonnelAnalyzer:
     """
     Analytics engine for monitoring cleared personnel.
@@ -450,7 +489,7 @@ class ClearedPersonnelAnalyzer:
         self._evaluation_history: deque = deque(maxlen=10000)
         logger.info(
             "ClearedPersonnelAnalyzer initialized with %d adjudicative guidelines",
-            len(ADJUDICATIVE_GUIDELINES)
+            len(ADJUDICATIVE_GUIDELINES),
         )
 
     def get_or_create_record(self, person_id: str) -> ClearedPersonnelRecord:
@@ -565,7 +604,9 @@ class ClearedPersonnelAnalyzer:
         findings.extend(sf86_result.get("findings", []))
 
         # --- 6. Reporting Compliance ---
-        reporting_result = self._check_reporting_compliance(record, activity_data, timestamp)
+        reporting_result = self._check_reporting_compliance(
+            record, activity_data, timestamp
+        )
         findings.extend(reporting_result.get("findings", []))
 
         # --- 7. Polygraph Compliance ---
@@ -576,9 +617,7 @@ class ClearedPersonnelAnalyzer:
         overall_risk = self._calculate_overall_risk(findings, wpa_result)
 
         # Determine recommended actions
-        actions = self._determine_personnel_actions(
-            overall_risk, findings, record
-        )
+        actions = self._determine_personnel_actions(overall_risk, findings, record)
 
         result = {
             "evaluation_id": evaluation_id,
@@ -607,27 +646,34 @@ class ClearedPersonnelAnalyzer:
         # Update record
         with record._lock:
             record.last_evaluated = timestamp
-            record.ce_events.append({
-                "evaluation_id": evaluation_id,
-                "risk_score": overall_risk["score"],
-                "finding_count": len(findings),
-                "timestamp": timestamp,
-            })
+            record.ce_events.append(
+                {
+                    "evaluation_id": evaluation_id,
+                    "risk_score": overall_risk["score"],
+                    "finding_count": len(findings),
+                    "timestamp": timestamp,
+                }
+            )
 
         with self._lock:
-            self._evaluation_history.append({
-                "evaluation_id": evaluation_id,
-                "person_id": person_id,
-                "risk_score": overall_risk["score"],
-                "risk_level": overall_risk["level"],
-                "finding_count": len(findings),
-                "timestamp": timestamp,
-            })
+            self._evaluation_history.append(
+                {
+                    "evaluation_id": evaluation_id,
+                    "person_id": person_id,
+                    "risk_score": overall_risk["score"],
+                    "risk_level": overall_risk["level"],
+                    "finding_count": len(findings),
+                    "timestamp": timestamp,
+                }
+            )
 
         logger.info(
             "Cleared personnel evaluation %s for %s: risk=%.1f level=%s findings=%d",
-            evaluation_id, person_id, overall_risk["score"],
-            overall_risk["level"], len(findings)
+            evaluation_id,
+            person_id,
+            overall_risk["score"],
+            overall_risk["level"],
+            len(findings),
         )
 
         return result
@@ -644,37 +690,45 @@ class ClearedPersonnelAnalyzer:
             status = record.clearance_status
 
         if status == ClearanceStatus.SUSPENDED:
-            findings.append({
-                "type": "clearance_status",
-                "severity": "HIGH",
-                "finding": "Clearance is currently SUSPENDED",
-                "detail": "All access should be restricted pending resolution",
-                "nist_control": "PS-3",
-            })
+            findings.append(
+                {
+                    "type": "clearance_status",
+                    "severity": "HIGH",
+                    "finding": "Clearance is currently SUSPENDED",
+                    "detail": "All access should be restricted pending resolution",
+                    "nist_control": "PS-3",
+                }
+            )
         elif status == ClearanceStatus.REVOKED:
-            findings.append({
-                "type": "clearance_status",
-                "severity": "CRITICAL",
-                "finding": "Clearance has been REVOKED",
-                "detail": "All access must be immediately terminated",
-                "nist_control": "PS-4",
-            })
+            findings.append(
+                {
+                    "type": "clearance_status",
+                    "severity": "CRITICAL",
+                    "finding": "Clearance has been REVOKED",
+                    "detail": "All access must be immediately terminated",
+                    "nist_control": "PS-4",
+                }
+            )
         elif status == ClearanceStatus.EXPIRED:
-            findings.append({
-                "type": "clearance_status",
-                "severity": "HIGH",
-                "finding": "Clearance has EXPIRED",
-                "detail": "Reinvestigation required before continued access",
-                "nist_control": "PS-3",
-            })
+            findings.append(
+                {
+                    "type": "clearance_status",
+                    "severity": "HIGH",
+                    "finding": "Clearance has EXPIRED",
+                    "detail": "Reinvestigation required before continued access",
+                    "nist_control": "PS-3",
+                }
+            )
         elif status == ClearanceStatus.INTERIM:
-            findings.append({
-                "type": "clearance_status",
-                "severity": "LOW",
-                "finding": "Clearance is INTERIM",
-                "detail": "Access may be limited pending final adjudication",
-                "nist_control": "PS-3",
-            })
+            findings.append(
+                {
+                    "type": "clearance_status",
+                    "severity": "LOW",
+                    "finding": "Clearance is INTERIM",
+                    "detail": "Access may be limited pending final adjudication",
+                    "nist_control": "PS-3",
+                }
+            )
 
         # Check expiration date
         with record._lock:
@@ -686,21 +740,25 @@ class ClearedPersonnelAnalyzer:
                 now = datetime.now(timezone.utc)
                 days_until = (exp_date - now).days
                 if days_until < 0:
-                    findings.append({
-                        "type": "clearance_expiration",
-                        "severity": "HIGH",
-                        "finding": f"Clearance expired {abs(days_until)} days ago",
-                        "detail": "Immediate reinvestigation required",
-                        "nist_control": "PS-3",
-                    })
+                    findings.append(
+                        {
+                            "type": "clearance_expiration",
+                            "severity": "HIGH",
+                            "finding": f"Clearance expired {abs(days_until)} days ago",
+                            "detail": "Immediate reinvestigation required",
+                            "nist_control": "PS-3",
+                        }
+                    )
                 elif days_until < 90:
-                    findings.append({
-                        "type": "clearance_expiration",
-                        "severity": "MEDIUM",
-                        "finding": f"Clearance expires in {days_until} days",
-                        "detail": "Initiate periodic reinvestigation process",
-                        "nist_control": "PS-3",
-                    })
+                    findings.append(
+                        {
+                            "type": "clearance_expiration",
+                            "severity": "MEDIUM",
+                            "finding": f"Clearance expires in {days_until} days",
+                            "detail": "Initiate periodic reinvestigation process",
+                            "nist_control": "PS-3",
+                        }
+                    )
             except ValueError:
                 pass
 
@@ -735,27 +793,31 @@ class ClearedPersonnelAnalyzer:
             required_level = ClearanceLevel.from_string(accessed_classification)
             if required_level.value > user_level.value:
                 verification_status = "DENIED"
-                findings.append({
-                    "type": "ntk_clearance_insufficient",
-                    "severity": "CRITICAL",
-                    "finding": (
-                        f"User clearance {user_level.name} insufficient for "
-                        f"{accessed_classification} data"
-                    ),
-                    "detail": "Access denied: clearance level mismatch",
-                    "nist_control": "AC-3",
-                })
+                findings.append(
+                    {
+                        "type": "ntk_clearance_insufficient",
+                        "severity": "CRITICAL",
+                        "finding": (
+                            f"User clearance {user_level.name} insufficient for "
+                            f"{accessed_classification} data"
+                        ),
+                        "detail": "Access denied: clearance level mismatch",
+                        "nist_control": "AC-3",
+                    }
+                )
 
         # Check clearance status
         if user_status not in (ClearanceStatus.FINAL, ClearanceStatus.INTERIM):
             verification_status = "DENIED"
-            findings.append({
-                "type": "ntk_status_invalid",
-                "severity": "HIGH",
-                "finding": f"Clearance status is {user_status.value}, access not permitted",
-                "detail": "Active clearance required for classified access",
-                "nist_control": "AC-3",
-            })
+            findings.append(
+                {
+                    "type": "ntk_status_invalid",
+                    "severity": "HIGH",
+                    "finding": f"Clearance status is {user_status.value}, access not permitted",
+                    "detail": "Active clearance required for classified access",
+                    "nist_control": "AC-3",
+                }
+            )
 
         # Check compartment access
         if accessed_compartments:
@@ -764,37 +826,43 @@ class ClearedPersonnelAnalyzer:
             ]
             if unauthorized_compartments:
                 verification_status = "DENIED"
-                findings.append({
-                    "type": "ntk_compartment_violation",
-                    "severity": "CRITICAL",
-                    "finding": (
-                        f"Unauthorized compartment access: "
-                        f"{', '.join(unauthorized_compartments)}"
-                    ),
-                    "detail": f"User authorized for: {', '.join(user_compartments) or 'none'}",
-                    "nist_control": "AC-25",
-                })
+                findings.append(
+                    {
+                        "type": "ntk_compartment_violation",
+                        "severity": "CRITICAL",
+                        "finding": (
+                            f"Unauthorized compartment access: "
+                            f"{', '.join(unauthorized_compartments)}"
+                        ),
+                        "detail": f"User authorized for: {', '.join(user_compartments) or 'none'}",
+                        "nist_control": "AC-25",
+                    }
+                )
 
         # Check justification provided
         if accessed_classification and not justification:
-            findings.append({
-                "type": "ntk_no_justification",
-                "severity": "MEDIUM",
-                "finding": "No need-to-know justification provided for classified access",
-                "detail": "Policy requires documented justification",
-                "nist_control": "AC-3",
-            })
+            findings.append(
+                {
+                    "type": "ntk_no_justification",
+                    "severity": "MEDIUM",
+                    "finding": "No need-to-know justification provided for classified access",
+                    "detail": "Policy requires documented justification",
+                    "nist_control": "AC-3",
+                }
+            )
 
         # Log the verification
         with record._lock:
-            record.ntk_verifications.append({
-                "resource": accessed_resource,
-                "classification": accessed_classification,
-                "compartments": accessed_compartments,
-                "justification": justification,
-                "status": verification_status,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            })
+            record.ntk_verifications.append(
+                {
+                    "resource": accessed_resource,
+                    "classification": accessed_classification,
+                    "compartments": accessed_compartments,
+                    "justification": justification,
+                    "status": verification_status,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
 
         return {
             "verification_status": verification_status,
@@ -827,38 +895,49 @@ class ClearedPersonnelAnalyzer:
         if financial_changes:
             for change in financial_changes:
                 change_type = change.get("type", "unknown")
-                if change_type in ("bankruptcy", "foreclosure", "tax_lien", "garnishment"):
-                    findings.append({
-                        "type": "ce_financial",
-                        "severity": "HIGH",
-                        "finding": f"Financial event detected: {change_type}",
-                        "detail": change.get("detail", ""),
-                        "nist_control": "PS-3",
-                        "sead_reference": "SEAD 6 CE",
-                    })
+                if change_type in (
+                    "bankruptcy",
+                    "foreclosure",
+                    "tax_lien",
+                    "garnishment",
+                ):
+                    findings.append(
+                        {
+                            "type": "ce_financial",
+                            "severity": "HIGH",
+                            "finding": f"Financial event detected: {change_type}",
+                            "detail": change.get("detail", ""),
+                            "nist_control": "PS-3",
+                            "sead_reference": "SEAD 6 CE",
+                        }
+                    )
                     with record._lock:
-                        record.reported_financial_changes.append({
-                            **change,
-                            "timestamp": timestamp,
-                        })
+                        record.reported_financial_changes.append(
+                            {
+                                **change,
+                                "timestamp": timestamp,
+                            }
+                        )
             ce_checks["financial"] = {
                 "events_reviewed": len(financial_changes),
-                "concerns_found": len([
-                    f for f in findings if f["type"] == "ce_financial"
-                ]),
+                "concerns_found": len(
+                    [f for f in findings if f["type"] == "ce_financial"]
+                ),
             }
 
         # Check 2: Criminal records
         criminal_events = activity_data.get("criminal_events", [])
         for event in criminal_events:
-            findings.append({
-                "type": "ce_criminal",
-                "severity": "HIGH",
-                "finding": f"Criminal event: {event.get('type', 'unknown')}",
-                "detail": event.get("detail", ""),
-                "nist_control": "PS-3",
-                "sead_reference": "SEAD 6 CE",
-            })
+            findings.append(
+                {
+                    "type": "ce_criminal",
+                    "severity": "HIGH",
+                    "finding": f"Criminal event: {event.get('type', 'unknown')}",
+                    "detail": event.get("detail", ""),
+                    "nist_control": "PS-3",
+                    "sead_reference": "SEAD 6 CE",
+                }
+            )
         ce_checks["criminal"] = {
             "events_reviewed": len(criminal_events),
             "concerns_found": len(criminal_events),
@@ -875,24 +954,28 @@ class ClearedPersonnelAnalyzer:
             for trip in foreign_travel:
                 dest = trip.get("destination", "")
                 if dest and dest not in reported:
-                    findings.append({
-                        "type": "ce_unreported_travel",
-                        "severity": "MEDIUM",
-                        "finding": f"Unreported foreign travel to {dest}",
-                        "detail": "Travel not found in reporting database",
-                        "nist_control": "PS-3",
-                        "sead_reference": "SEAD 6 CE",
-                    })
+                    findings.append(
+                        {
+                            "type": "ce_unreported_travel",
+                            "severity": "MEDIUM",
+                            "finding": f"Unreported foreign travel to {dest}",
+                            "detail": "Travel not found in reporting database",
+                            "nist_control": "PS-3",
+                            "sead_reference": "SEAD 6 CE",
+                        }
+                    )
                 with record._lock:
-                    record.reported_foreign_travel.append({
-                        **trip,
-                        "timestamp": timestamp,
-                    })
+                    record.reported_foreign_travel.append(
+                        {
+                            **trip,
+                            "timestamp": timestamp,
+                        }
+                    )
             ce_checks["foreign_travel"] = {
                 "trips_reviewed": len(foreign_travel),
-                "unreported": len([
-                    f for f in findings if f["type"] == "ce_unreported_travel"
-                ]),
+                "unreported": len(
+                    [f for f in findings if f["type"] == "ce_unreported_travel"]
+                ),
             }
 
         # Check 4: Foreign contacts
@@ -906,37 +989,43 @@ class ClearedPersonnelAnalyzer:
             for contact in foreign_contacts:
                 name = contact.get("name", "")
                 if name and name not in reported_contacts:
-                    findings.append({
-                        "type": "ce_unreported_contact",
-                        "severity": "MEDIUM",
-                        "finding": f"Unreported foreign contact: {name}",
-                        "detail": f"Country: {contact.get('country', 'unknown')}",
-                        "nist_control": "PS-3",
-                        "sead_reference": "SEAD 6 CE",
-                    })
+                    findings.append(
+                        {
+                            "type": "ce_unreported_contact",
+                            "severity": "MEDIUM",
+                            "finding": f"Unreported foreign contact: {name}",
+                            "detail": f"Country: {contact.get('country', 'unknown')}",
+                            "nist_control": "PS-3",
+                            "sead_reference": "SEAD 6 CE",
+                        }
+                    )
                 with record._lock:
-                    record.reported_foreign_contacts.append({
-                        **contact,
-                        "timestamp": timestamp,
-                    })
+                    record.reported_foreign_contacts.append(
+                        {
+                            **contact,
+                            "timestamp": timestamp,
+                        }
+                    )
             ce_checks["foreign_contacts"] = {
                 "contacts_reviewed": len(foreign_contacts),
-                "unreported": len([
-                    f for f in findings if f["type"] == "ce_unreported_contact"
-                ]),
+                "unreported": len(
+                    [f for f in findings if f["type"] == "ce_unreported_contact"]
+                ),
             }
 
         # Check 5: Social media / public records
         public_records_flags = activity_data.get("public_records_flags", [])
         for flag in public_records_flags:
-            findings.append({
-                "type": "ce_public_record",
-                "severity": flag.get("severity", "MEDIUM"),
-                "finding": flag.get("finding", "Public record flag"),
-                "detail": flag.get("detail", ""),
-                "nist_control": "PS-3",
-                "sead_reference": "SEAD 6 CE",
-            })
+            findings.append(
+                {
+                    "type": "ce_public_record",
+                    "severity": flag.get("severity", "MEDIUM"),
+                    "finding": flag.get("finding", "Public record flag"),
+                    "detail": flag.get("detail", ""),
+                    "nist_control": "PS-3",
+                    "sead_reference": "SEAD 6 CE",
+                }
+            )
         ce_checks["public_records"] = {
             "flags_reviewed": len(public_records_flags),
         }
@@ -1038,8 +1127,10 @@ class ClearedPersonnelAnalyzer:
             ),
             "guideline_assessments": assessments,
             "overall_adjudicative_concern": (
-                "FAVORABLE" if significant_count == 0 and max_score < 0.3
-                else "UNFAVORABLE" if significant_count >= 2 or max_score > 0.6
+                "FAVORABLE"
+                if significant_count == 0 and max_score < 0.3
+                else "UNFAVORABLE"
+                if significant_count >= 2 or max_score > 0.6
                 else "CONDITIONAL"
             ),
         }
@@ -1071,23 +1162,29 @@ class ClearedPersonnelAnalyzer:
             snapshot_travel = [
                 t.get("destination") for t in record.reported_foreign_travel
             ]
-            snapshot_last_submitted = record.sf86_last_submitted
             snapshot_version = len(record.sf86_discrepancies)
 
         # Check for missing required fields
         required_fields = [
-            "full_name", "date_of_birth", "citizenship", "residence_history",
-            "employment_history", "education", "references",
+            "full_name",
+            "date_of_birth",
+            "citizenship",
+            "residence_history",
+            "employment_history",
+            "education",
+            "references",
         ]
         missing = [f for f in required_fields if not sf86_data.get(f)]
         if missing:
-            findings.append({
-                "type": "sf86_incomplete",
-                "severity": "MEDIUM",
-                "finding": f"SF-86 missing required fields: {', '.join(missing)}",
-                "detail": f"{len(missing)} of {len(required_fields)} required fields missing",
-                "nist_control": "PS-3",
-            })
+            findings.append(
+                {
+                    "type": "sf86_incomplete",
+                    "severity": "MEDIUM",
+                    "finding": f"SF-86 missing required fields: {', '.join(missing)}",
+                    "detail": f"{len(missing)} of {len(required_fields)} required fields missing",
+                    "nist_control": "PS-3",
+                }
+            )
 
         # Check for discrepancies against snapshot of known data
         reported_travel = sf86_data.get("foreign_travel", [])
@@ -1095,16 +1192,18 @@ class ClearedPersonnelAnalyzer:
             t for t in snapshot_travel if t and t not in str(reported_travel)
         ]
         if unreported_in_sf86:
-            findings.append({
-                "type": "sf86_travel_discrepancy",
-                "severity": "HIGH",
-                "finding": (
-                    f"SF-86 does not list {len(unreported_in_sf86)} "
-                    f"known foreign travel destinations"
-                ),
-                "detail": f"Discrepant destinations: {unreported_in_sf86[:5]}",
-                "nist_control": "PS-3",
-            })
+            findings.append(
+                {
+                    "type": "sf86_travel_discrepancy",
+                    "severity": "HIGH",
+                    "finding": (
+                        f"SF-86 does not list {len(unreported_in_sf86)} "
+                        f"known foreign travel destinations"
+                    ),
+                    "detail": f"Discrepant destinations: {unreported_in_sf86[:5]}",
+                    "nist_control": "PS-3",
+                }
+            )
 
         # --- Update phase: apply changes only if record hasn't been modified ---
         with record._lock:
@@ -1114,7 +1213,9 @@ class ClearedPersonnelAnalyzer:
                     "SF-86 consistency check for %s: record modified during "
                     "evaluation (snapshot_version=%d, current=%d). "
                     "Skipping updates to avoid stale write.",
-                    record.person_id, snapshot_version, current_version,
+                    record.person_id,
+                    snapshot_version,
+                    current_version,
                 )
             else:
                 if sf86_data.get("submission_date"):
@@ -1122,10 +1223,12 @@ class ClearedPersonnelAnalyzer:
 
                 for f in findings:
                     if f["type"].startswith("sf86_"):
-                        record.sf86_discrepancies.append({
-                            **f,
-                            "timestamp": timestamp,
-                        })
+                        record.sf86_discrepancies.append(
+                            {
+                                **f,
+                                "timestamp": timestamp,
+                            }
+                        )
 
         return {
             "status": "REVIEWED",
@@ -1150,53 +1253,63 @@ class ClearedPersonnelAnalyzer:
             reported_date = trip.get("reported_date")
             travel_date = trip.get("travel_date")
             if travel_date and not reported_date:
-                findings.append({
-                    "type": "reporting_travel_delinquent",
-                    "severity": "MEDIUM",
-                    "finding": (
-                        f"Foreign travel to {trip.get('destination', 'unknown')} "
-                        f"not reported"
-                    ),
-                    "detail": "Cleared personnel must report foreign travel per policy",
-                    "nist_control": "PS-6",
-                })
+                findings.append(
+                    {
+                        "type": "reporting_travel_delinquent",
+                        "severity": "MEDIUM",
+                        "finding": (
+                            f"Foreign travel to {trip.get('destination', 'unknown')} "
+                            f"not reported"
+                        ),
+                        "detail": "Cleared personnel must report foreign travel per policy",
+                        "nist_control": "PS-6",
+                    }
+                )
 
         # Check foreign contact reporting
         contacts = activity_data.get("foreign_contacts", [])
         for contact in contacts:
             if not contact.get("reported", False):
-                findings.append({
-                    "type": "reporting_contact_delinquent",
-                    "severity": "MEDIUM",
-                    "finding": (
-                        f"Foreign contact with {contact.get('name', 'unknown')} "
-                        f"({contact.get('country', 'unknown')}) not reported"
-                    ),
-                    "detail": "Cleared personnel must report close and continuing foreign contacts",
-                    "nist_control": "PS-6",
-                })
+                findings.append(
+                    {
+                        "type": "reporting_contact_delinquent",
+                        "severity": "MEDIUM",
+                        "finding": (
+                            f"Foreign contact with {contact.get('name', 'unknown')} "
+                            f"({contact.get('country', 'unknown')}) not reported"
+                        ),
+                        "detail": "Cleared personnel must report close and continuing foreign contacts",
+                        "nist_control": "PS-6",
+                    }
+                )
 
         # Check financial change reporting
         financial = activity_data.get("financial_changes", [])
         for change in financial:
             if change.get("type") in (
-                "bankruptcy", "foreclosure", "garnishment"
+                "bankruptcy",
+                "foreclosure",
+                "garnishment",
             ) and not change.get("reported", False):
-                findings.append({
-                    "type": "reporting_financial_delinquent",
-                    "severity": "HIGH",
-                    "finding": f"Significant financial event ({change['type']}) not reported",
-                    "detail": "Reportable financial events must be disclosed within required timeframe",
-                    "nist_control": "PS-3",
-                })
+                findings.append(
+                    {
+                        "type": "reporting_financial_delinquent",
+                        "severity": "HIGH",
+                        "finding": f"Significant financial event ({change['type']}) not reported",
+                        "detail": "Reportable financial events must be disclosed within required timeframe",
+                        "nist_control": "PS-3",
+                    }
+                )
 
         if findings:
             with record._lock:
                 for f in findings:
-                    record.reporting_violations.append({
-                        **f,
-                        "timestamp": timestamp,
-                    })
+                    record.reporting_violations.append(
+                        {
+                            **f,
+                            "timestamp": timestamp,
+                        }
+                    )
 
         return {
             "travel_items_checked": len(recent_travel),
@@ -1223,13 +1336,15 @@ class ClearedPersonnelAnalyzer:
 
         # Check if polygraph is required but not on file
         if clearance_level.value >= ClearanceLevel.SCI.value and poly_type is None:
-            findings.append({
-                "type": "polygraph_missing",
-                "severity": "HIGH",
-                "finding": "No polygraph examination on record for SCI-cleared personnel",
-                "detail": "SCI access typically requires at minimum a CI polygraph",
-                "nist_control": "PS-3",
-            })
+            findings.append(
+                {
+                    "type": "polygraph_missing",
+                    "severity": "HIGH",
+                    "finding": "No polygraph examination on record for SCI-cleared personnel",
+                    "detail": "SCI access typically requires at minimum a CI polygraph",
+                    "nist_control": "PS-3",
+                }
+            )
 
         # Check if polygraph is overdue
         if poly_next_due:
@@ -1238,13 +1353,15 @@ class ClearedPersonnelAnalyzer:
                 now = datetime.now(timezone.utc)
                 if due_date < now:
                     days_overdue = (now - due_date).days
-                    findings.append({
-                        "type": "polygraph_overdue",
-                        "severity": "MEDIUM",
-                        "finding": f"Polygraph examination overdue by {days_overdue} days",
-                        "detail": f"Type: {poly_type.value if poly_type else 'Unknown'}, Due: {poly_next_due}",
-                        "nist_control": "PS-3",
-                    })
+                    findings.append(
+                        {
+                            "type": "polygraph_overdue",
+                            "severity": "MEDIUM",
+                            "finding": f"Polygraph examination overdue by {days_overdue} days",
+                            "detail": f"Type: {poly_type.value if poly_type else 'Unknown'}, Due: {poly_next_due}",
+                            "nist_control": "PS-3",
+                        }
+                    )
             except ValueError:
                 pass
 
@@ -1308,72 +1425,82 @@ class ClearedPersonnelAnalyzer:
         level = overall_risk.get("level", "LOW")
 
         if level == "IMMINENT":
-            actions.extend([
-                {
-                    "action": "suspend_clearance",
-                    "priority": "IMMEDIATE",
-                    "description": "Suspend security clearance pending formal review",
-                },
-                {
-                    "action": "access_revocation",
-                    "priority": "IMMEDIATE",
-                    "description": "Revoke all classified system access",
-                },
-                {
-                    "action": "formal_adjudication",
-                    "priority": "URGENT",
-                    "description": "Initiate formal adjudicative review per SEAD 4",
-                },
-            ])
+            actions.extend(
+                [
+                    {
+                        "action": "suspend_clearance",
+                        "priority": "IMMEDIATE",
+                        "description": "Suspend security clearance pending formal review",
+                    },
+                    {
+                        "action": "access_revocation",
+                        "priority": "IMMEDIATE",
+                        "description": "Revoke all classified system access",
+                    },
+                    {
+                        "action": "formal_adjudication",
+                        "priority": "URGENT",
+                        "description": "Initiate formal adjudicative review per SEAD 4",
+                    },
+                ]
+            )
         elif level == "ELEVATED":
-            actions.extend([
-                {
-                    "action": "enhanced_monitoring",
-                    "priority": "HIGH",
-                    "description": "Place under enhanced continuous evaluation monitoring",
-                },
-                {
-                    "action": "access_review",
-                    "priority": "HIGH",
-                    "description": "Conduct comprehensive access review",
-                },
-                {
-                    "action": "supervisor_interview",
-                    "priority": "HIGH",
-                    "description": "Conduct supervisor interview regarding concerns",
-                },
-            ])
+            actions.extend(
+                [
+                    {
+                        "action": "enhanced_monitoring",
+                        "priority": "HIGH",
+                        "description": "Place under enhanced continuous evaluation monitoring",
+                    },
+                    {
+                        "action": "access_review",
+                        "priority": "HIGH",
+                        "description": "Conduct comprehensive access review",
+                    },
+                    {
+                        "action": "supervisor_interview",
+                        "priority": "HIGH",
+                        "description": "Conduct supervisor interview regarding concerns",
+                    },
+                ]
+            )
         elif level == "ADVISORY":
-            actions.extend([
-                {
-                    "action": "additional_monitoring",
-                    "priority": "MEDIUM",
-                    "description": "Increase CE monitoring frequency",
-                },
-                {
-                    "action": "counseling",
-                    "priority": "MEDIUM",
-                    "description": "Provide security awareness counseling",
-                },
-            ])
+            actions.extend(
+                [
+                    {
+                        "action": "additional_monitoring",
+                        "priority": "MEDIUM",
+                        "description": "Increase CE monitoring frequency",
+                    },
+                    {
+                        "action": "counseling",
+                        "priority": "MEDIUM",
+                        "description": "Provide security awareness counseling",
+                    },
+                ]
+            )
         else:
-            actions.append({
-                "action": "routine_monitoring",
-                "priority": "ROUTINE",
-                "description": "Continue routine CE monitoring per SEAD 6",
-            })
+            actions.append(
+                {
+                    "action": "routine_monitoring",
+                    "priority": "ROUTINE",
+                    "description": "Continue routine CE monitoring per SEAD 6",
+                }
+            )
 
         # Check for specific reporting violations
         reporting_findings = [f for f in findings if f["type"].startswith("reporting_")]
         if reporting_findings:
-            actions.append({
-                "action": "reporting_remediation",
-                "priority": "MEDIUM",
-                "description": (
-                    f"Address {len(reporting_findings)} reporting compliance "
-                    f"violations with subject"
-                ),
-            })
+            actions.append(
+                {
+                    "action": "reporting_remediation",
+                    "priority": "MEDIUM",
+                    "description": (
+                        f"Address {len(reporting_findings)} reporting compliance "
+                        f"violations with subject"
+                    ),
+                }
+            )
 
         return actions
 
@@ -1439,15 +1566,19 @@ class ClearedPersonnelAnalyzer:
         }
 
         with record._lock:
-            record.security_actions.append({
-                "report_id": report_id,
-                "action_type": action_type,
-                "timestamp": timestamp,
-            })
+            record.security_actions.append(
+                {
+                    "report_id": report_id,
+                    "action_type": action_type,
+                    "timestamp": timestamp,
+                }
+            )
 
         logger.info(
             "Generated personnel security action report %s for %s (type: %s)",
-            report_id, person_id, action_type
+            report_id,
+            person_id,
+            action_type,
         )
 
         return report

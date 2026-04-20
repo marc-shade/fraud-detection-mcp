@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 # Threat Level Definitions (mapped to DHS NTAS levels)
 # =============================================================================
 
+
 class ThreatLevel(Enum):
     """
     Insider threat risk levels aligned with DHS National Terrorism Advisory
@@ -48,10 +49,11 @@ class ThreatLevel(Enum):
     - ELEVATED (61-80): Serious indicators, aligned with NTAS Elevated Bulletin
     - IMMINENT (81-100): Critical, aligned with NTAS Imminent Threat Alert
     """
-    BASELINE = "BASELINE"       # Score 0-30: Normal activity, routine UAM
-    ADVISORY = "ADVISORY"       # Score 31-60: Anomalies, enhanced monitoring
-    ELEVATED = "ELEVATED"       # Score 61-80: Serious threat indicators (NTAS Elevated)
-    IMMINENT = "IMMINENT"       # Score 81-100: Critical, immediate action (NTAS Imminent)
+
+    BASELINE = "BASELINE"  # Score 0-30: Normal activity, routine UAM
+    ADVISORY = "ADVISORY"  # Score 31-60: Anomalies, enhanced monitoring
+    ELEVATED = "ELEVATED"  # Score 61-80: Serious threat indicators (NTAS Elevated)
+    IMMINENT = "IMMINENT"  # Score 81-100: Critical, immediate action (NTAS Imminent)
 
 
 def score_to_threat_level(score: float) -> ThreatLevel:
@@ -81,54 +83,63 @@ NIST_CONTROLS = {
         "family": "Personnel Security",
         "description": "Screen individuals prior to authorizing access to the system",
         "indicators": [
-            "background_check_anomaly", "foreign_contact_violation",
-            "financial_stress", "criminal_conduct"
-        ]
+            "background_check_anomaly",
+            "foreign_contact_violation",
+            "financial_stress",
+            "criminal_conduct",
+        ],
     },
     "PS-4": {
         "name": "Personnel Termination",
         "family": "Personnel Security",
         "description": "Upon termination, disable system access and retrieve credentials",
         "indicators": [
-            "post_termination_access", "credential_retention",
-            "data_exfiltration_pre_departure"
-        ]
+            "post_termination_access",
+            "credential_retention",
+            "data_exfiltration_pre_departure",
+        ],
     },
     "PS-5": {
         "name": "Personnel Transfer",
         "family": "Personnel Security",
         "description": "Review and confirm ongoing need for access upon transfer",
         "indicators": [
-            "access_outside_new_scope", "retained_old_permissions",
-            "cross_department_data_access"
-        ]
+            "access_outside_new_scope",
+            "retained_old_permissions",
+            "cross_department_data_access",
+        ],
     },
     "PS-6": {
         "name": "Access Agreements",
         "family": "Personnel Security",
         "description": "Ensure individuals sign appropriate access agreements",
         "indicators": [
-            "unsigned_nda", "expired_access_agreement",
-            "agreement_violation"
-        ]
+            "unsigned_nda",
+            "expired_access_agreement",
+            "agreement_violation",
+        ],
     },
     "PE-2": {
         "name": "Physical Access Authorizations",
         "family": "Physical and Environmental Protection",
         "description": "Authorize physical access and maintain access lists",
         "indicators": [
-            "badge_tailgating", "unauthorized_area_access",
-            "after_hours_physical_access", "lost_badge_not_reported"
-        ]
+            "badge_tailgating",
+            "unauthorized_area_access",
+            "after_hours_physical_access",
+            "lost_badge_not_reported",
+        ],
     },
     "AC-2": {
         "name": "Account Management",
         "family": "Access Control",
         "description": "Manage information system accounts",
         "indicators": [
-            "privilege_escalation", "dormant_account_reactivation",
-            "shared_account_usage", "unauthorized_account_creation"
-        ]
+            "privilege_escalation",
+            "dormant_account_reactivation",
+            "shared_account_usage",
+            "unauthorized_account_creation",
+        ],
     },
 }
 
@@ -136,6 +147,7 @@ NIST_CONTROLS = {
 # =============================================================================
 # Behavioral Indicators (25+ from NITTF Insider Threat Guide)
 # =============================================================================
+
 
 class BehavioralIndicator:
     """Single behavioral indicator with weight and NIST control mapping."""
@@ -192,238 +204,323 @@ def _register_indicator(
 
 # --- Access-Based Indicators ---
 _register_indicator(
-    "IND-001", "Unauthorized Classified Access",
-    "access", 9.0, ["AC-2", "PS-3"],
+    "IND-001",
+    "Unauthorized Classified Access",
+    "access",
+    9.0,
+    ["AC-2", "PS-3"],
     ["T1078", "T1548"],
     "Unauthorized access attempts to classified systems",
-    "Detect access attempts to systems/resources beyond user's clearance level or need-to-know"
+    "Detect access attempts to systems/resources beyond user's clearance level or need-to-know",
 )
 
 _register_indicator(
-    "IND-002", "After-Hours Access Anomaly",
-    "access", 5.0, ["AC-2", "PE-2"],
+    "IND-002",
+    "After-Hours Access Anomaly",
+    "access",
+    5.0,
+    ["AC-2", "PE-2"],
     ["T1078.004"],
     "Unusual after-hours access patterns deviating from established baseline",
-    "Compare login timestamps against user's established working hours profile (>2 std dev)"
+    "Compare login timestamps against user's established working hours profile (>2 std dev)",
 )
 
 _register_indicator(
-    "IND-003", "Mass Data Download",
-    "data_movement", 8.5, ["AC-2"],
+    "IND-003",
+    "Mass Data Download",
+    "data_movement",
+    8.5,
+    ["AC-2"],
     ["T1005", "T1039", "T1119"],
     "Bulk file transfers or mass data downloads exceeding baseline",
-    "Monitor data volume per session; alert when >3x user's 30-day moving average"
+    "Monitor data volume per session; alert when >3x user's 30-day moving average",
 )
 
 _register_indicator(
-    "IND-004", "Access Outside Job Scope",
-    "access", 7.0, ["PS-5", "AC-2"],
+    "IND-004",
+    "Access Outside Job Scope",
+    "access",
+    7.0,
+    ["PS-5", "AC-2"],
     ["T1083", "T1135"],
     "Accessing data, systems, or repositories outside assigned job responsibilities",
-    "Cross-reference accessed resources against user's role-based access profile"
+    "Cross-reference accessed resources against user's role-based access profile",
 )
 
 _register_indicator(
-    "IND-005", "Unauthorized Removable Media",
-    "data_movement", 8.0, ["AC-2", "PE-2"],
+    "IND-005",
+    "Unauthorized Removable Media",
+    "data_movement",
+    8.0,
+    ["AC-2", "PE-2"],
     ["T1052", "T1091"],
     "Use of unauthorized removable media (USB, external drives)",
-    "Detect USB device connections not on approved device whitelist"
+    "Detect USB device connections not on approved device whitelist",
 )
 
 _register_indicator(
-    "IND-006", "Security Control Bypass",
-    "evasion", 9.5, ["AC-2"],
+    "IND-006",
+    "Security Control Bypass",
+    "evasion",
+    9.5,
+    ["AC-2"],
     ["T1562", "T1548", "T1036"],
     "Attempts to bypass, disable, or circumvent security controls",
-    "Monitor for DLP bypass, proxy avoidance, AV disablement, firewall rule changes"
+    "Monitor for DLP bypass, proxy avoidance, AV disablement, firewall rule changes",
 )
 
 # --- Travel and Foreign Contact Indicators ---
 _register_indicator(
-    "IND-007", "Unusual Foreign Travel",
-    "foreign_nexus", 6.5, ["PS-3"],
+    "IND-007",
+    "Unusual Foreign Travel",
+    "foreign_nexus",
+    6.5,
+    ["PS-3"],
     ["T1583"],
     "Travel patterns to foreign adversary nations or unreported foreign travel",
-    "Flag travel to ODNI-designated countries of concern; compare against reported travel"
+    "Flag travel to ODNI-designated countries of concern; compare against reported travel",
 )
 
 _register_indicator(
-    "IND-008", "Foreign Contact Violation",
-    "foreign_nexus", 7.5, ["PS-3", "PS-6"],
+    "IND-008",
+    "Foreign Contact Violation",
+    "foreign_nexus",
+    7.5,
+    ["PS-3", "PS-6"],
     ["T1583"],
     "Failure to report foreign contacts as required by security protocols",
-    "Cross-reference communication patterns with foreign contact reporting database"
+    "Cross-reference communication patterns with foreign contact reporting database",
 )
 
 # --- Financial and Personal Indicators ---
 _register_indicator(
-    "IND-009", "Financial Stress Indicators",
-    "personal", 4.5, ["PS-3"],
+    "IND-009",
+    "Financial Stress Indicators",
+    "personal",
+    4.5,
+    ["PS-3"],
     [],
     "Indicators of financial distress for cleared personnel",
-    "Aggregate signals: credit alerts, garnishment filings, bankruptcy indicators"
+    "Aggregate signals: credit alerts, garnishment filings, bankruptcy indicators",
 )
 
 _register_indicator(
-    "IND-010", "Disgruntlement Indicators",
-    "personal", 5.0, ["PS-3"],
+    "IND-010",
+    "Disgruntlement Indicators",
+    "personal",
+    5.0,
+    ["PS-3"],
     [],
     "Behavioral patterns indicating workplace disgruntlement or dissatisfaction",
-    "Evaluates pre-computed sentiment scores and HR incident report counts against thresholds"
+    "Evaluates pre-computed sentiment scores and HR incident report counts against thresholds",
 )
 
 # --- Counter-Intelligence Indicators ---
 _register_indicator(
-    "IND-011", "Counter-Intelligence Indicators",
-    "ci", 9.0, ["PS-3"],
+    "IND-011",
+    "Counter-Intelligence Indicators",
+    "ci",
+    9.0,
+    ["PS-3"],
     ["T1583", "T1589"],
     "Patterns suggesting intelligence gathering for a foreign entity",
-    "Detect systematic collection of sensitive data across compartments"
+    "Detect systematic collection of sensitive data across compartments",
 )
 
 _register_indicator(
-    "IND-012", "Badge Tailgating",
-    "physical", 5.5, ["PE-2"],
+    "IND-012",
+    "Badge Tailgating",
+    "physical",
+    5.5,
+    ["PE-2"],
     ["T1200"],
     "Physical access anomalies including badge tailgating or piggybacking",
-    "Evaluates reported physical access anomaly events from badge_anomalies data feed"
+    "Evaluates reported physical access anomaly events from badge_anomalies data feed",
 )
 
 # --- Digital Exfiltration Indicators ---
 _register_indicator(
-    "IND-013", "Email to Personal Account",
-    "data_movement", 7.5, ["AC-2"],
+    "IND-013",
+    "Email to Personal Account",
+    "data_movement",
+    7.5,
+    ["AC-2"],
     ["T1048", "T1567"],
     "Forwarding sensitive documents or data to personal email accounts",
-    "Monitor outbound email for personal domain destinations with attachment analysis"
+    "Monitor outbound email for personal domain destinations with attachment analysis",
 )
 
 _register_indicator(
-    "IND-014", "After-Hours Printing",
-    "data_movement", 6.0, ["PE-2", "AC-2"],
+    "IND-014",
+    "After-Hours Printing",
+    "data_movement",
+    6.0,
+    ["PE-2", "AC-2"],
     ["T1005"],
     "Printing sensitive documents outside normal working hours",
-    "Correlate print job timestamps and classification levels with work schedule"
+    "Correlate print job timestamps and classification levels with work schedule",
 )
 
 _register_indicator(
-    "IND-015", "Unusual VPN Location",
-    "access", 6.5, ["AC-2"],
+    "IND-015",
+    "Unusual VPN Location",
+    "access",
+    6.5,
+    ["AC-2"],
     ["T1133"],
     "VPN connections from unusual or suspicious geographic locations",
-    "Compare VPN source IPs against user's established location profile"
+    "Compare VPN source IPs against user's established location profile",
 )
 
 _register_indicator(
-    "IND-016", "Privilege Escalation Attempt",
-    "access", 8.5, ["AC-2"],
+    "IND-016",
+    "Privilege Escalation Attempt",
+    "access",
+    8.5,
+    ["AC-2"],
     ["T1548", "T1068"],
     "Attempts to escalate privileges beyond authorized level",
-    "Detect sudo abuse, role change requests, admin tool usage without authorization"
+    "Detect sudo abuse, role change requests, admin tool usage without authorization",
 )
 
 # --- Additional NITTF Indicators ---
 _register_indicator(
-    "IND-017", "Excessive Failed Logins",
-    "access", 5.5, ["AC-2"],
+    "IND-017",
+    "Excessive Failed Logins",
+    "access",
+    5.5,
+    ["AC-2"],
     ["T1110"],
     "Repeated failed login attempts suggesting credential compromise or brute force",
-    "Alert when failed attempts exceed 5 within 15 minutes for any single account"
+    "Alert when failed attempts exceed 5 within 15 minutes for any single account",
 )
 
 _register_indicator(
-    "IND-018", "Dormant Account Reactivation",
-    "access", 7.0, ["AC-2"],
+    "IND-018",
+    "Dormant Account Reactivation",
+    "access",
+    7.0,
+    ["AC-2"],
     ["T1078"],
     "Reactivation or use of dormant accounts (>90 days inactive)",
-    "Flag accounts dormant >90 days that resume activity; verify authorization"
+    "Flag accounts dormant >90 days that resume activity; verify authorization",
 )
 
 _register_indicator(
-    "IND-019", "Cloud Storage Upload",
-    "data_movement", 7.0, ["AC-2"],
+    "IND-019",
+    "Cloud Storage Upload",
+    "data_movement",
+    7.0,
+    ["AC-2"],
     ["T1567.002"],
     "Uploading sensitive data to unauthorized cloud storage services",
-    "Monitor network traffic for unauthorized cloud storage API calls and large uploads"
+    "Monitor network traffic for unauthorized cloud storage API calls and large uploads",
 )
 
 _register_indicator(
-    "IND-020", "Screenshot or Screen Recording",
-    "data_movement", 6.5, ["AC-2"],
+    "IND-020",
+    "Screenshot or Screen Recording",
+    "data_movement",
+    6.5,
+    ["AC-2"],
     ["T1113"],
     "Excessive use of screenshot or screen recording tools on sensitive systems",
-    "Monitor screen capture tool invocations; compare against baseline frequency"
+    "Monitor screen capture tool invocations; compare against baseline frequency",
 )
 
 _register_indicator(
-    "IND-021", "Encryption of Non-Standard Data",
-    "evasion", 7.5, ["AC-2"],
+    "IND-021",
+    "Encryption of Non-Standard Data",
+    "evasion",
+    7.5,
+    ["AC-2"],
     ["T1027", "T1560"],
     "Encrypting data using personal keys or non-standard encryption tools",
-    "Detect use of personal PGP keys, unauthorized encryption utilities on work systems"
+    "Detect use of personal PGP keys, unauthorized encryption utilities on work systems",
 )
 
 _register_indicator(
-    "IND-022", "Unauthorized Software Installation",
-    "evasion", 6.0, ["AC-2"],
+    "IND-022",
+    "Unauthorized Software Installation",
+    "evasion",
+    6.0,
+    ["AC-2"],
     ["T1204", "T1059"],
     "Installing unauthorized software including hacking tools or data exfiltration utilities",
-    "Compare installed software against approved software baseline"
+    "Compare installed software against approved software baseline",
 )
 
 _register_indicator(
-    "IND-023", "Network Scanning Activity",
-    "reconnaissance", 8.0, ["AC-2"],
+    "IND-023",
+    "Network Scanning Activity",
+    "reconnaissance",
+    8.0,
+    ["AC-2"],
     ["T1046", "T1018"],
     "Internal network scanning or reconnaissance activity from user workstation",
-    "Detect port scanning, service enumeration, or subnet sweeps from non-IT endpoints"
+    "Detect port scanning, service enumeration, or subnet sweeps from non-IT endpoints",
 )
 
 _register_indicator(
-    "IND-024", "Data Staging",
-    "data_movement", 7.5, ["AC-2"],
+    "IND-024",
+    "Data Staging",
+    "data_movement",
+    7.5,
+    ["AC-2"],
     ["T1074"],
     "Aggregating or staging data in unusual locations prior to potential exfiltration",
-    "Monitor for large file collections in temp directories or non-standard locations"
+    "Monitor for large file collections in temp directories or non-standard locations",
 )
 
 _register_indicator(
-    "IND-025", "Post-Termination Access",
-    "access", 9.5, ["PS-4"],
+    "IND-025",
+    "Post-Termination Access",
+    "access",
+    9.5,
+    ["PS-4"],
     ["T1078"],
     "System access attempts after employment termination or clearance revocation",
-    "Cross-reference authentication attempts against HR termination database in real-time"
+    "Cross-reference authentication attempts against HR termination database in real-time",
 )
 
 _register_indicator(
-    "IND-026", "Credential Sharing",
-    "access", 7.0, ["AC-2", "PS-6"],
+    "IND-026",
+    "Credential Sharing",
+    "access",
+    7.0,
+    ["AC-2", "PS-6"],
     ["T1078"],
     "Sharing credentials with unauthorized individuals or concurrent session anomalies",
-    "Detect simultaneous sessions from different IPs; monitor for credential handoff patterns"
+    "Detect simultaneous sessions from different IPs; monitor for credential handoff patterns",
 )
 
 _register_indicator(
-    "IND-027", "Clearance Scope Violation",
-    "access", 8.5, ["PS-3", "AC-2"],
+    "IND-027",
+    "Clearance Scope Violation",
+    "access",
+    8.5,
+    ["PS-3", "AC-2"],
     ["T1078"],
     "Accessing information above current clearance level or outside compartment",
-    "Real-time comparison of data classification against user clearance and SCI access"
+    "Real-time comparison of data classification against user clearance and SCI access",
 )
 
 _register_indicator(
-    "IND-028", "Covert Channel Usage",
-    "evasion", 8.5, ["AC-2"],
+    "IND-028",
+    "Covert Channel Usage",
+    "evasion",
+    8.5,
+    ["AC-2"],
     ["T1071", "T1572"],
     "Using covert channels or steganography to exfiltrate data",
-    "Deep packet inspection for DNS tunneling, ICMP covert channels, steganographic content"
+    "Deep packet inspection for DNS tunneling, ICMP covert channels, steganographic content",
 )
 
 
 # =============================================================================
 # User Activity Profile
 # =============================================================================
+
 
 class UserActivityProfile:
     """Maintains a rolling activity profile for a single user."""
@@ -457,53 +554,65 @@ class UserActivityProfile:
     def record_login(self, hour: int, ip_address: str, success: bool) -> None:
         """Record a login event."""
         with self._lock:
-            self.login_hours.append({
-                "hour": hour,
-                "ip": ip_address,
-                "success": success,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
-            if not success:
-                self.failed_logins.append({
+            self.login_hours.append(
+                {
+                    "hour": hour,
                     "ip": ip_address,
-                    "timestamp": datetime.now(timezone.utc).isoformat()
-                })
+                    "success": success,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
+            if not success:
+                self.failed_logins.append(
+                    {
+                        "ip": ip_address,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                )
 
     def record_data_transfer(self, volume_bytes: int, destination: str) -> None:
         """Record a data transfer event."""
         with self._lock:
-            self.data_volumes.append({
-                "volume_bytes": volume_bytes,
-                "destination": destination,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
+            self.data_volumes.append(
+                {
+                    "volume_bytes": volume_bytes,
+                    "destination": destination,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
 
     def record_resource_access(self, resource_id: str, classification: str) -> None:
         """Record a resource access event."""
         with self._lock:
-            self.access_resources.append({
-                "resource_id": resource_id,
-                "classification": classification,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
+            self.access_resources.append(
+                {
+                    "resource_id": resource_id,
+                    "classification": classification,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
 
     def record_vpn_connection(self, source_ip: str, geo_location: str) -> None:
         """Record a VPN connection event."""
         with self._lock:
-            self.vpn_locations.append({
-                "source_ip": source_ip,
-                "geo_location": geo_location,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
+            self.vpn_locations.append(
+                {
+                    "source_ip": source_ip,
+                    "geo_location": geo_location,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
 
     def record_print_event(self, document_classification: str, page_count: int) -> None:
         """Record a print event."""
         with self._lock:
-            self.print_events.append({
-                "classification": document_classification,
-                "page_count": page_count,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
+            self.print_events.append(
+                {
+                    "classification": document_classification,
+                    "page_count": page_count,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
 
     def get_average_data_volume(self) -> float:
         """Calculate average daily data transfer volume."""
@@ -528,7 +637,9 @@ class UserActivityProfile:
             count = 0
             for entry in self.failed_logins:
                 try:
-                    ts = datetime.fromisoformat(entry["timestamp"].replace("Z", "+00:00"))
+                    ts = datetime.fromisoformat(
+                        entry["timestamp"].replace("Z", "+00:00")
+                    )
                     if ts > cutoff:
                         count += 1
                 except (ValueError, KeyError):
@@ -556,6 +667,7 @@ class UserActivityProfile:
 # Insider Threat Assessor (Core Engine)
 # =============================================================================
 
+
 class InsiderThreatAssessor:
     """
     Core insider threat assessment engine per EO 13587 and NITTF guidance.
@@ -577,7 +689,7 @@ class InsiderThreatAssessor:
         }
         logger.info(
             "InsiderThreatAssessor initialized with %d behavioral indicators",
-            len(BEHAVIORAL_INDICATORS)
+            len(BEHAVIORAL_INDICATORS),
         )
 
     def get_or_create_profile(self, user_id: str) -> UserActivityProfile:
@@ -635,17 +747,32 @@ class InsiderThreatAssessor:
             accessed = activity_data.get("accessed_classification", "")
             user_clearance = profile.clearance_level
             classification_hierarchy = [
-                "UNCLASSIFIED", "CUI", "CONFIDENTIAL", "SECRET", "TOP SECRET", "SCI"
+                "UNCLASSIFIED",
+                "CUI",
+                "CONFIDENTIAL",
+                "SECRET",
+                "TOP SECRET",
+                "SCI",
             ]
-            user_level = classification_hierarchy.index(user_clearance) \
-                if user_clearance in classification_hierarchy else 0
-            accessed_level = classification_hierarchy.index(accessed) \
-                if accessed in classification_hierarchy else -1
+            user_level = (
+                classification_hierarchy.index(user_clearance)
+                if user_clearance in classification_hierarchy
+                else 0
+            )
+            accessed_level = (
+                classification_hierarchy.index(accessed)
+                if accessed in classification_hierarchy
+                else -1
+            )
             if accessed_level > user_level:
                 triggered = True
                 confidence = 0.95
-                details = f"User with {user_clearance} clearance accessed {accessed} data"
-                evidence.append(f"Classification breach: {user_clearance} -> {accessed}")
+                details = (
+                    f"User with {user_clearance} clearance accessed {accessed} data"
+                )
+                evidence.append(
+                    f"Classification breach: {user_clearance} -> {accessed}"
+                )
 
         elif ind_id == "IND-002":
             # After-hours access
@@ -664,7 +791,8 @@ class InsiderThreatAssessor:
                         )
                         logger.debug(
                             "IND-002 skipped for user %s: insufficient baseline (%d observations)",
-                            profile.user_id, total,
+                            profile.user_id,
+                            total,
                         )
                     else:
                         off_hours_freq = sum(
@@ -675,7 +803,9 @@ class InsiderThreatAssessor:
                             triggered = True
                             confidence = min(0.9, 0.5 + (0.15 - ratio) * 3)
                             details = f"Login at hour {login_hour} outside work hours ({start}-{end})"
-                            evidence.append(f"Off-hours ratio: {ratio:.2%} (threshold: 15%)")
+                            evidence.append(
+                                f"Off-hours ratio: {ratio:.2%} (threshold: 15%)"
+                            )
 
         elif ind_id == "IND-003":
             # Mass data download
@@ -685,16 +815,23 @@ class InsiderThreatAssessor:
                 triggered = True
                 multiplier = volume / avg
                 confidence = min(0.95, 0.5 + (multiplier - 3) * 0.1)
-                details = f"Data volume {volume:,} bytes is {multiplier:.1f}x above average"
+                details = (
+                    f"Data volume {volume:,} bytes is {multiplier:.1f}x above average"
+                )
                 evidence.append(f"Average: {avg:,.0f} bytes, Current: {volume:,} bytes")
 
         elif ind_id == "IND-004":
             # Access outside job scope
             accessed_resource = activity_data.get("resource_id", "")
-            if accessed_resource and accessed_resource not in profile.authorized_resources:
+            if (
+                accessed_resource
+                and accessed_resource not in profile.authorized_resources
+            ):
                 triggered = True
                 confidence = 0.80
-                details = f"Access to resource '{accessed_resource}' outside authorized scope"
+                details = (
+                    f"Access to resource '{accessed_resource}' outside authorized scope"
+                )
                 evidence.append(f"Authorized: {profile.authorized_resources[:5]}")
 
         elif ind_id == "IND-005":
@@ -706,7 +843,9 @@ class InsiderThreatAssessor:
                 triggered = True
                 confidence = 0.90
                 details = f"Unauthorized {device_type} device connected: {device_id}"
-                evidence.append(f"Device not in approved list of {len(approved_devices)} devices")
+                evidence.append(
+                    f"Device not in approved list of {len(approved_devices)} devices"
+                )
 
         elif ind_id == "IND-006":
             # Security control bypass
@@ -714,15 +853,16 @@ class InsiderThreatAssessor:
             if bypass_actions:
                 triggered = True
                 confidence = 0.92
-                details = f"Security control bypass detected: {', '.join(bypass_actions[:3])}"
+                details = (
+                    f"Security control bypass detected: {', '.join(bypass_actions[:3])}"
+                )
                 evidence.extend(bypass_actions)
 
         elif ind_id == "IND-007":
             # Unusual foreign travel
             travel_destination = activity_data.get("travel_destination", "")
             adversary_nations = activity_data.get(
-                "adversary_nations",
-                ["CN", "RU", "IR", "KP", "CU", "SY", "VE"]
+                "adversary_nations", ["CN", "RU", "IR", "KP", "CU", "SY", "VE"]
             )
             reported_travel = activity_data.get("reported_travel", [])
             if travel_destination:
@@ -731,7 +871,7 @@ class InsiderThreatAssessor:
                     triggered = True
                     confidence = 0.85
                     details = f"Travel to country of concern: {travel_destination}"
-                    evidence.append(f"Destination in adversary list")
+                    evidence.append("Destination in adversary list")
                 elif travel_destination not in reported_travel:
                     triggered = True
                     confidence = 0.70
@@ -768,7 +908,7 @@ class InsiderThreatAssessor:
                 triggered = True
                 confidence = min(0.75, max(disgruntlement_score, hr_incidents * 0.2))
                 details = f"Disgruntlement score: {disgruntlement_score:.2f}, HR incidents: {hr_incidents}"
-                evidence.append(f"Score threshold: 0.6, Incident threshold: 3")
+                evidence.append("Score threshold: 0.6, Incident threshold: 3")
 
         elif ind_id == "IND-011":
             # Counter-intelligence indicators
@@ -791,7 +931,9 @@ class InsiderThreatAssessor:
         elif ind_id == "IND-013":
             # Email to personal account
             personal_email_forwards = activity_data.get("personal_email_forwards", 0)
-            sensitive_attachments = activity_data.get("sensitive_attachments_forwarded", 0)
+            sensitive_attachments = activity_data.get(
+                "sensitive_attachments_forwarded", 0
+            )
             if personal_email_forwards > 0 and sensitive_attachments > 0:
                 triggered = True
                 confidence = 0.88
@@ -799,15 +941,21 @@ class InsiderThreatAssessor:
                     f"{sensitive_attachments} sensitive attachments forwarded "
                     f"to personal email ({personal_email_forwards} total forwards)"
                 )
-                evidence.append(f"Forwards: {personal_email_forwards}, Sensitive: {sensitive_attachments}")
+                evidence.append(
+                    f"Forwards: {personal_email_forwards}, Sensitive: {sensitive_attachments}"
+                )
 
         elif ind_id == "IND-014":
             # After-hours printing
             print_hour = activity_data.get("print_hour")
-            doc_classification = activity_data.get("print_classification", "UNCLASSIFIED")
+            doc_classification = activity_data.get(
+                "print_classification", "UNCLASSIFIED"
+            )
             if print_hour is not None:
                 start, end = profile.work_hours
-                if (print_hour < start or print_hour > end) and doc_classification != "UNCLASSIFIED":
+                if (
+                    print_hour < start or print_hour > end
+                ) and doc_classification != "UNCLASSIFIED":
                     triggered = True
                     confidence = 0.78
                     details = (
@@ -852,8 +1000,10 @@ class InsiderThreatAssessor:
             if days_inactive > 90:
                 triggered = True
                 confidence = 0.82
-                details = f"Account reactivated after {days_inactive} days of inactivity"
-                evidence.append(f"Dormancy threshold: 90 days")
+                details = (
+                    f"Account reactivated after {days_inactive} days of inactivity"
+                )
+                evidence.append("Dormancy threshold: 90 days")
 
         elif ind_id == "IND-019":
             # Cloud storage upload
@@ -863,7 +1013,9 @@ class InsiderThreatAssessor:
                 confidence = 0.85
                 total_size = sum(u.get("size_bytes", 0) for u in cloud_uploads)
                 details = f"{len(cloud_uploads)} unauthorized cloud uploads ({total_size:,} bytes)"
-                evidence.extend([u.get("service", "unknown") for u in cloud_uploads[:3]])
+                evidence.extend(
+                    [u.get("service", "unknown") for u in cloud_uploads[:3]]
+                )
 
         elif ind_id == "IND-020":
             # Screenshot or screen recording
@@ -872,8 +1024,12 @@ class InsiderThreatAssessor:
             if capture_count > baseline_count * 3:
                 triggered = True
                 confidence = 0.70
-                details = f"{capture_count} screen captures (baseline: {baseline_count})"
-                evidence.append(f"Multiplier: {capture_count / max(1, baseline_count):.1f}x")
+                details = (
+                    f"{capture_count} screen captures (baseline: {baseline_count})"
+                )
+                evidence.append(
+                    f"Multiplier: {capture_count / max(1, baseline_count):.1f}x"
+                )
 
         elif ind_id == "IND-021":
             # Non-standard encryption
@@ -890,7 +1046,9 @@ class InsiderThreatAssessor:
             if unauthorized_sw:
                 triggered = True
                 confidence = 0.78
-                details = f"Unauthorized software installed: {', '.join(unauthorized_sw[:3])}"
+                details = (
+                    f"Unauthorized software installed: {', '.join(unauthorized_sw[:3])}"
+                )
                 evidence.extend(unauthorized_sw)
 
         elif ind_id == "IND-023":
@@ -910,7 +1068,9 @@ class InsiderThreatAssessor:
             if staging_detected:
                 triggered = True
                 confidence = 0.80
-                details = f"Data staging detected: {staged_volume:,} bytes in temp locations"
+                details = (
+                    f"Data staging detected: {staged_volume:,} bytes in temp locations"
+                )
                 evidence.append(f"Staged volume: {staged_volume:,} bytes")
 
         elif ind_id == "IND-025":
@@ -930,14 +1090,18 @@ class InsiderThreatAssessor:
                 if len(unique_ips) > 1:
                     triggered = True
                     confidence = 0.82
-                    details = f"Concurrent sessions from {len(unique_ips)} different IPs"
+                    details = (
+                        f"Concurrent sessions from {len(unique_ips)} different IPs"
+                    )
                     evidence.extend(list(unique_ips)[:3])
 
         elif ind_id == "IND-027":
             # Clearance scope violation
             accessed_compartments = activity_data.get("accessed_compartments", [])
             authorized_compartments = activity_data.get("authorized_compartments", [])
-            violations = [c for c in accessed_compartments if c not in authorized_compartments]
+            violations = [
+                c for c in accessed_compartments if c not in authorized_compartments
+            ]
             if violations:
                 triggered = True
                 confidence = 0.93
@@ -950,7 +1114,9 @@ class InsiderThreatAssessor:
             if covert_indicators:
                 triggered = True
                 confidence = 0.87
-                details = f"Covert channel indicators: {', '.join(covert_indicators[:3])}"
+                details = (
+                    f"Covert channel indicators: {', '.join(covert_indicators[:3])}"
+                )
                 evidence.extend(covert_indicators)
 
         if triggered:
@@ -1029,9 +1195,7 @@ class InsiderThreatAssessor:
         raw_score = 0.0
         max_possible = sum(ind.weight for ind in BEHAVIORAL_INDICATORS.values())
         if triggered_indicators:
-            raw_score = sum(
-                t["weight"] * t["confidence"] for t in triggered_indicators
-            )
+            raw_score = sum(t["weight"] * t["confidence"] for t in triggered_indicators)
             # Normalize to 0-100 but cap with a sigmoid-like curve
             # This prevents single high-weight indicators from dominating
             normalized = (raw_score / max_possible) * 100
@@ -1054,12 +1218,14 @@ class InsiderThreatAssessor:
         nist_violations = []
         for ctrl_id, indicator_ids in violated_controls.items():
             ctrl_info = NIST_CONTROLS.get(ctrl_id, {})
-            nist_violations.append({
-                "control_id": ctrl_id,
-                "control_name": ctrl_info.get("name", "Unknown"),
-                "family": ctrl_info.get("family", "Unknown"),
-                "triggered_by": indicator_ids,
-            })
+            nist_violations.append(
+                {
+                    "control_id": ctrl_id,
+                    "control_name": ctrl_info.get("name", "Unknown"),
+                    "family": ctrl_info.get("family", "Unknown"),
+                    "triggered_by": indicator_ids,
+                }
+            )
 
         # Determine recommended actions
         recommended_actions = self._determine_actions(
@@ -1094,19 +1260,24 @@ class InsiderThreatAssessor:
             profile.triggered_indicators.extend(triggered_indicators)
             profile.risk_score_history.append(risk_score)
             profile.last_assessed = timestamp
-            self._assessment_history.append({
-                "assessment_id": assessment_id,
-                "user_id": user_id,
-                "risk_score": risk_score,
-                "threat_level": threat_level.value,
-                "indicators_triggered": len(triggered_indicators),
-                "timestamp": timestamp,
-            })
+            self._assessment_history.append(
+                {
+                    "assessment_id": assessment_id,
+                    "user_id": user_id,
+                    "risk_score": risk_score,
+                    "threat_level": threat_level.value,
+                    "indicators_triggered": len(triggered_indicators),
+                    "timestamp": timestamp,
+                }
+            )
 
         logger.info(
             "Insider threat assessment %s for user %s: score=%.2f level=%s triggered=%d",
-            assessment_id, user_id, risk_score, threat_level.value,
-            len(triggered_indicators)
+            assessment_id,
+            user_id,
+            risk_score,
+            threat_level.value,
+            len(triggered_indicators),
         )
 
         return assessment
@@ -1144,85 +1315,115 @@ class InsiderThreatAssessor:
         actions: List[Dict[str, Any]] = []
 
         if threat_level == ThreatLevel.BASELINE:
-            actions.append({
-                "action": "continue_monitoring",
-                "priority": "routine",
-                "description": "Continue routine UAM monitoring per CNSSD 504",
-            })
+            actions.append(
+                {
+                    "action": "continue_monitoring",
+                    "priority": "routine",
+                    "description": "Continue routine UAM monitoring per CNSSD 504",
+                }
+            )
         elif threat_level == ThreatLevel.ADVISORY:
-            actions.append({
-                "action": "enhanced_monitoring",
-                "priority": "medium",
-                "description": "Increase monitoring frequency for flagged indicators",
-            })
-            actions.append({
-                "action": "supervisor_notification",
-                "priority": "medium",
-                "description": "Notify user's supervisor of behavioral anomalies",
-            })
-            actions.append({
-                "action": "access_review",
-                "priority": "medium",
-                "description": "Review and validate current access permissions",
-            })
+            actions.append(
+                {
+                    "action": "enhanced_monitoring",
+                    "priority": "medium",
+                    "description": "Increase monitoring frequency for flagged indicators",
+                }
+            )
+            actions.append(
+                {
+                    "action": "supervisor_notification",
+                    "priority": "medium",
+                    "description": "Notify user's supervisor of behavioral anomalies",
+                }
+            )
+            actions.append(
+                {
+                    "action": "access_review",
+                    "priority": "medium",
+                    "description": "Review and validate current access permissions",
+                }
+            )
         elif threat_level == ThreatLevel.ELEVATED:
-            actions.append({
-                "action": "formal_investigation",
-                "priority": "high",
-                "description": "Initiate formal insider threat investigation",
-            })
-            actions.append({
-                "action": "access_restriction",
-                "priority": "high",
-                "description": "Restrict access to sensitive systems pending review",
-            })
-            actions.append({
-                "action": "security_officer_briefing",
-                "priority": "high",
-                "description": "Brief the Facility Security Officer (FSO)",
-            })
+            actions.append(
+                {
+                    "action": "formal_investigation",
+                    "priority": "high",
+                    "description": "Initiate formal insider threat investigation",
+                }
+            )
+            actions.append(
+                {
+                    "action": "access_restriction",
+                    "priority": "high",
+                    "description": "Restrict access to sensitive systems pending review",
+                }
+            )
+            actions.append(
+                {
+                    "action": "security_officer_briefing",
+                    "priority": "high",
+                    "description": "Brief the Facility Security Officer (FSO)",
+                }
+            )
         elif threat_level == ThreatLevel.IMMINENT:
-            actions.append({
-                "action": "immediate_access_suspension",
-                "priority": "critical",
-                "description": "Immediately suspend all system access",
-            })
-            actions.append({
-                "action": "law_enforcement_referral",
-                "priority": "critical",
-                "description": "Consider referral to law enforcement / CI",
-            })
-            actions.append({
-                "action": "evidence_preservation",
-                "priority": "critical",
-                "description": "Preserve all logs, communications, and digital evidence",
-            })
-            actions.append({
-                "action": "executive_notification",
-                "priority": "critical",
-                "description": "Notify CISO/CSO and senior leadership",
-            })
+            actions.append(
+                {
+                    "action": "immediate_access_suspension",
+                    "priority": "critical",
+                    "description": "Immediately suspend all system access",
+                }
+            )
+            actions.append(
+                {
+                    "action": "law_enforcement_referral",
+                    "priority": "critical",
+                    "description": "Consider referral to law enforcement / CI",
+                }
+            )
+            actions.append(
+                {
+                    "action": "evidence_preservation",
+                    "priority": "critical",
+                    "description": "Preserve all logs, communications, and digital evidence",
+                }
+            )
+            actions.append(
+                {
+                    "action": "executive_notification",
+                    "priority": "critical",
+                    "description": "Notify CISO/CSO and senior leadership",
+                }
+            )
 
         # Add indicator-specific actions
         categories = set(t["category"] for t in triggered)
         if "data_movement" in categories:
-            actions.append({
-                "action": "dlp_policy_review",
-                "priority": "high" if threat_level.value in ("ELEVATED", "IMMINENT") else "medium",
-                "description": "Review and tighten DLP policies for this user",
-            })
+            actions.append(
+                {
+                    "action": "dlp_policy_review",
+                    "priority": "high"
+                    if threat_level.value in ("ELEVATED", "IMMINENT")
+                    else "medium",
+                    "description": "Review and tighten DLP policies for this user",
+                }
+            )
         if "foreign_nexus" in categories:
-            actions.append({
-                "action": "ci_referral",
-                "priority": "high",
-                "description": "Refer to Counterintelligence for foreign nexus indicators",
-            })
+            actions.append(
+                {
+                    "action": "ci_referral",
+                    "priority": "high",
+                    "description": "Refer to Counterintelligence for foreign nexus indicators",
+                }
+            )
         if "physical" in categories:
-            actions.append({
-                "action": "physical_security_review",
-                "priority": "medium",
-                "description": "Coordinate with physical security for access review",
-            })
+            actions.append(
+                {
+                    "action": "physical_security_review",
+                    "priority": "medium",
+                    "description": "Coordinate with physical security for access review",
+                }
+            )
 
         return actions
 
@@ -1297,14 +1498,13 @@ class InsiderThreatAssessor:
                 "total_triggers": len(all_triggers),
                 "by_category": dict(category_counts),
                 "unique_indicators": len(set(t["indicator_id"] for t in all_triggers)),
-                "high_weight_triggers": [
-                    t for t in all_triggers if t["weight"] >= 8.0
-                ],
+                "high_weight_triggers": [t for t in all_triggers if t["weight"] >= 8.0],
             },
             "nist_control_impact": self._aggregate_nist_impacts(all_triggers),
             "mitre_techniques": self._aggregate_mitre_techniques(all_triggers),
             "timeline": self._build_indicator_timeline(all_triggers),
-            "additional_context": additional_context or "No additional context provided.",
+            "additional_context": additional_context
+            or "No additional context provided.",
             "recommended_actions": self._determine_actions(
                 score_to_threat_level(max_risk),
                 all_triggers,
@@ -1320,16 +1520,19 @@ class InsiderThreatAssessor:
         }
 
         with self._lock:
-            self._case_referrals.append({
-                "referral_id": referral_id,
-                "user_id": user_id,
-                "timestamp": timestamp,
-                "threat_level": referral["risk_summary"]["current_threat_level"],
-            })
+            self._case_referrals.append(
+                {
+                    "referral_id": referral_id,
+                    "user_id": user_id,
+                    "timestamp": timestamp,
+                    "threat_level": referral["risk_summary"]["current_threat_level"],
+                }
+            )
 
         logger.info(
             "Generated insider threat case referral %s for user %s",
-            referral_id, user_id
+            referral_id,
+            user_id,
         )
 
         return referral
@@ -1346,13 +1549,15 @@ class InsiderThreatAssessor:
         results = []
         for ctrl_id, indicator_ids in sorted(control_map.items()):
             ctrl_info = NIST_CONTROLS.get(ctrl_id, {})
-            results.append({
-                "control_id": ctrl_id,
-                "control_name": ctrl_info.get("name", "Unknown"),
-                "family": ctrl_info.get("family", "Unknown"),
-                "trigger_count": len(indicator_ids),
-                "triggered_by": list(set(indicator_ids)),
-            })
+            results.append(
+                {
+                    "control_id": ctrl_id,
+                    "control_name": ctrl_info.get("name", "Unknown"),
+                    "family": ctrl_info.get("family", "Unknown"),
+                    "trigger_count": len(indicator_ids),
+                    "triggered_by": list(set(indicator_ids)),
+                }
+            )
         return results
 
     def _aggregate_mitre_techniques(
@@ -1366,11 +1571,13 @@ class InsiderThreatAssessor:
 
         results = []
         for tech_id, indicator_ids in sorted(technique_map.items()):
-            results.append({
-                "technique_id": tech_id,
-                "triggered_by": list(set(indicator_ids)),
-                "occurrence_count": len(indicator_ids),
-            })
+            results.append(
+                {
+                    "technique_id": tech_id,
+                    "triggered_by": list(set(indicator_ids)),
+                    "occurrence_count": len(indicator_ids),
+                }
+            )
         return results
 
     def _build_indicator_timeline(
@@ -1382,15 +1589,17 @@ class InsiderThreatAssessor:
         )
         timeline = []
         for t in sorted_triggers[:50]:  # Last 50 events
-            timeline.append({
-                "timestamp": t.get("timestamp", "unknown"),
-                "indicator_id": t["indicator_id"],
-                "indicator_name": t["indicator_name"],
-                "category": t["category"],
-                "weight": t["weight"],
-                "confidence": t["confidence"],
-                "details": t["details"],
-            })
+            timeline.append(
+                {
+                    "timestamp": t.get("timestamp", "unknown"),
+                    "indicator_id": t["indicator_id"],
+                    "indicator_name": t["indicator_name"],
+                    "category": t["category"],
+                    "weight": t["weight"],
+                    "confidence": t["confidence"],
+                    "details": t["details"],
+                }
+            )
         return timeline
 
     def get_assessment_stats(self) -> Dict[str, Any]:

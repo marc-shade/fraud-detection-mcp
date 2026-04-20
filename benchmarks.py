@@ -615,9 +615,9 @@ def main():
     benchmark.run_full_benchmark()
 
     print(
-        "\n✅ Benchmark complete! Check the benchmark_results directory for detailed reports."
+        "\nBenchmark complete. See the benchmark_results directory for detailed reports."
     )
-    print(f"📊 Results saved to: {benchmark.output_dir}")
+    print(f"Results saved to: {benchmark.output_dir}")
 
 
 if __name__ == "__main__":

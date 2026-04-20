@@ -216,9 +216,31 @@ temp/
 *.tmp
 *.bak
 
-# Claude Code artifacts
+# AI assistant artifacts
 .claude/
+.claude-cache/
+.claude/worktrees/
+.cursor/
+.cursorrules
+.aider*
+.continue/
+.github/copilot-instructions.md
+.windsurf/
+.codeium/
+
+# Shell-expansion accidents (created by unquoted $HOME or ~ in commands)
 $HOME/
+~/
+
+# Build / editor artifacts
+*.egg-info/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+.idea/
+.vscode/
 
 # Additional patterns
 *.pyc

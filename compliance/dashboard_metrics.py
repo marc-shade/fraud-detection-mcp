@@ -31,8 +31,10 @@ logger = logging.getLogger(__name__)
 # NITTF Maturity Model
 # =============================================================================
 
+
 class MaturityLevel(Enum):
     """NITTF Insider Threat Program Maturity Levels."""
+
     INITIAL = 1
     MANAGED = 2
     DEFINED = 3
@@ -163,6 +165,7 @@ COMPLIANCE_CONTROLS = {
 # Compliance Dashboard Engine
 # =============================================================================
 
+
 class ComplianceDashboard:
     """
     Defense compliance metrics engine.
@@ -183,9 +186,7 @@ class ComplianceDashboard:
         self._alert_outcomes: deque = deque(maxlen=10000)
 
         # Model performance tracking
-        self._model_metrics: Dict[str, deque] = defaultdict(
-            lambda: deque(maxlen=1000)
-        )
+        self._model_metrics: Dict[str, deque] = defaultdict(lambda: deque(maxlen=1000))
 
         # KRI history for trend analysis
         self._kri_history: deque = deque(maxlen=5000)
@@ -213,12 +214,14 @@ class ComplianceDashboard:
     ) -> None:
         """Record time to detect an event (for MTTD calculation)."""
         with self._lock:
-            self._detection_times.append({
-                "event_id": event_id,
-                "detection_seconds": detection_seconds,
-                "event_type": event_type,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            })
+            self._detection_times.append(
+                {
+                    "event_id": event_id,
+                    "detection_seconds": detection_seconds,
+                    "event_type": event_type,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
 
     def record_response_time(
         self,
@@ -228,12 +231,14 @@ class ComplianceDashboard:
     ) -> None:
         """Record time to respond to an event (for MTTR calculation)."""
         with self._lock:
-            self._response_times.append({
-                "event_id": event_id,
-                "response_seconds": response_seconds,
-                "event_type": event_type,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            })
+            self._response_times.append(
+                {
+                    "event_id": event_id,
+                    "response_seconds": response_seconds,
+                    "event_type": event_type,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
 
     def record_alert_outcome(
         self,
@@ -250,12 +255,14 @@ class ComplianceDashboard:
             alert_type: Type of alert
         """
         with self._lock:
-            self._alert_outcomes.append({
-                "alert_id": alert_id,
-                "outcome": outcome,
-                "alert_type": alert_type,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            })
+            self._alert_outcomes.append(
+                {
+                    "alert_id": alert_id,
+                    "outcome": outcome,
+                    "alert_type": alert_type,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
 
     def record_model_metric(
         self,
@@ -265,10 +272,12 @@ class ComplianceDashboard:
     ) -> None:
         """Record a model performance metric for drift detection."""
         with self._lock:
-            self._model_metrics[f"{model_name}.{metric_name}"].append({
-                "value": value,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            })
+            self._model_metrics[f"{model_name}.{metric_name}"].append(
+                {
+                    "value": value,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
 
     def set_maturity_criterion(self, criterion: str, met: bool) -> None:
         """Set whether a specific maturity criterion is met."""
@@ -330,9 +339,7 @@ class ComplianceDashboard:
             criteria = level_info["criteria"]
             total_criteria += len(criteria)
 
-            met_for_level = sum(
-                1 for c in criteria if criteria_status.get(c, False)
-            )
+            met_for_level = sum(1 for c in criteria if criteria_status.get(c, False))
             met_criteria += met_for_level
 
             completion = met_for_level / len(criteria) if criteria else 0
@@ -346,15 +353,15 @@ class ComplianceDashboard:
                 "criteria_met": met_for_level,
                 "completion_percentage": round(completion * 100, 1),
                 "level_achieved": level_met,
-                "criteria_detail": {
-                    c: criteria_status.get(c, False) for c in criteria
-                },
+                "criteria_detail": {c: criteria_status.get(c, False) for c in criteria},
             }
 
             if level_met:
                 achieved_level = level
 
-        overall_score = (met_criteria / total_criteria * 100) if total_criteria > 0 else 0
+        overall_score = (
+            (met_criteria / total_criteria * 100) if total_criteria > 0 else 0
+        )
 
         return {
             "maturity_level": achieved_level.name,
@@ -388,8 +395,12 @@ class ComplianceDashboard:
         kris: Dict[str, Any] = {}
 
         # KRI 1: MTTD (Mean Time to Detect)
-        mttd_30d = self._calc_mean_metric(detection_times, "detection_seconds", period_30d)
-        mttd_7d = self._calc_mean_metric(detection_times, "detection_seconds", period_7d)
+        mttd_30d = self._calc_mean_metric(
+            detection_times, "detection_seconds", period_30d
+        )
+        mttd_7d = self._calc_mean_metric(
+            detection_times, "detection_seconds", period_7d
+        )
         mttd_trend = self._determine_trend(mttd_30d, mttd_7d)
         kris["mttd"] = {
             "name": "Mean Time to Detect",
@@ -402,7 +413,9 @@ class ComplianceDashboard:
         }
 
         # KRI 2: MTTR (Mean Time to Respond)
-        mttr_30d = self._calc_mean_metric(response_times, "response_seconds", period_30d)
+        mttr_30d = self._calc_mean_metric(
+            response_times, "response_seconds", period_30d
+        )
         mttr_7d = self._calc_mean_metric(response_times, "response_seconds", period_7d)
         mttr_trend = self._determine_trend(mttr_30d, mttr_7d)
         kris["mttr"] = {
@@ -430,14 +443,20 @@ class ComplianceDashboard:
         }
 
         # KRI 4: Alert Volume
-        alerts_30d = len([
-            a for a in alert_outcomes
-            if self._in_period(a.get("timestamp", ""), period_30d)
-        ])
-        alerts_7d = len([
-            a for a in alert_outcomes
-            if self._in_period(a.get("timestamp", ""), period_7d)
-        ])
+        alerts_30d = len(
+            [
+                a
+                for a in alert_outcomes
+                if self._in_period(a.get("timestamp", ""), period_30d)
+            ]
+        )
+        alerts_7d = len(
+            [
+                a
+                for a in alert_outcomes
+                if self._in_period(a.get("timestamp", ""), period_7d)
+            ]
+        )
         # Normalize to daily rate
         daily_30d = alerts_30d / 30 if alerts_30d > 0 else 0
         daily_7d = alerts_7d / 7 if alerts_7d > 0 else 0
@@ -538,26 +557,33 @@ class ComplianceDashboard:
                     "assessed_at": assessment.get("assessed_at", ""),
                 }
 
-            family_pct = (family_score / family_weight * 100) if family_weight > 0 else 0
+            family_pct = (
+                (family_score / family_weight * 100) if family_weight > 0 else 0
+            )
 
             family_results[family_id] = {
                 "family_name": family_info["family_name"],
                 "score_percentage": round(family_pct, 1),
                 "controls_assessed": sum(
-                    1 for c in control_details.values() if c["status"] != "not_implemented"
+                    1
+                    for c in control_details.values()
+                    if c["status"] != "not_implemented"
                 ),
                 "controls_total": len(controls),
                 "controls": control_details,
                 "compliance_level": self._score_to_compliance_level(family_pct),
             }
 
-        overall_pct = (total_weighted_score / total_weight * 100) if total_weight > 0 else 0
+        overall_pct = (
+            (total_weighted_score / total_weight * 100) if total_weight > 0 else 0
+        )
 
         return {
             "overall_compliance_score": round(overall_pct, 1),
             "overall_compliance_level": (
                 self._score_to_compliance_level(overall_pct)
-                if data_seeded else "NOT_ASSESSED"
+                if data_seeded
+                else "NOT_ASSESSED"
             ),
             "families": family_results,
             "assessed_at": datetime.now(timezone.utc).isoformat(),
@@ -605,9 +631,13 @@ class ComplianceDashboard:
 
             baseline_mean = sum(baseline) / len(baseline)
             recent_mean = sum(recent) / len(recent)
-            baseline_std = math.sqrt(
-                sum((x - baseline_mean) ** 2 for x in baseline) / len(baseline)
-            ) if len(baseline) > 1 else 0.001
+            baseline_std = (
+                math.sqrt(
+                    sum((x - baseline_mean) ** 2 for x in baseline) / len(baseline)
+                )
+                if len(baseline) > 1
+                else 0.001
+            )
 
             # Z-score test for drift
             z_score = (recent_mean - baseline_mean) / max(baseline_std, 0.001)
@@ -680,9 +710,7 @@ class ComplianceDashboard:
             "classification": "FOR OFFICIAL USE ONLY",
             "generated_at": timestamp,
             "reporting_period": {
-                "start": (
-                    datetime.now(timezone.utc) - timedelta(days=30)
-                ).isoformat(),
+                "start": (datetime.now(timezone.utc) - timedelta(days=30)).isoformat(),
                 "end": timestamp,
             },
             "program_maturity": {
@@ -727,12 +755,14 @@ class ComplianceDashboard:
         }
 
         with self._lock:
-            self._report_history.append({
-                "report_id": report_id,
-                "timestamp": timestamp,
-                "maturity_level": maturity["maturity_level"],
-                "compliance_score": compliance["overall_compliance_score"],
-            })
+            self._report_history.append(
+                {
+                    "report_id": report_id,
+                    "timestamp": timestamp,
+                    "maturity_level": maturity["maturity_level"],
+                    "compliance_score": compliance["overall_compliance_score"],
+                }
+            )
 
         logger.info("Generated executive summary report %s", report_id)
         return report
@@ -774,49 +804,84 @@ class ComplianceDashboard:
             writer = csv.writer(csv_output)
 
             # Header
-            writer.writerow([
-                "metric_category", "metric_name", "value",
-                "unit", "target", "status", "timestamp"
-            ])
+            writer.writerow(
+                [
+                    "metric_category",
+                    "metric_name",
+                    "value",
+                    "unit",
+                    "target",
+                    "status",
+                    "timestamp",
+                ]
+            )
 
             # Maturity
-            writer.writerow([
-                "maturity", "level", maturity["maturity_level_name"],
-                "level", "", "", data["exported_at"]
-            ])
-            writer.writerow([
-                "maturity", "overall_score", maturity["overall_score"],
-                "percentage", "", "", data["exported_at"]
-            ])
+            writer.writerow(
+                [
+                    "maturity",
+                    "level",
+                    maturity["maturity_level_name"],
+                    "level",
+                    "",
+                    "",
+                    data["exported_at"],
+                ]
+            )
+            writer.writerow(
+                [
+                    "maturity",
+                    "overall_score",
+                    maturity["overall_score"],
+                    "percentage",
+                    "",
+                    "",
+                    data["exported_at"],
+                ]
+            )
 
             # KRIs
             for kri_key, kri_data in kris.get("kris", {}).items():
-                writer.writerow([
-                    "kri", kri_data.get("name", kri_key),
-                    kri_data.get("current_7d", ""),
-                    kri_data.get("unit", ""),
-                    kri_data.get("target", ""),
-                    kri_data.get("status", ""),
-                    data["exported_at"]
-                ])
+                writer.writerow(
+                    [
+                        "kri",
+                        kri_data.get("name", kri_key),
+                        kri_data.get("current_7d", ""),
+                        kri_data.get("unit", ""),
+                        kri_data.get("target", ""),
+                        kri_data.get("status", ""),
+                        data["exported_at"],
+                    ]
+                )
 
             # Compliance
             for fid, fdata in compliance.get("families", {}).items():
-                writer.writerow([
-                    "compliance", fdata["family_name"],
-                    fdata["score_percentage"],
-                    "percentage", "100", fdata["compliance_level"],
-                    data["exported_at"]
-                ])
+                writer.writerow(
+                    [
+                        "compliance",
+                        fdata["family_name"],
+                        fdata["score_percentage"],
+                        "percentage",
+                        "100",
+                        fdata["compliance_level"],
+                        data["exported_at"],
+                    ]
+                )
 
             # KRI History
             if include_history:
                 for entry in data.get("kri_history", []):
-                    writer.writerow([
-                        "kri_history", "snapshot",
-                        json.dumps(entry), "", "", "",
-                        entry.get("timestamp", "")
-                    ])
+                    writer.writerow(
+                        [
+                            "kri_history",
+                            "snapshot",
+                            json.dumps(entry),
+                            "",
+                            "",
+                            "",
+                            entry.get("timestamp", ""),
+                        ]
+                    )
 
             return {
                 "format": "csv",
@@ -958,75 +1023,88 @@ class ComplianceDashboard:
         # Maturity recommendations
         level_num = maturity.get("maturity_level_number", 1)
         if level_num < 3:
-            recommendations.append({
-                "area": "Program Maturity",
-                "priority": "HIGH",
-                "recommendation": (
-                    f"Current maturity at Level {level_num} "
-                    f"({maturity.get('maturity_level_name', 'Unknown')}). "
-                    f"Target Level 3 (Defined) by implementing documented policies, "
-                    f"SIEM integration, and behavioral indicator library."
-                ),
-            })
+            recommendations.append(
+                {
+                    "area": "Program Maturity",
+                    "priority": "HIGH",
+                    "recommendation": (
+                        f"Current maturity at Level {level_num} "
+                        f"({maturity.get('maturity_level_name', 'Unknown')}). "
+                        f"Target Level 3 (Defined) by implementing documented policies, "
+                        f"SIEM integration, and behavioral indicator library."
+                    ),
+                }
+            )
 
         # KRI recommendations
         kri_data = kris.get("kris", {})
         mttd = kri_data.get("mttd", {})
         if mttd.get("status") == "ABOVE_TARGET":
-            recommendations.append({
-                "area": "Detection Speed",
-                "priority": "HIGH",
-                "recommendation": (
-                    f"MTTD ({mttd.get('current_7d', 0):.0f}s) exceeds target "
-                    f"({mttd.get('target', 3600)}s). Improve automated detection "
-                    f"rules and reduce manual triage bottlenecks."
-                ),
-            })
+            recommendations.append(
+                {
+                    "area": "Detection Speed",
+                    "priority": "HIGH",
+                    "recommendation": (
+                        f"MTTD ({mttd.get('current_7d', 0):.0f}s) exceeds target "
+                        f"({mttd.get('target', 3600)}s). Improve automated detection "
+                        f"rules and reduce manual triage bottlenecks."
+                    ),
+                }
+            )
 
         fp_rate = kri_data.get("false_positive_rate", {})
         if fp_rate.get("status") == "ABOVE_TARGET":
-            recommendations.append({
-                "area": "Alert Quality",
-                "priority": "MEDIUM",
-                "recommendation": (
-                    f"False positive rate ({fp_rate.get('current_7d', 0):.1f}%) "
-                    f"exceeds target ({fp_rate.get('target', 5)}%). "
-                    f"Tune detection thresholds and correlation rules."
-                ),
-            })
+            recommendations.append(
+                {
+                    "area": "Alert Quality",
+                    "priority": "MEDIUM",
+                    "recommendation": (
+                        f"False positive rate ({fp_rate.get('current_7d', 0):.1f}%) "
+                        f"exceeds target ({fp_rate.get('target', 5)}%). "
+                        f"Tune detection thresholds and correlation rules."
+                    ),
+                }
+            )
 
         # Compliance recommendations
         for fid, fdata in compliance.get("families", {}).items():
             if fdata.get("compliance_level") in (
-                "NON_COMPLIANT", "MINIMALLY_COMPLIANT"
+                "NON_COMPLIANT",
+                "MINIMALLY_COMPLIANT",
             ):
-                recommendations.append({
-                    "area": f"Compliance: {fdata['family_name']}",
-                    "priority": "HIGH",
-                    "recommendation": (
-                        f"{fdata['family_name']} ({fid}) compliance at "
-                        f"{fdata['score_percentage']}% ({fdata['compliance_level']}). "
-                        f"Prioritize implementation of unmet controls."
-                    ),
-                })
+                recommendations.append(
+                    {
+                        "area": f"Compliance: {fdata['family_name']}",
+                        "priority": "HIGH",
+                        "recommendation": (
+                            f"{fdata['family_name']} ({fid}) compliance at "
+                            f"{fdata['score_percentage']}% ({fdata['compliance_level']}). "
+                            f"Prioritize implementation of unmet controls."
+                        ),
+                    }
+                )
 
         # Drift recommendations
         if drift.get("overall_status") == "DRIFT_DETECTED":
-            recommendations.append({
-                "area": "Model Health",
-                "priority": "MEDIUM",
-                "recommendation": (
-                    f"Model drift detected in {drift.get('drift_detected_count', 0)} "
-                    f"metric(s). Investigate root cause and consider model retraining."
-                ),
-            })
+            recommendations.append(
+                {
+                    "area": "Model Health",
+                    "priority": "MEDIUM",
+                    "recommendation": (
+                        f"Model drift detected in {drift.get('drift_detected_count', 0)} "
+                        f"metric(s). Investigate root cause and consider model retraining."
+                    ),
+                }
+            )
 
         if not recommendations:
-            recommendations.append({
-                "area": "General",
-                "priority": "LOW",
-                "recommendation": "All metrics within targets. Continue monitoring.",
-            })
+            recommendations.append(
+                {
+                    "area": "General",
+                    "priority": "LOW",
+                    "recommendation": "All metrics within targets. Continue monitoring.",
+                }
+            )
 
         return recommendations
 

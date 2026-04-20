@@ -1323,7 +1323,14 @@ class AgentIdentityVerifier:
                     return 0.7  # valid expiry
             return 0.5  # no expiry claim, neutral
 
-        except (ValueError, TypeError, KeyError, UnicodeDecodeError, binascii.Error, json.JSONDecodeError):
+        except (
+            ValueError,
+            TypeError,
+            KeyError,
+            UnicodeDecodeError,
+            binascii.Error,
+            json.JSONDecodeError,
+        ):
             warnings.append("token_parse_error")
             return 0.1
 
@@ -1608,7 +1615,12 @@ class AgentBehavioralFingerprint:
                             risk_score = float(
                                 max(0.0, min(1.0, (0.5 - anomaly_score) * 2))
                             )
-                        except (ValueError, AttributeError, RuntimeError, NotFittedError):
+                        except (
+                            ValueError,
+                            AttributeError,
+                            RuntimeError,
+                            NotFittedError,
+                        ):
                             # Fallback: heuristic scoring
                             risk_score = 0.3 + 0.15 * len(detail_flags)
                     else:
@@ -4383,7 +4395,9 @@ except ImportError:
 # Initialize compliance singletons (if available)
 _insider_threat_assessor = InsiderThreatAssessor() if COMPLIANCE_AVAILABLE else None
 _siem_integration = SIEMIntegration() if COMPLIANCE_AVAILABLE else None
-_cleared_personnel_analyzer = ClearedPersonnelAnalyzer() if COMPLIANCE_AVAILABLE else None
+_cleared_personnel_analyzer = (
+    ClearedPersonnelAnalyzer() if COMPLIANCE_AVAILABLE else None
+)
 _compliance_dashboard = ComplianceDashboard() if COMPLIANCE_AVAILABLE else None
 
 
@@ -4421,7 +4435,8 @@ def assess_insider_threat_impl(
                 clearance_level=user_profile.get("clearance_level"),
                 authorized_resources=user_profile.get("authorized_resources"),
                 work_hours=tuple(user_profile["work_hours"])
-                if "work_hours" in user_profile else None,
+                if "work_hours" in user_profile
+                else None,
             )
 
         # Run assessment
@@ -4640,9 +4655,7 @@ def evaluate_cleared_personnel_impl(
         return result
 
     except Exception as e:
-        logger.error(
-            "Cleared personnel evaluation failed for %s: %s", person_id, e
-        )
+        logger.error("Cleared personnel evaluation failed for %s: %s", person_id, e)
         return {
             "error": f"Evaluation failed: {str(e)}",
             "person_id": person_id,
@@ -4749,13 +4762,17 @@ def get_compliance_dashboard_impl(
         }
 
         if include_maturity:
-            dashboard["program_maturity"] = _compliance_dashboard.calculate_maturity_score()
+            dashboard["program_maturity"] = (
+                _compliance_dashboard.calculate_maturity_score()
+            )
 
         if include_kris:
             dashboard["key_risk_indicators"] = _compliance_dashboard.calculate_kris()
 
         if include_compliance_posture:
-            dashboard["compliance_posture"] = _compliance_dashboard.calculate_compliance_posture()
+            dashboard["compliance_posture"] = (
+                _compliance_dashboard.calculate_compliance_posture()
+            )
 
         if include_model_drift:
             dashboard["model_drift"] = _compliance_dashboard.detect_model_drift()
@@ -4763,20 +4780,26 @@ def get_compliance_dashboard_impl(
         # Include component stats if available
         component_stats = {}
         if _insider_threat_assessor:
-            component_stats["insider_threat"] = _insider_threat_assessor.get_assessment_stats()
+            component_stats["insider_threat"] = (
+                _insider_threat_assessor.get_assessment_stats()
+            )
         if _siem_integration:
             component_stats["siem"] = _siem_integration.get_stats()
         if _cleared_personnel_analyzer:
-            component_stats["cleared_personnel"] = _cleared_personnel_analyzer.get_stats()
+            component_stats["cleared_personnel"] = (
+                _cleared_personnel_analyzer.get_stats()
+            )
         component_stats["dashboard"] = _compliance_dashboard.get_stats()
         dashboard["component_stats"] = component_stats
 
         # Generate executive summary if all components requested
         if all([include_maturity, include_kris, include_compliance_posture]):
-            dashboard["executive_summary"] = _compliance_dashboard.generate_executive_summary(
-                insider_threat_stats=component_stats.get("insider_threat"),
-                siem_stats=component_stats.get("siem"),
-                personnel_stats=component_stats.get("cleared_personnel"),
+            dashboard["executive_summary"] = (
+                _compliance_dashboard.generate_executive_summary(
+                    insider_threat_stats=component_stats.get("insider_threat"),
+                    siem_stats=component_stats.get("siem"),
+                    personnel_stats=component_stats.get("cleared_personnel"),
+                )
             )
 
         return dashboard
@@ -4823,8 +4846,12 @@ def get_compliance_dashboard(
         executive_summary (when all sections included)
     """
     return get_compliance_dashboard_impl(
-        include_maturity, include_kris, include_compliance_posture,
-        include_model_drift, export_format, include_history,
+        include_maturity,
+        include_kris,
+        include_compliance_posture,
+        include_model_drift,
+        export_format,
+        include_history,
     )
 
 
@@ -4857,10 +4884,12 @@ def generate_threat_referral_impl(
         elif referral_type == "personnel_security":
             if _cleared_personnel_analyzer is None:
                 return _compliance_not_available()
-            result = _cleared_personnel_analyzer.generate_personnel_security_action_report(
-                user_id,
-                action_type="REVIEW",
-                narrative=additional_context,
+            result = (
+                _cleared_personnel_analyzer.generate_personnel_security_action_report(
+                    user_id,
+                    action_type="REVIEW",
+                    narrative=additional_context,
+                )
             )
             result["compliance_module"] = "cleared_personnel"
             result["available"] = True
