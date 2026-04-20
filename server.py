@@ -10,6 +10,7 @@ import os
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 import hashlib
+import binascii
 import json
 import logging
 import math
@@ -28,6 +29,7 @@ from fastmcp import FastMCP
 from sklearn.ensemble import IsolationForest
 from sklearn.svm import OneClassSVM
 from sklearn.neighbors import LocalOutlierFactor
+from sklearn.exceptions import NotFittedError
 from collections import deque
 
 # Graph analysis
@@ -1321,7 +1323,7 @@ class AgentIdentityVerifier:
                     return 0.7  # valid expiry
             return 0.5  # no expiry claim, neutral
 
-        except Exception:
+        except (ValueError, TypeError, KeyError, UnicodeDecodeError, binascii.Error, json.JSONDecodeError):
             warnings.append("token_parse_error")
             return 0.1
 
@@ -1606,7 +1608,7 @@ class AgentBehavioralFingerprint:
                             risk_score = float(
                                 max(0.0, min(1.0, (0.5 - anomaly_score) * 2))
                             )
-                        except Exception:
+                        except (ValueError, AttributeError, RuntimeError, NotFittedError):
                             # Fallback: heuristic scoring
                             risk_score = 0.3 + 0.15 * len(detail_flags)
                     else:

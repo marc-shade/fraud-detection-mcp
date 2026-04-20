@@ -130,9 +130,18 @@ The server uses try/except imports so it starts even when optional dependencies 
 | `integration.py` | `SYNTHETIC_DATA_AVAILABLE` | `generate_synthetic_dataset`, `run_benchmark` |
 | `security_utils.py` | `SECURITY_UTILS_AVAILABLE` | Input sanitization, rate limiting |
 
+### Compliance Modules
+
+The 5 defense compliance tools are backed by modules under `compliance/`:
+- `insider_threat.py` -- 28 NITTF behavioral indicators (`assess_insider_threat`)
+- `siem_integration.py` -- CEF/LEEF/Syslog export with MITRE ATT&CK enrichment (`generate_siem_events`)
+- `cleared_personnel.py` -- SEAD 4/6 cleared personnel analytics (`evaluate_cleared_personnel`)
+- `dashboard_metrics.py` -- NITTF maturity, KRIs, executive summary (`get_compliance_dashboard`)
+- Referral generation (`generate_threat_referral`) is composed from the above
+
 ### Testing Architecture
 
-830+ tests across 26 test files. Tests import from `tests/conftest.py` for fixtures and sample data.
+830+ tests across 28 test files (including `test_compliance_modules.py`, `test_coverage_gaps.py`). Tests import from `tests/conftest.py` for fixtures and sample data.
 
 Available pytest markers: `unit`, `integration`, `slow`, `network`, `behavioral`, `transaction`, `explainability`, `synthetic`, `benchmark`, `error`, `security`, `velocity`.
 
@@ -187,6 +196,10 @@ Test files map to functionality areas:
 ### Server Entry
 
 - **`server.py`** -- The MCP server. Contains all core analyzers, agent protection classes, 24 MCP tools (19 core + 5 compliance), and production logic.
+
+### Supporting Docs
+
+See also at repo root: `README.md`, `QUICK_START.md`, `TESTING.md`, `CONTRIBUTING.md`, `docs/API.md`, `docs/plans/`, `docs/roadmap/`. Runtime/state directories: `models/saved/` (persisted models), `data/agent_registry.json` (agent registry), `test_data/` (fixtures), `examples/` (usage samples), `logs/`, `cache/`.
 
 ## Key Patterns
 

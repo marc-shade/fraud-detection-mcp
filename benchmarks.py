@@ -140,7 +140,8 @@ class PerformanceBenchmark:
                 try:
                     trans = TransactionData(**row.to_dict())
                     transactions.append(trans)
-                except Exception:
+                except (ValueError, TypeError) as e:
+                    logger.debug(f"Skipping invalid row: {e}")
                     continue
 
             # Engineer features
