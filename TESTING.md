@@ -1,91 +1,79 @@
 # Testing Guide
 
-## Quick Test (No Dependencies)
+## Quick Smoke Test
 
 ```bash
-# Test basic imports and structure
-python -c "from config import get_config; print('✓ Config OK')"
-python -c "from models_validation import TransactionData; print('✓ Validation OK')"
+python -c "from config import get_config; print('config OK')"
+python -c "from models_validation import TransactionData; print('validation OK')"
 ```
 
-## Full Testing (Requires Dependencies)
-
-### Install Dependencies
+## Install Dependencies
 
 ```bash
-# Install all dependencies
-pip install -r requirements.txt
-
-# This includes:
-# - scikit-learn, xgboost (ML core)
-# - torch, torch-geometric (deep learning)
-# - shap, lime (explainability)
-# - mlflow, optuna (MLOps)
-# - fastapi, pydantic (API)
-# - redis, prometheus-client (infrastructure)
+pip install -r requirements.txt        # core
+pip install -r requirements-dev.txt    # dev / test tooling
+pip install -r requirements-optional.txt  # SHAP, PyTorch, MLflow, etc.
 ```
 
-### Run Full Test Suite
+## Run the Full Test Suite
 
 ```bash
-# Run comprehensive system test
-python test_system.py
+# All tests with coverage (CI requires 60% minimum).
+python run_tests.py
 
-# Run specific module tests
-python test_new_modules.py
+# Direct pytest invocation with verbose output.
+python -m pytest tests/ -v --tb=short --cov=server --cov-report=term-missing
 
-# Run security tests
-pytest tests/test_security.py -v
+# A single file.
+python -m pytest tests/test_transaction_analysis.py -v
 ```
 
-## CI/CD Testing
+## Run by Marker
 
-The system includes multiple test levels:
-
-1. **Import Test** - Verify all modules can be imported
-2. **Unit Tests** - Test individual components
-3. **Integration Tests** - Test component interactions
-4. **Performance Tests** - Run benchmarks
-
-## Known Test Dependencies
-
-- `xgboost` - Required for training pipeline and benchmarks
-- `mlflow` - Optional, system works without it
-- `torch` - Optional, falls back to scikit-learn
-- `torch_geometric` - Optional, GNN uses fallback
-- `shap` - Optional, explainability uses feature importance fallback
-- `redis` - Optional, rate limiting disabled if unavailable
-
-## Development Testing
-
-For development, you can test without full dependencies:
+Available markers (see `pytest.ini` for the authoritative list):
+`unit`, `integration`, `slow`, `network`, `behavioral`, `transaction`,
+`explainability`, `synthetic`, `benchmark`, `error`, `security`, `velocity`.
 
 ```bash
-# Test configuration
-python -c "from config import get_config; print(get_config().ENVIRONMENT)"
-
-# Test validation
-python -c "from models_validation import TransactionData; from datetime import datetime; t = TransactionData(transaction_id='t1', user_id='u1', amount=100, merchant='M', location='L', timestamp=datetime.now(), payment_method='credit_card'); print('OK')"
-
-# Test feature engineering
-python -c "from feature_engineering import FeatureEngineer; print('OK')"
+python -m pytest -m unit
+python -m pytest -m "integration and not slow"
+python -m pytest -m behavioral
 ```
 
-## Production Testing
+## Benchmarks
 
-Before deploying to production:
+```bash
+python benchmarks.py
+```
 
-1. Install all dependencies: `pip install -r requirements.txt`
-2. Run full test suite: `python test_system.py`
-3. Run benchmarks: `python benchmarks.py`
-4. Check security: `pytest tests/test_security.py`
-5. Verify models trained: Check `models/` directory
-6. Test API endpoints: Start server and test with curl
+Reports throughput, latency percentiles, and compares against the claimed
+detection rate / false-positive rate / latency / throughput targets.
 
-## Troubleshooting
+## Optional Dependencies
 
-If tests fail due to missing dependencies:
-- Check `requirements.txt` is complete
-- Verify Python version >= 3.9
-- Install system packages (Redis, PostgreSQL) if needed
-- Check GPU availability for PyTorch tests
+The server uses graceful-degradation imports. These are optional:
+
+- `shap` — SHAP explanations; falls back to feature importance
+- `torch` — autoencoder ensemble member; falls back to Isolation Forest only
+- `torch_geometric` — GNN fraud detector; fallback available
+- `mlflow` — training pipeline tracking
+- `redis` — distributed rate limiting; in-memory fallback used if absent
+
+## Linting and Type Checking
+
+```bash
+ruff check . --output-format=github
+ruff format --check .
+mypy server.py --ignore-missing-imports
+bandit -r . -x ./tests,./.venv -ll
+```
+
+## Pre-deployment Checklist
+
+1. Install all dependencies (`requirements*.txt`).
+2. `python run_tests.py` passes with coverage >= 60%.
+3. `python benchmarks.py` meets published targets.
+4. `ruff check` and `ruff format --check` clean.
+5. `bandit` shows no high-severity findings.
+6. Trained models present in `models/saved/` (or accept the synthetic-data
+   cold start at import time).

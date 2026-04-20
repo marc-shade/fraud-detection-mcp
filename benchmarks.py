@@ -581,25 +581,25 @@ class PerformanceBenchmark:
             print(
                 f"  Detection Rate: {claims['detection_rate']:.1%} claimed, "
                 f"{actual_recall:.1%} actual - "
-                f"{'✓ PASS' if actual_recall >= claims['detection_rate'] else '✗ FAIL'}"
+                f"{'[PASS]' if actual_recall >= claims['detection_rate'] else '[FAIL]'}"
             )
 
             print(
                 f"  False Positive Rate: <{claims['false_positive_rate']:.1%} claimed, "
                 f"{actual_fpr:.1%} actual - "
-                f"{'✓ PASS' if actual_fpr <= claims['false_positive_rate'] else '✗ FAIL'}"
+                f"{'[PASS]' if actual_fpr <= claims['false_positive_rate'] else '[FAIL]'}"
             )
 
             print(
                 f"  Latency: <{claims['latency_ms']}ms claimed, "
                 f"{actual_latency:.2f}ms actual - "
-                f"{'✓ PASS' if actual_latency < claims['latency_ms'] else '✗ FAIL'}"
+                f"{'[PASS]' if actual_latency < claims['latency_ms'] else '[FAIL]'}"
             )
 
             print(
                 f"  Throughput: >{claims['throughput_tps']} TPS claimed, "
                 f"{actual_throughput:.0f} TPS actual - "
-                f"{'✓ PASS' if actual_throughput >= claims['throughput_tps'] else '✗ FAIL'}"
+                f"{'[PASS]' if actual_throughput >= claims['throughput_tps'] else '[FAIL]'}"
             )
 
         print("=" * 60)

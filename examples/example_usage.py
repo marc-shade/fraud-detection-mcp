@@ -158,7 +158,7 @@ async def example_basic_transaction_analysis():
 
 async def example_behavioral_biometrics_analysis():
     """Example 2: Behavioral biometrics fraud detection"""
-    print("🧠 Example 2: Behavioral Biometrics Analysis")
+    print("Example 2: Behavioral Biometrics Analysis")
     print("=" * 50)
 
     client = MockMCPClient()
@@ -190,7 +190,7 @@ async def example_behavioral_biometrics_analysis():
         "detect_behavioral_anomaly", {"behavioral_data": behavioral_data}
     )
 
-    print("🔍 Behavioral Analysis Result:")
+    print("Behavioral Analysis Result:")
     print(f"   Anomaly Score: {result.get('overall_anomaly_score', 0):.2f}")
     print(f"   Confidence: {result.get('confidence', 0):.2f}")
     print(f"   Detected Anomalies: {', '.join(result.get('detected_anomalies', []))}")
@@ -302,10 +302,10 @@ async def example_real_time_monitoring():
         },
     ]
 
-    print("🔄 Processing transaction stream...")
+    print("Processing transaction stream...")
 
     for i, txn in enumerate(transactions):
-        print(f"\n📦 Transaction {i + 1}/{len(transactions)}: {txn['id']}")
+        print(f"\nTransaction {i + 1}/{len(transactions)}: {txn['id']}")
 
         transaction_data = {
             "transaction_id": txn["id"],
@@ -375,7 +375,7 @@ async def example_fraud_investigation():
         },
     }
 
-    print("🔍 Step 1: Initial Transaction Analysis")
+    print("Step 1: Initial Transaction Analysis")
     basic_result = await client.call_tool(
         "analyze_transaction",
         {
@@ -406,7 +406,7 @@ async def example_fraud_investigation():
     for action in comprehensive_result.get("recommended_actions", []):
         print(f"     • {action.replace('_', ' ').title()}")
 
-    print("\n📝 Investigation Summary:")
+    print("\nInvestigation Summary:")
     print("   This transaction exhibits multiple high-risk indicators:")
     print("   • Unusual amount for time of day (3:30 AM)")
     print("   • Atypical keystroke patterns suggesting different user")
@@ -419,7 +419,7 @@ async def example_fraud_investigation():
 
 async def main():
     """Run all fraud detection examples"""
-    print(" Advanced Fraud Detection MCP - Example Usage")
+    print("Advanced Fraud Detection MCP - Example Usage")
     print("=" * 60)
     print()
 
@@ -430,7 +430,7 @@ async def main():
     await example_real_time_monitoring()
     await example_fraud_investigation()
 
-    print("🎉 All examples completed successfully!")
+    print("All examples completed successfully.")
     print()
     print("Key Takeaways:")
     print("   • Multi-modal analysis provides better fraud detection")
@@ -439,7 +439,7 @@ async def main():
     print("   • Explainable AI helps with fraud investigation")
     print("   • Network analysis can detect fraud rings and patterns")
     print()
-    print("🔗 Next Steps:")
+    print("Next Steps:")
     print("   • Integrate with your existing fraud detection pipeline")
     print("   • Train models on your specific transaction data")
     print("   • Customize risk thresholds for your business needs")
