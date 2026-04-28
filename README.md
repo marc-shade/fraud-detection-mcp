@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/marc-shade-fraud-detection-mcp-badge.png)](https://mseep.ai/app/marc-shade-fraud-detection-mcp)
+
 # Advanced Fraud Detection MCP
 
 [![MCP](https://img.shields.io/badge/MCP-Compatible-blue)](https://modelcontextprotocol.io)
