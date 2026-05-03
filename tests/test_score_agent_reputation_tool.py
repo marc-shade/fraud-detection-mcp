@@ -66,10 +66,10 @@ class TestMCPToolRegistration:
         tool_names = [t.name for t in asyncio.run(mcp.list_tools())]
         assert "score_agent_reputation" in tool_names
 
-    def test_total_mcp_tools_count_is_24(self):
-        """Server should have 24 MCP tools registered (19 core + 5 compliance)."""
+    def test_total_mcp_tools_count_is_27(self):
+        """Server should have 27 MCP tools (19 core + 5 compliance + 3 agent commerce Tier 0)."""
         import asyncio
         from server import mcp
 
         tool_count = len(asyncio.run(mcp.list_tools()))
-        assert tool_count == 24
+        assert tool_count == 27

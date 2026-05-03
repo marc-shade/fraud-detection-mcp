@@ -97,6 +97,33 @@ except ImportError:
     InputSanitizer = None  # type: ignore[assignment,misc]
     InMemoryRateLimiter = None  # type: ignore[assignment,misc]
 
+# ACP signatures + agent security (Tier 0.2/0.3/0.4)
+try:
+    import acp_signatures as _acp_signatures_mod  # noqa: F401  (lazy used)
+
+    _ACP_SIGNATURES_AVAILABLE = True
+except ImportError:
+    _ACP_SIGNATURES_AVAILABLE = False
+
+try:
+    from agent_security import (
+        nonce_cache as _agent_nonce_cache,
+        idempotency_store as _agent_idempotency_store,
+        canonical_request_fingerprint as _agent_request_fingerprint,
+    )
+
+    _AGENT_SECURITY_AVAILABLE = True
+except ImportError:
+    _AGENT_SECURITY_AVAILABLE = False
+    _agent_nonce_cache = None  # type: ignore[assignment]
+    _agent_idempotency_store = None  # type: ignore[assignment]
+    _agent_request_fingerprint = None  # type: ignore[assignment]
+
+
+def _get_nonce_cache():
+    """Return the shared NonceCache singleton, or None when unavailable."""
+    return _agent_nonce_cache if _AGENT_SECURITY_AVAILABLE else None
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -1044,6 +1071,13 @@ class TrafficClassifier:
 
     Uses heuristic signals: explicit flags, user_agent patterns, agent
     identifiers, and absence/presence of behavioral data.
+
+    The classifier reports BOTH a *claimed* protocol (what the request
+    asserts via User-Agent / agent_identifier) and a *verified* protocol
+    (what survives cryptographic signature verification, when signature
+    headers are present). Downstream code MUST distinguish the two —
+    string-matching a User-Agent gives no security guarantee, while a
+    verified RFC 9421 signature does.
     """
 
     def classify(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
@@ -1051,10 +1085,18 @@ class TrafficClassifier:
 
         Args:
             metadata: Transaction metadata including optional fields:
-                is_agent, agent_identifier, user_agent, behavioral_data.
+                is_agent, agent_identifier, user_agent, behavioral_data,
+                signature_headers (dict with Signature-Input + Signature
+                + optional method/path/authority for RFC 9421 verification),
+                expected_issuer (e.g. "visa", "mastercard"),
+                expected_signature_tag (e.g. "agent-payer-auth").
 
         Returns:
-            Dict with source, confidence, agent_type, and signals.
+            Dict with source, confidence, agent_type (= claimed_protocol),
+            claimed_protocol, verified_protocol, verification_status
+            (one of: "verified" / "unverified" / "verification_failed"
+            / "no_signature_provided" / "verification_unavailable"),
+            verification_reason, verification_details, signals.
         """
         signals = []
         agent_score = 0.0  # positive = agent, negative = human
@@ -1115,10 +1157,83 @@ class TrafficClassifier:
             source = "unknown"
             confidence = raw_confidence  # low confidence in the unknown case
 
+        # --- Cryptographic verification (Tier 0.5) ---
+        # The above signals are *claims*. We attempt RFC 9421 verification
+        # of any provided signature headers and report the verified status
+        # separately. A claimed-but-unverified protocol is materially less
+        # trustworthy than a verified one; downstream risk scoring should
+        # reflect that gap.
+        claimed_protocol = agent_type
+        verified_protocol: Optional[str] = None
+        verification_status = "no_signature_provided"
+        verification_reason = ""
+        verification_details: Dict[str, Any] = {}
+
+        sig_headers = metadata.get("signature_headers")
+        if isinstance(sig_headers, dict) and (
+            "Signature-Input" in sig_headers or "signature-input" in {k.lower() for k in sig_headers}
+        ):
+            if not _ACP_SIGNATURES_AVAILABLE:
+                verification_status = "verification_unavailable"
+                verification_reason = "acp_signatures_module_unavailable"
+                signals.append("signature_unverifiable")
+            else:
+                from acp_signatures import (  # local import to keep top-of-module light
+                    verify_rfc9421_signature,
+                )
+
+                vresult = verify_rfc9421_signature(
+                    headers=sig_headers,
+                    method=metadata.get("http_method"),
+                    path=metadata.get("http_path"),
+                    authority=metadata.get("http_authority"),
+                    issuer=metadata.get("expected_issuer"),
+                    expected_tag=metadata.get("expected_signature_tag"),
+                    nonce_cache=_get_nonce_cache(),
+                )
+                verification_details = {
+                    k: vresult.get(k)
+                    for k in (
+                        "signature_input",
+                        "keyid",
+                        "issuer",
+                        "algorithm",
+                        "signature_age_seconds",
+                        "warnings",
+                    )
+                    if vresult.get(k) is not None
+                }
+                if vresult.get("verified"):
+                    verification_status = "verified"
+                    verification_reason = "ok"
+                    verified_protocol = vresult.get("issuer") or claimed_protocol
+                    signals.append("signature_verified")
+                    # Boost confidence on verified agent traffic
+                    if source == "agent":
+                        confidence = min(1.0, confidence + 0.15)
+                else:
+                    verification_status = "verification_failed"
+                    verification_reason = vresult.get("reason", "unknown")
+                    signals.append("signature_failed")
+                    # A failed signature on a claimed-agent request is
+                    # actively suspicious — drop confidence.
+                    if source == "agent":
+                        confidence = max(0.1, confidence - 0.25)
+        elif claimed_protocol:
+            # Has a claimed protocol but no signature provided
+            verification_status = "unverified"
+            verification_reason = "no_signature_headers_provided"
+            signals.append("signature_absent")
+
         return {
             "source": source,
             "confidence": float(confidence),
             "agent_type": agent_type,
+            "claimed_protocol": claimed_protocol,
+            "verified_protocol": verified_protocol,
+            "verification_status": verification_status,
+            "verification_reason": verification_reason,
+            "verification_details": verification_details,
             "signals": signals,
         }
 
@@ -1293,7 +1408,19 @@ class AgentIdentityVerifier:
         }
 
     def _validate_token(self, token: str, warnings: List[str]) -> float:
-        """Validate JWT token expiry. Returns trust signal."""
+        """Validate a JWT bearer token.
+
+        Three-stage validation:
+          1. Parse + base64-decode (cheap; always runs).
+          2. Expiry check via ``exp`` claim.
+          3. Cryptographic signature verification against the issuer's JWKS,
+             when ``acp_signatures`` is available AND the token's ``iss``
+             claim resolves to a known issuer.
+
+        Returns a trust signal in ``[0, 1]``. Stage 3 success contributes
+        more weight than stage 2; signature failures actively *lower* the
+        trust signal because a forged token is worse than a missing one.
+        """
         import base64 as _b64
         import time as _time
 
@@ -1305,7 +1432,6 @@ class AgentIdentityVerifier:
 
             # Decode payload (second part)
             payload_b64 = parts[1]
-            # Add padding if needed
             padding = 4 - len(payload_b64) % 4
             if padding != 4:
                 payload_b64 += "=" * padding
@@ -1313,15 +1439,70 @@ class AgentIdentityVerifier:
             payload_bytes = _b64.urlsafe_b64decode(payload_b64)
             payload = json.loads(payload_bytes)
 
-            # Check expiry
+            # --- Stage 2: expiry ---
             exp = payload.get("exp")
+            stage2_signal = 0.5  # default: no exp claim, neutral
             if exp and isinstance(exp, (int, float)):
                 if exp < _time.time():
                     warnings.append("token_expired")
                     return 0.1
-                else:
-                    return 0.7  # valid expiry
-            return 0.5  # no expiry claim, neutral
+                stage2_signal = 0.7  # has valid future exp (old behavior)
+
+            # --- Stage 3: cryptographic signature verification ---
+            # Only attempt when acp_signatures is available AND the token
+            # carries an ``iss`` (issuer) claim we can resolve via JWKS.
+            iss = payload.get("iss")
+            if not _ACP_SIGNATURES_AVAILABLE or not iss:
+                if not iss:
+                    warnings.append("token_no_issuer_claim")
+                # Fall back to expiry-only signal
+                return stage2_signal
+
+            from acp_signatures import jwks_resolver, JOSE_AVAILABLE
+
+            if not JOSE_AVAILABLE:
+                warnings.append("token_signature_unverifiable")
+                return stage2_signal
+
+            # Decode header to extract kid + alg
+            header_b64 = parts[0]
+            hpad = 4 - len(header_b64) % 4
+            if hpad != 4:
+                header_b64 += "=" * hpad
+            header = json.loads(_b64.urlsafe_b64decode(header_b64))
+            kid = header.get("kid")
+            alg = header.get("alg")
+            if not kid or not alg:
+                warnings.append("token_missing_kid_or_alg")
+                return stage2_signal
+
+            jwk_dict = jwks_resolver.get_key(iss, kid)
+            if not jwk_dict:
+                warnings.append("token_jwks_lookup_failed")
+                return stage2_signal
+
+            # Verify the signature using python-jose
+            try:
+                from jose import jwt as _jose_jwt
+                from jose.exceptions import JWTError, JWTClaimsError, JWKError
+
+                # We've already checked exp manually; tell jose to skip
+                # audience verification (most agent commerce tokens omit
+                # `aud`) and verify just signature + exp.
+                _jose_jwt.decode(
+                    token,
+                    jwk_dict,
+                    algorithms=[alg],
+                    options={
+                        "verify_aud": False,
+                        "verify_iss": False,  # we already extracted iss
+                    },
+                )
+            except (JWTError, JWTClaimsError, JWKError, ValueError, TypeError) as e:
+                warnings.append(f"token_signature_invalid:{type(e).__name__}")
+                return 0.1  # actively suspicious
+
+            return 0.85  # signature verified — stronger than expiry-only
 
         except (
             ValueError,
@@ -1343,17 +1524,102 @@ agent_verifier = AgentIdentityVerifier(agent_registry)
 # =============================================================================
 
 
+# Transaction-shape fields the behavioral fingerprint cares about. Subset
+# of TransactionData expected to be present for stolen-token replay defence.
+EXPECTED_TXN_FIELDS = (
+    "amount",
+    "merchant",
+    "location",
+    "payment_method",
+    "timestamp",
+    "currency",
+)
+
+
+def _stable_unit_hash(value: str) -> float:
+    """Deterministic [0, 1) hash for categorical features.
+
+    Stable across processes (uses md5 truncated to 32 bits) so two analyzers
+    feeding the same agent see the same merchant_hash. NOT a security hash —
+    Isolation Forest only needs the joint distribution to be learnable.
+    """
+    if not value:
+        return 0.0
+    digest = hashlib.md5(value.encode("utf-8"), usedforsecurity=False).digest()
+    # Top 32 bits as integer, normalise to [0, 1)
+    n = int.from_bytes(digest[:4], "big")
+    return (n & 0xFFFFFFFF) / float(1 << 32)
+
+
+def _extract_hour_of_day(timestamp: Any) -> int:
+    """Pull hour-of-day [0, 23] from a timestamp; 0 on parse failure."""
+    if timestamp is None:
+        return 0
+    if isinstance(timestamp, datetime):
+        return int(timestamp.hour)
+    if isinstance(timestamp, (int, float)):
+        try:
+            return int(datetime.fromtimestamp(float(timestamp)).hour)
+        except (ValueError, OSError, OverflowError):
+            return 0
+    if isinstance(timestamp, str):
+        # Try ISO-8601 first (RFC 3339 common in payments)
+        try:
+            return int(datetime.fromisoformat(timestamp.replace("Z", "+00:00")).hour)
+        except ValueError:
+            pass
+        try:
+            return int(datetime.fromtimestamp(float(timestamp)).hour)
+        except (ValueError, OSError, OverflowError):
+            return 0
+    return 0
+
+
+def _field_completeness(transaction: Dict[str, Any]) -> float:
+    """Fraction of EXPECTED_TXN_FIELDS that are present and non-empty."""
+    if not transaction:
+        return 0.0
+    present = 0
+    for f in EXPECTED_TXN_FIELDS:
+        v = transaction.get(f)
+        if v is None:
+            continue
+        if isinstance(v, str) and not v.strip():
+            continue
+        present += 1
+    return present / len(EXPECTED_TXN_FIELDS)
+
+
+def _txn_features_dict(transaction: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Snapshot only the fields needed for behavioral fingerprinting.
+
+    Avoids storing full transaction payloads (PII, large blobs) in the
+    per-agent history deque.
+    """
+    if not transaction:
+        return None
+    return {f: transaction.get(f) for f in EXPECTED_TXN_FIELDS}
+
+
 class AgentBehavioralFingerprint:
     """Behavioral fingerprinting for AI agent transactions.
 
-    Tracks per-agent behavioral baselines: API call timing patterns,
-    decision consistency, and request structure fingerprints.  Uses
-    Isolation Forest to detect deviations from established patterns.
+    Tracks per-agent behavioral baselines using a 12-dimension feature
+    vector (timing/decision/structure + transaction-shape) and per-agent
+    Isolation Forest models. See ``_extract_features`` for the feature
+    catalogue.
 
     Replaces BehavioralBiometrics for agent traffic -- agents have no
     keystroke/mouse signals but *do* exhibit measurable behavioral
-    consistency that changes when compromised or impersonated.
+    consistency that changes when compromised or impersonated. The
+    transaction-shape features (indices 6-11) are required for stolen-token
+    replay detection: a stolen token used at matching API timing but
+    against different merchants/amounts will diverge here.
     """
+
+    # Number of features in the vector. Bumping this invalidates per-agent
+    # models so they re-train against the new shape.
+    FEATURE_DIM = 12
 
     # Maximum observations to keep per agent (bounded memory)
     MAX_HISTORY = 1000
@@ -1377,6 +1643,7 @@ class AgentBehavioralFingerprint:
         api_timing_ms: float = 0.0,
         decision_pattern: Optional[str] = None,
         request_structure_hash: Optional[str] = None,
+        transaction: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Record a single behavioral observation for an agent.
 
@@ -1385,12 +1652,18 @@ class AgentBehavioralFingerprint:
             api_timing_ms: API response time in milliseconds.
             decision_pattern: Categorical decision (e.g. "approve", "reject").
             request_structure_hash: Hash of the request structure/shape.
+            transaction: Optional transaction dict; if present, payment-shape
+                features (amount, merchant, location, payment_method, hour,
+                field_completeness) are extracted into the per-agent baseline.
+                Required for stolen-token replay detection — without it, only
+                timing-based anomalies fire.
         """
         obs = {
             "api_timing_ms": float(api_timing_ms),
             "decision_pattern": decision_pattern or "",
             "request_structure_hash": request_structure_hash or "",
             "timestamp": datetime.now().isoformat(),
+            "transaction": _txn_features_dict(transaction) if transaction else None,
         }
         with self._lock:
             if agent_id not in self._history:
@@ -1438,16 +1711,32 @@ class AgentBehavioralFingerprint:
         decision_pattern: Optional[str],
         request_structure_hash: Optional[str],
         baseline: Optional[Dict[str, Any]],
+        transaction: Optional[Dict[str, Any]] = None,
     ) -> np.ndarray:
         """Extract a numeric feature vector for anomaly detection.
 
-        Features (6 dimensions):
-            0: api_timing_ms (raw)
-            1: timing z-score vs baseline (0 if no baseline)
-            2: log(1 + api_timing_ms)
-            3: decision_pattern_novel (1 if unseen, 0 otherwise)
-            4: request_structure_novel (1 if unseen, 0 otherwise)
-            5: timing_ratio (current / baseline_mean, 1.0 if no baseline)
+        Features (12 dimensions). Indices 0-5 are timing/decision/structure
+        features computable without transaction context. Indices 6-11 require
+        a transaction dict and are crucial for stolen-token replay detection
+        (a stolen agent token replayed at the same API timing distribution
+        but against a different merchant / amount / location distribution
+        will sail through if only timing features are used).
+
+        Index | Feature                        | Source
+        ----- | ------------------------------ | ------
+        0     | api_timing_ms (raw)            | timing
+        1     | timing z-score vs baseline     | timing + baseline
+        2     | log1p(api_timing_ms)           | timing
+        3     | decision_pattern_novel         | decision + baseline
+        4     | request_structure_novel        | structure + baseline
+        5     | timing_ratio                   | timing + baseline
+        6     | log_amount                     | transaction.amount
+        7     | payment_method_hash (0-1)      | transaction.payment_method
+        8     | merchant_hash (0-1)            | transaction.merchant
+        9     | location_hash (0-1)            | transaction.location
+        10    | hour_of_day (0-23)             | transaction.timestamp
+        11    | field_completeness (0-1)       | transaction (count present
+              |                                |   / EXPECTED_TXN_FIELDS)
         """
         timing = max(0.0, api_timing_ms)  # clamp negatives
 
@@ -1477,8 +1766,37 @@ class AgentBehavioralFingerprint:
         else:
             timing_ratio = 1.0
 
+        # Transaction-shape features (zero-filled when no transaction context)
+        log_amount = 0.0
+        payment_hash = 0.0
+        merchant_hash = 0.0
+        location_hash = 0.0
+        hour_of_day = 0.0
+        completeness = 0.0
+        if transaction:
+            amount = float(transaction.get("amount") or 0.0)
+            log_amount = float(np.log1p(max(0.0, amount)))
+            payment_hash = _stable_unit_hash(str(transaction.get("payment_method") or ""))
+            merchant_hash = _stable_unit_hash(str(transaction.get("merchant") or ""))
+            location_hash = _stable_unit_hash(str(transaction.get("location") or ""))
+            hour_of_day = float(_extract_hour_of_day(transaction.get("timestamp")))
+            completeness = _field_completeness(transaction)
+
         return np.array(
-            [[timing, z_score, log_timing, dp_novel, rs_novel, timing_ratio]]
+            [[
+                timing,
+                z_score,
+                log_timing,
+                dp_novel,
+                rs_novel,
+                timing_ratio,
+                log_amount,
+                payment_hash,
+                merchant_hash,
+                location_hash,
+                hour_of_day,
+                completeness,
+            ]]
         )
 
     # ------------------------------------------------------------------
@@ -1490,6 +1808,12 @@ class AgentBehavioralFingerprint:
 
         MUST be called while self._lock is already held.  Accepts a
         pre-computed *baseline* dict so it never re-acquires the lock.
+
+        Each observation contributes a 12-dim feature row built from its
+        timing/decision fields plus its (optional) transaction snapshot.
+        Observations recorded before the transaction snapshot was
+        introduced get zero-filled txn features, which keeps backward
+        compatibility while still letting fresh observations contribute.
         """
         history = self._history.get(agent_id)
         if not history or len(history) < self.MIN_OBSERVATIONS_FOR_MODEL:
@@ -1502,6 +1826,7 @@ class AgentBehavioralFingerprint:
                 obs["decision_pattern"],
                 obs["request_structure_hash"],
                 baseline,
+                transaction=obs.get("transaction"),
             )
             rows.append(feat[0])
 
@@ -1524,6 +1849,7 @@ class AgentBehavioralFingerprint:
         api_timing_ms: float = 0.0,
         decision_pattern: Optional[str] = None,
         request_structure_hash: Optional[str] = None,
+        transaction: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Analyze a single agent action against its behavioral baseline.
 
@@ -1532,6 +1858,13 @@ class AgentBehavioralFingerprint:
             api_timing_ms: API response time in milliseconds.
             decision_pattern: Categorical decision label.
             request_structure_hash: Hash of the request structure.
+            transaction: Optional transaction dict. When present, the
+                payment-shape features (amount, merchant, location,
+                payment_method, hour, completeness) are extracted and
+                contribute to the 12-dim feature vector. When omitted,
+                only the 6 timing/decision/structure features carry
+                signal — sufficient for timing anomalies but blind to
+                stolen-token replay.
 
         Returns:
             Dict with risk_score, confidence, is_anomaly, and details.
@@ -1599,12 +1932,24 @@ class AgentBehavioralFingerprint:
 
                 # --- ML scoring (Isolation Forest) ---
                 features = self._extract_features(
-                    api_timing_ms, decision_pattern, request_structure_hash, baseline
+                    api_timing_ms,
+                    decision_pattern,
+                    request_structure_hash,
+                    baseline,
+                    transaction=transaction,
                 )
 
-                # Train model if enough data and no model yet (or retrain periodically)
+                # Train model if enough data and no model yet (or retrain periodically).
+                # Also retrain when stored model has stale feature dimension
+                # (e.g. upgrade from 6 features to 12).
                 if n_obs >= self.MIN_OBSERVATIONS_FOR_MODEL:
-                    if agent_id not in self._models:
+                    existing_model = self._models.get(agent_id)
+                    needs_retrain = (
+                        existing_model is None
+                        or getattr(existing_model, "n_features_in_", None)
+                        != self.FEATURE_DIM
+                    )
+                    if needs_retrain:
                         self._train_model_unlocked(agent_id, baseline)
 
                     model = self._models.get(agent_id)
@@ -1633,16 +1978,13 @@ class AgentBehavioralFingerprint:
             risk_score = float(max(0.0, min(1.0, risk_score)))
             is_anomaly = risk_score >= 0.6
 
-            # Record this observation for future baseline
-            # (must be done outside the lock context above since record acquires lock)
-            pass  # will record after releasing
-
         # Record outside lock (record acquires its own lock)
         self.record(
             agent_id=agent_id,
             api_timing_ms=api_timing_ms,
             decision_pattern=decision_pattern,
             request_structure_hash=request_structure_hash,
+            transaction=transaction,
         )
 
         return {
@@ -2513,6 +2855,7 @@ def generate_risk_score_impl(
                 api_timing_ms=float(behavior.get("api_timing_ms", 0.0)),
                 decision_pattern=behavior.get("decision_pattern"),
                 request_structure_hash=behavior.get("request_structure_hash"),
+                transaction=transaction_data,
             )
             fp_score = fp_result.get("risk_score", 0.5)
             comprehensive_result["component_scores"]["behavioral_fingerprint"] = (
@@ -3011,6 +3354,7 @@ def analyze_agent_transaction_impl(
                 api_timing_ms=api_timing,
                 decision_pattern=decision_pattern,
                 request_structure_hash=request_hash,
+                transaction=transaction_data,
             )
             fingerprint_score = fp_result.get("risk_score", 0.5)
             fingerprint_confidence = fp_result.get("confidence", 0.0)
@@ -3217,6 +3561,120 @@ def score_agent_reputation_impl(
             "status": "error",
             "reputation_score": 0.0,
         }
+
+
+# ============================================================================
+# Agent Commerce — Tier 0 _impl functions
+# ============================================================================
+
+
+def verify_agent_signature_impl(
+    headers: Dict[str, str],
+    method: Optional[str] = None,
+    path: Optional[str] = None,
+    authority: Optional[str] = None,
+    issuer: Optional[str] = None,
+    expected_tag: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Verify an RFC 9421 HTTP Message Signature on an agent request.
+
+    Compatible with Visa Trusted Agent Protocol, Mastercard Web Bot Auth,
+    Stripe ACP signature header (when bilateral algorithm is RFC 9421-shaped),
+    and any future protocol building on draft-ietf-httpbis-message-signatures.
+
+    The shared NonceCache is consulted automatically — replay of a nonce
+    seen in the last 8 minutes will fail verification.
+    """
+    if not _ACP_SIGNATURES_AVAILABLE:
+        return {
+            "verified": False,
+            "reason": "acp_signatures_module_unavailable",
+        }
+    from acp_signatures import verify_rfc9421_signature
+
+    return verify_rfc9421_signature(
+        headers=headers,
+        method=method,
+        path=path,
+        authority=authority,
+        issuer=issuer,
+        expected_tag=expected_tag,
+        nonce_cache=_get_nonce_cache(),
+    )
+
+
+def check_idempotency_key_impl(
+    idempotency_key: str,
+    agent_id: str,
+    request_payload: Optional[Any] = None,
+    cache_result: Optional[Any] = None,
+) -> Dict[str, Any]:
+    """Stripe-ACP-compatible Idempotency-Key check.
+
+    If ``cache_result`` is provided, the result is cached against
+    ``(idempotency_key, agent_id, fingerprint(request_payload))``.
+
+    Otherwise the store is *queried*. The response ``status`` is one of:
+      - ``miss``     — no prior result; caller should proceed.
+      - ``hit``      — same key + same body; cached ``result`` returned.
+      - ``conflict`` — same key + different body; caller should HTTP 409.
+    """
+    if not _AGENT_SECURITY_AVAILABLE or _agent_idempotency_store is None:
+        return {"status": "unavailable", "reason": "agent_security_module_unavailable"}
+
+    fp = _agent_request_fingerprint(request_payload) if request_payload is not None else None  # type: ignore[misc]
+
+    if cache_result is not None:
+        _agent_idempotency_store.store(
+            idempotency_key=idempotency_key,
+            agent_id=agent_id,
+            result=cache_result,
+            request_fingerprint=fp,
+        )
+        return {
+            "status": "stored",
+            "idempotency_key": idempotency_key,
+            "agent_id": agent_id,
+            "request_fingerprint": fp,
+        }
+
+    return _agent_idempotency_store.lookup(
+        idempotency_key=idempotency_key,
+        agent_id=agent_id,
+        request_fingerprint=fp,
+    )
+
+
+def validate_nonce_impl(
+    keyid: str,
+    nonce: str,
+    record_seen: bool = True,
+) -> Dict[str, Any]:
+    """Visa-TAP-compatible nonce replay check.
+
+    Returns ``{seen: bool, recorded: bool, ttl_seconds: float}``.
+    By default the nonce is *recorded* on first sight so a replay in the
+    same 8-minute window will return ``seen: True``. Pass
+    ``record_seen=False`` to query without mutating state.
+    """
+    if not _AGENT_SECURITY_AVAILABLE or _agent_nonce_cache is None:
+        return {"seen": False, "recorded": False, "reason": "module_unavailable"}
+
+    seen = _agent_nonce_cache.seen(keyid, nonce)
+    recorded = False
+    if not seen and record_seen:
+        _agent_nonce_cache.add(keyid, nonce)
+        recorded = True
+
+    stats = _agent_nonce_cache.stats()
+    return {
+        "seen": seen,
+        "recorded": recorded,
+        "keyid": keyid,
+        "nonce": nonce,
+        "ttl_seconds": stats["ttl_seconds"],
+        "cache_size": stats["size"],
+    }
 
 
 def analyze_batch_impl(
@@ -4206,6 +4664,109 @@ def score_agent_reputation(
         behavioral_consistency, and per-component breakdown
     """
     return score_agent_reputation_impl(agent_id, time_window_days)
+
+
+@_monitored("/verify_agent_signature", "TOOL")
+@mcp.tool()
+def verify_agent_signature(
+    headers: Dict[str, str],
+    method: Optional[str] = None,
+    path: Optional[str] = None,
+    authority: Optional[str] = None,
+    issuer: Optional[str] = None,
+    expected_tag: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Verify an RFC 9421 HTTP Message Signature on an agent commerce request.
+
+    Compatible with Visa Trusted Agent Protocol, Mastercard Web Bot Auth,
+    and Stripe ACP Signature header (when bilateral algorithm is RFC 9421).
+    Performs signature freshness check (8-minute window per Visa TAP),
+    nonce replay protection (via shared NonceCache), tag binding (Visa TAP
+    'agent-browser-auth' / 'agent-payer-auth'), JWKS-resolved key lookup,
+    and cryptographic verification (Ed25519 / PS256 / ES256 / RS256).
+
+    Args:
+        headers: Dict of HTTP headers including 'Signature-Input' and
+            'Signature' per RFC 9421 §2.5.
+        method: HTTP request method (for @method derived component).
+        path: HTTP request path (for @path derived component).
+        authority: HTTP authority (for @authority derived component).
+        issuer: Optional issuer name to resolve JWKS (e.g. 'visa',
+            'mastercard'). If None, the keyid prefix is used.
+        expected_tag: Optional Signature-Input tag that must match
+            (Visa TAP merchant-binding defense).
+
+    Returns:
+        Dict with verified (bool), reason (str), keyid, issuer,
+        algorithm, signature_age_seconds, signature_input parsed details.
+    """
+    return verify_agent_signature_impl(
+        headers, method, path, authority, issuer, expected_tag
+    )
+
+
+@_monitored("/check_idempotency_key", "TOOL")
+@mcp.tool()
+def check_idempotency_key(
+    idempotency_key: str,
+    agent_id: str,
+    request_payload: Optional[Any] = None,
+    cache_result: Optional[Any] = None,
+) -> Dict[str, Any]:
+    """
+    Stripe-ACP-compatible Idempotency-Key check for agent transactions.
+
+    Stripe ACP requires merchants to honour the Idempotency-Key header so
+    a retry with the same key + same body returns the original response.
+    This tool also flags HTTP 409 conflicts when the same key is replayed
+    with a different body — defending against double-spend on transient
+    network failures.
+
+    Args:
+        idempotency_key: ACP Idempotency-Key header value.
+        agent_id: Agent identifier (key + agent are scoped together).
+        request_payload: Original request body (used for fingerprint match).
+        cache_result: If provided, store this result against the key.
+            Otherwise the store is queried.
+
+    Returns:
+        Dict with status: 'miss' (proceed) | 'hit' (return cached
+        result) | 'conflict' (HTTP 409, fingerprint mismatch) |
+        'stored' (after caching).
+    """
+    return check_idempotency_key_impl(
+        idempotency_key, agent_id, request_payload, cache_result
+    )
+
+
+@_monitored("/validate_nonce", "TOOL")
+@mcp.tool()
+def validate_nonce(
+    keyid: str,
+    nonce: str,
+    record_seen: bool = True,
+) -> Dict[str, Any]:
+    """
+    Visa-TAP-compatible nonce replay check (8-minute window).
+
+    Maintains an 8-minute rolling cache of (keyid, nonce) tuples. Replays
+    within the window return seen=True so the caller can reject the
+    duplicate signature. By default the nonce is recorded on first sight;
+    pass record_seen=False to query without mutating state.
+
+    Args:
+        keyid: The keyid that signed the request (typically
+            'issuer:agent-id' format).
+        nonce: The nonce value from RFC 9421 Signature-Input.
+        record_seen: If True (default), an unseen nonce is added to the
+            cache; if False, only queried.
+
+    Returns:
+        Dict with seen (bool), recorded (bool), keyid, nonce,
+        ttl_seconds, cache_size.
+    """
+    return validate_nonce_impl(keyid, nonce, record_seen)
 
 
 @_monitored("/analyze_batch", "TOOL")

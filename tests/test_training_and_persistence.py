@@ -457,12 +457,12 @@ class TestMCPToolRegistration:
         assert "get_model_status" in tool_names
 
     def test_total_mcp_tools_count(self):
-        """Server should have 24 MCP tools registered (19 core + 5 compliance)."""
+        """Server should have 27 MCP tools (19 core + 5 compliance + 3 agent commerce Tier 0)."""
         import asyncio
         from server import mcp
 
         tool_count = len(asyncio.run(mcp.list_tools()))
-        assert tool_count == 24
+        assert tool_count == 27
 
 
 # =============================================================================
