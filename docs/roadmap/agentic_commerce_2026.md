@@ -56,16 +56,23 @@
 
 ## 5. Tiered Roadmap
 
-### Tier 0 — Must-fix to claim "ACP-aware" (this initiative)
+### Tier 0 — Fully real (no theater, no stubs)
 
 | # | Feature | Status |
 |---|---|---|
-| 0.1 | Behavioral fingerprint 6→12 features | ✅ Implemented |
+| 0.1 | Behavioral fingerprint 6→**13 features** (cyclical hour sin/cos) | ✅ Implemented + wired in both call sites |
 | 0.2 | RFC 9421 HTTP Message Signature verifier (`acp_signatures.py`) + JWKS resolver | ✅ Implemented |
 | 0.3 | NonceCache (8-min TTL, Visa TAP-compatible) | ✅ Implemented |
 | 0.4 | IdempotencyStore (ACP-required) | ✅ Implemented |
-| 0.5 | TrafficClassifier `claimed_protocol` vs `verified_protocol` | ✅ Implemented |
+| 0.5 | TrafficClassifier `claimed_protocol` vs `verified_protocol` | ✅ Implemented + **wired through `analyze_agent_transaction_impl`** (F1) |
 | 0.6 | AgentIdentityVerifier — real JWT signature verification (not just `exp`) | ✅ Implemented |
+| F1  | `signature_headers` flows from `transaction_data` through pipeline → anomalies + identity_trust adjustment + verified_protocol in result | ✅ Implemented |
+| F2  | Cyclical hour-of-day encoding (sin/cos) — 23:00↔00:00 close in feature space | ✅ Implemented |
+| F3  | `validate_nonce` peek-by-default + `consume_nonce` atomic-record (TOCTOU-safe) | ✅ Implemented |
+| F4  | `verified_protocol` reports protocol enum (`visa_tap`) not raw issuer (`visa`) | ✅ Implemented via `ISSUER_TO_PROTOCOL` |
+| F5  | RFC 9421 Content-Digest (RFC 9530 sha-256/sha-512), `@query`, `@query-param;name="..."` | ✅ Implemented |
+| F6  | JWKS fetch retry-with-backoff (3 attempts, 0.5/1/2s), User-Agent, structured logging | ✅ Implemented |
+| F7  | Pre-register verified JWKS URLs (research-gated) | ✅ Visa only (others not publicly published — DID-based, on-chain, bilateral, or undocumented) |
 
 ### Tier 1 — Production-ready (3–6 weeks)
 

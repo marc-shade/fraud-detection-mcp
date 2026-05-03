@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Advanced Fraud Detection MCP server built with FastMCP. Combines behavioral biometrics (keystroke dynamics, mouse patterns), ML-based anomaly detection (Isolation Forest, Autoencoders), graph-based fraud ring detection (NetworkX), SHAP explainability, AI agent-to-agent transaction protection, defense compliance modules, RFC 9421 HTTP Message Signature verification (Visa TAP / Mastercard Web Bot Auth / Stripe ACP), and a training/benchmarking pipeline into a unified MCP tool interface with **27 exposed tools (19 core + 5 compliance + 3 agent commerce Tier 0)**. XGBoost is available optionally via the training pipeline but is not in the default detection path.
+Advanced Fraud Detection MCP server built with FastMCP. Combines behavioral biometrics (keystroke dynamics, mouse patterns), ML-based anomaly detection (Isolation Forest, Autoencoders), graph-based fraud ring detection (NetworkX), SHAP explainability, AI agent-to-agent transaction protection, defense compliance modules, RFC 9421 HTTP Message Signature verification with Content-Digest body coverage and @query/@query-param derived components (Visa TAP / Mastercard Web Bot Auth / Stripe ACP), and a training/benchmarking pipeline into a unified MCP tool interface with **28 exposed tools (19 core + 5 compliance + 4 agent commerce Tier 0)**. XGBoost is available optionally via the training pipeline but is not in the default detection path.
 
-See `docs/roadmap/agentic_commerce_2026.md` for the full Stripe ACP / Visa TAP / Mastercard Verifiable Intent / Google AP2 / Coinbase x402 feature roadmap. Tier 0 (signature verification + nonce cache + idempotency + 12-feature behavioral fingerprint + claimed-vs-verified traffic classification + real JWT signature verification) is implemented; Tiers 1 and 2 are open work.
+See `docs/roadmap/agentic_commerce_2026.md` for the full Stripe ACP / Visa TAP / Mastercard Verifiable Intent / Google AP2 / Coinbase x402 feature roadmap. Tier 0 — RFC 9421 verifier (incl. Content-Digest + @query + JWKS retry-with-backoff), nonce cache (peek/consume split), idempotency store, **13-feature behavioral fingerprint with cyclical hour encoding**, claimed-vs-verified traffic classification **fully wired through `analyze_agent_transaction_impl`**, issuer-to-protocol mapping, and real JWT signature verification — is implemented and live. Tiers 1 and 2 are open work.
 
 ## Development Commands
 
@@ -75,7 +75,7 @@ mypy server.py --ignore-missing-imports
 
 7. **`AgentIdentityVerifier`** -- Validates agent credentials. Three signals: registry membership, API key format (min 16 chars), JWT token (3-stage validation: parse → exp claim → cryptographic signature verification against issuer's JWKS via `acp_signatures.jwks_resolver` when an `iss` claim is present). Trust = average of signals. Verified = trust >= 0.5 and no critical warnings. A *crypto-verified* JWT contributes 0.85 (vs 0.7 for exp-only and 0.1 for forged). Auto-registers unknown agents with trust=0.3.
 
-8. **`AgentBehavioralFingerprint`** -- Per-agent Isolation Forest baselines using **12 features**: timing/decision/structure (api_timing_ms, timing_z_score, log_timing, decision_pattern_novel, request_structure_novel, timing_ratio) + transaction-shape (log_amount, payment_method_hash, merchant_hash, location_hash, hour_of_day, field_completeness). The transaction-shape features are required for **stolen-token replay detection** — a stolen token replayed at matching API timing distribution but against a different merchant/amount distribution will diverge here. `analyze()` and `record()` accept an optional `transaction` dict; when omitted, indices 6-11 are zero-filled (timing-only mode). Thread-safe, bounded memory (max 1000 observations/agent). MIN_OBSERVATIONS_FOR_MODEL=10 before the IsolationForest activates. Models auto-retrain when `FEATURE_DIM` changes (e.g. a model trained at 6 features is invalidated when the codebase upgrades to 12).
+8. **`AgentBehavioralFingerprint`** -- Per-agent Isolation Forest baselines using **13 features**: timing/decision/structure (api_timing_ms, timing_z_score, log_timing, decision_pattern_novel, request_structure_novel, timing_ratio) + transaction-shape (log_amount, payment_method_hash, merchant_hash, location_hash, **hour_sin = sin(2π·h/24), hour_cos = cos(2π·h/24)**, field_completeness). The transaction-shape features are required for **stolen-token replay detection** — a stolen token replayed at matching API timing distribution but against a different merchant/amount distribution will diverge here. Hour-of-day uses cyclical sin/cos encoding so 23:00→00:00 is a small distance in feature space, matching `feature_engineering.py` convention. `analyze()` and `record()` accept an optional `transaction` dict; when omitted, txn indices are zero-filled (timing-only mode). Thread-safe, bounded memory (max 1000 observations/agent). MIN_OBSERVATIONS_FOR_MODEL=10 before the IsolationForest activates. Models auto-retrain when `FEATURE_DIM` changes (e.g. a model trained at 12 features is invalidated when the codebase upgrades to 13).
 
 9. **`MandateVerifier`** -- Stateless mandate compliance checker. Validates transactions against caller-supplied mandate dict: max_amount, daily_limit, allowed_merchants, blocked_merchants, allowed_locations, time_window (start/end HH:MM). Returns compliance status, violations, drift_score, and utilization.
 
@@ -85,11 +85,11 @@ mypy server.py --ignore-missing-imports
 
 ### Agent Commerce Replay-Protection Modules
 
-12. **`acp_signatures.py`** -- RFC 9421 HTTP Message Signature verifier compatible with Visa TAP, Mastercard Web Bot Auth (Cloudflare), Stripe ACP signature header. Public API: `parse_signature_input()`, `build_signature_base()`, `verify_rfc9421_signature()`, `JWKSResolver`. Supports algorithms `EdDSA` (via `cryptography` directly — python-jose has limited Ed25519 support), `PS256`, `ES256`, `RS256`. Default JWKS URL for `visa` issuer is `https://mcp.visa.com/.well-known/jwks` (override via `jwks_resolver.register_issuer()`). Enforces 8-min freshness window, optional nonce-replay check, optional tag binding.
+12. **`acp_signatures.py`** -- RFC 9421 HTTP Message Signature verifier compatible with Visa TAP, Mastercard Web Bot Auth (Cloudflare), Stripe ACP signature header. Public API: `parse_signature_input()`, `build_signature_base()`, `verify_rfc9421_signature()`, `compute_content_digest()`, `verify_content_digest()`, `JWKSResolver`. Supports algorithms `EdDSA` (via `cryptography` directly — python-jose has limited Ed25519 support), `PS256`, `ES256`, `RS256`. Supported derived components: `@method`, `@authority`, `@path`, `@query`, `@query-param;name="..."`, `@signature-params`. Body coverage via RFC 9530 Content-Digest (sha-256 + sha-512). Default JWKS URL for `visa` issuer is `https://mcp.visa.com/.well-known/jwks` — verified live, RSA, sandbox CA. **Verified gap (2026-05-03):** Mastercard, Stripe ACP, OpenAI, Anthropic, Google AP2, Coinbase x402 do NOT publish JWKS endpoints today (DID-based, on-chain, bilateral, or not yet documented). Override via `jwks_resolver.register_issuer()` when a URL becomes available. Enforces 8-min freshness window, nonce-replay protection (auto-consumes nonce on successful verify), optional tag binding (Visa TAP `agent-browser-auth`/`agent-payer-auth`). JWKS fetch retries with exponential backoff (3 attempts, 0.5/1/2s).
 
 13. **`agent_security.py`** -- `NonceCache` (Visa TAP-compatible 8-min TTL keyed by `(keyid, nonce)`) and `IdempotencyStore` (Stripe-ACP-compatible 24h TTL keyed by `(idempotency_key, agent_id)` with `request_fingerprint` for HTTP 409 conflict detection). Both are thread-safe and process-local; for multi-process deployment run an external store. Module-level singletons `nonce_cache` and `idempotency_store` are imported by `server.py`.
 
-### MCP Tools (27 total: 19 core + 5 compliance + 3 agent commerce Tier 0)
+### MCP Tools (28 total: 19 core + 5 compliance + 4 agent commerce Tier 0)
 
 | Tool | Function |
 |------|----------|
@@ -117,9 +117,10 @@ mypy server.py --ignore-missing-imports
 | `evaluate_cleared_personnel` | SEAD 4/6 cleared personnel analytics and CE checks |
 | `get_compliance_dashboard` | NITTF maturity, KRIs, compliance posture, executive summary |
 | `generate_threat_referral` | Formal case referral or personnel security action report |
-| `verify_agent_signature` | RFC 9421 HTTP Message Signature verification (Visa TAP / Mastercard Web Bot Auth / Stripe ACP) — freshness + replay + tag binding + JWKS-resolved crypto verify |
+| `verify_agent_signature` | RFC 9421 HTTP Message Signature verification (Visa TAP / Mastercard Web Bot Auth / Stripe ACP) — freshness + replay + tag binding + Content-Digest body coverage + @query/@query-param + JWKS-resolved crypto verify |
 | `check_idempotency_key` | Stripe-ACP-compatible Idempotency-Key check; returns miss / hit / conflict / stored; defends against double-spend on retry |
-| `validate_nonce` | Visa-TAP-compatible nonce replay check (8-min rolling window); defends against signature replay |
+| `validate_nonce` | Visa-TAP-compatible nonce replay PEEK (safe by default — non-mutating; pass record_seen=True or use consume_nonce to commit) |
+| `consume_nonce` | Atomic check + record nonce (single-shot replay defence); returns accepted/replayed; call AFTER successful crypto verify |
 
 ### Risk Scoring
 
@@ -155,7 +156,7 @@ The 5 defense compliance tools are backed by modules under `compliance/`:
 
 ### Testing Architecture
 
-**896 tests across 31 test files** (including `test_compliance_modules.py`, `test_coverage_gaps.py`, `test_acp_signatures.py`, `test_agent_security.py`, `test_agent_commerce_tier0.py`). Tests import from `tests/conftest.py` for fixtures and sample data.
+**917 tests across 31 test files** (including `test_compliance_modules.py`, `test_coverage_gaps.py`, `test_acp_signatures.py`, `test_agent_security.py`, `test_agent_commerce_tier0.py`). Tests import from `tests/conftest.py` for fixtures and sample data.
 
 Available pytest markers: `unit`, `integration`, `slow`, `network`, `behavioral`, `transaction`, `explainability`, `synthetic`, `benchmark`, `error`, `security`, `velocity`, `signature`.
 
@@ -185,9 +186,9 @@ Test files map to functionality areas:
 - `test_mandate_collusion_tools.py` -- MCP tool wrappers for mandate and collusion
 - `test_agent_reputation.py` -- AgentReputationScorer composite scoring
 - `test_score_agent_reputation_tool.py` -- score_agent_reputation MCP tool
-- `test_acp_signatures.py` -- RFC 9421 parser, freshness, replay, JWKS resolver, end-to-end Ed25519 verification
+- `test_acp_signatures.py` -- RFC 9421 parser, freshness, replay, JWKS resolver, end-to-end Ed25519 verification, Content-Digest sha-256/sha-512 verify (covered+missing+tampered), @query/@query-param derived components
 - `test_agent_security.py` -- NonceCache (8-min TTL, replay block) and IdempotencyStore (Stripe-ACP miss/hit/conflict semantics)
-- `test_agent_commerce_tier0.py` -- 12-feature behavioral fingerprint (incl. stolen-token replay test), TrafficClassifier claimed-vs-verified, 3 new MCP tools
+- `test_agent_commerce_tier0.py` -- 13-feature behavioral fingerprint with cyclical hour encoding (incl. wraparound test, stolen-token replay test), TrafficClassifier claimed-vs-verified, validate_nonce peek default, consume_nonce atomic, F1 wiring tests (signature_headers in transaction_data → analyze_agent_transaction_impl produces verification_status + anomaly + identity_trust adjustment), F4 issuer-to-protocol mapping
 
 ### Advanced Modules
 
@@ -230,11 +231,15 @@ See also at repo root: `README.md`, `QUICK_START.md`, `TESTING.md`, `CONTRIBUTIN
 - The `@_monitored` decorator wraps MCP tools with optional Prometheus metrics when monitoring is available.
 - Thread-safe singletons: `agent_registry`, `agent_verifier`, `agent_fingerprinter`, `mandate_verifier`, `collusion_detector`, `reputation_scorer`, `acp_signatures.jwks_resolver`, `agent_security.nonce_cache`, `agent_security.idempotency_store`.
 
-## Agent Commerce Verification Status (Tier 0 — implemented 2026-05-03)
+## Agent Commerce Verification Status (Tier 0 — fully wired 2026-05-03)
 
 When extending agent-fraud features, **always distinguish "claimed" from "verified"**:
-- A `User-Agent: stripe-acp/1.0` header is a *claim*, not a security guarantee. `TrafficClassifier.classify()` reports both `claimed_protocol` and `verified_protocol` separately; downstream risk scoring should treat unverified claims as lower confidence than verified ones.
-- `verify_agent_signature` is the only tool that produces a verified protocol attribution; it requires the caller to pass `signature_headers` (RFC 9421) and the JWKS for the issuer must be reachable (or pre-loaded into `jwks_resolver._cache`).
-- `validate_nonce` enforces an 8-minute replay window per Visa TAP. `check_idempotency_key` enforces ACP's Idempotency-Key contract. Both are process-local — for multi-process deployments, externalize the stores or pin client routing.
-- The `AgentBehavioralFingerprint` 12-feature vector includes 6 transaction-shape features (amount/merchant/location/payment_method/hour/completeness) that are required to detect stolen-token replay. Callers MUST pass `transaction=transaction_data` to `analyze()` for these features to fire; omitting it falls back to timing-only mode.
+- A `User-Agent: stripe-acp/1.0` header is a *claim*, not a security guarantee. `TrafficClassifier.classify()` reports both `claimed_protocol` and `verified_protocol` separately; downstream risk scoring already treats unverified claims as lower confidence than verified ones.
+- **`analyze_agent_transaction_impl` now wires verification end-to-end**: pass `signature_headers`, `http_method`, `http_path`, `http_authority`, `expected_issuer`, `expected_signature_tag` (and optionally `http_query` + `http_body` for query/Content-Digest coverage) inside `transaction_data` and the verification status flows into anomalies + identity_trust + the returned `verified_protocol` field. A failed signature on a claimed-agent request adds `signature_verification_failed` to anomalies AND drops identity_trust by 0.30. A verified signature boosts identity_trust by 0.15 and overrides identity_verified to True.
+- `verify_agent_signature` MCP tool is the standalone direct entry point for signature verification; the same code path as above.
+- `verified_protocol` reports the **protocol enum** (e.g. `visa_tap`), not the raw issuer (e.g. `visa`). Mapping lives in `ISSUER_TO_PROTOCOL` near `AGENT_USER_AGENT_PATTERNS`. When you add a new issuer to `jwks_resolver`, add it to `ISSUER_TO_PROTOCOL` too.
+- `validate_nonce` is a **safe peek by default** (no mutation). `consume_nonce` is the atomic check+record. Use `consume_nonce` (not `validate_nonce` with `record_seen=True`) anywhere you mean to commit a nonce post-verification.
+- `check_idempotency_key` enforces ACP's Idempotency-Key contract. NonceCache + IdempotencyStore are process-local — for multi-process deployments, externalize the stores or pin client routing.
+- The `AgentBehavioralFingerprint` 13-feature vector includes 7 transaction-shape features (amount/merchant/location/payment_method/hour_sin/hour_cos/completeness). Hour uses cyclical (sin/cos) encoding so 23:00 and 00:00 are close in feature space. Callers MUST pass `transaction=transaction_data` to `analyze()` for the txn features to fire; omitting it falls back to timing-only mode.
+- **JWKS landscape (verified 2026-05-03)**: only Visa publishes a public JWKS (`https://mcp.visa.com/.well-known/jwks`). Mastercard/Stripe ACP/OpenAI/Anthropic/Google AP2/Coinbase x402 either don't publish JWKS by design (DID-based, on-chain, bilateral) or haven't yet. When a URL becomes available, register via `jwks_resolver.register_issuer(name, url)` AND add to `ISSUER_TO_PROTOCOL`.
 - Tier 1 features (AP2 mandate verification, Stripe SPT allowance schema, Mastercard VI L1/L2/L3, streaming-payment burn-rate, x402 inspector, prompt-injection precursor signal, 2-phase mandate reserve/settle, ACP risk_signals export) are documented in `docs/roadmap/agentic_commerce_2026.md` but not yet implemented.

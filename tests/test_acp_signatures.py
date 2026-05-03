@@ -19,7 +19,9 @@ from acp_signatures import (
     MAX_SIGNATURE_AGE_SECONDS,
     SignatureInput,
     build_signature_base,
+    compute_content_digest,
     parse_signature_input,
+    verify_content_digest,
     verify_rfc9421_signature,
 )
 from agent_security import NonceCache
@@ -206,6 +208,81 @@ class TestBuildSignatureBase:
         )
         base = build_signature_base(s, headers={}, method="post")
         assert '"@method": POST' in base
+
+    def test_query_component(self):
+        s = SignatureInput(
+            label="sig1", covered_components=["@query"],
+            keyid="k", alg="EdDSA", created=1700000000,
+        )
+        base = build_signature_base(s, headers={}, query="a=1&b=2")
+        assert '"@query": ?a=1&b=2' in base
+
+    def test_query_component_empty(self):
+        s = SignatureInput(
+            label="sig1", covered_components=["@query"],
+            keyid="k", alg="EdDSA", created=1700000000,
+        )
+        base = build_signature_base(s, headers={}, query=None)
+        assert '"@query": ?' in base
+
+    def test_query_param_component(self):
+        s = SignatureInput(
+            label="sig1", covered_components=['@query-param;name="amount"'],
+            keyid="k", alg="EdDSA", created=1700000000,
+        )
+        base = build_signature_base(
+            s, headers={}, query="amount=99.50&currency=USD"
+        )
+        assert '"@query-param;name="amount"": 99.50' in base
+
+
+# ---------------------------------------------------------------------------
+# Content-Digest (RFC 9530)
+# ---------------------------------------------------------------------------
+
+
+class TestContentDigest:
+    def test_compute_sha256(self):
+        # Known vector: empty body
+        d = compute_content_digest(b"", algorithm="sha-256")
+        assert d.startswith("sha-256=:")
+        assert d.endswith(":")
+
+    def test_compute_sha512(self):
+        d = compute_content_digest(b"abc", algorithm="sha-512")
+        assert d.startswith("sha-512=:")
+
+    def test_unsupported_algorithm_raises(self):
+        with pytest.raises(ValueError, match="Unsupported"):
+            compute_content_digest(b"", algorithm="md5")
+
+    def test_verify_matches_self(self):
+        body = b'{"hello":"world"}'
+        d = compute_content_digest(body, "sha-256")
+        ok, reason = verify_content_digest(d, body)
+        assert ok, reason
+        assert reason == "ok"
+
+    def test_verify_rejects_tampered_body(self):
+        body = b'{"amount":100}'
+        d = compute_content_digest(body, "sha-256")
+        # Pretend body is different at verify time
+        ok, reason = verify_content_digest(d, b'{"amount":999}')
+        assert not ok
+        assert "mismatch" in reason
+
+    def test_verify_rejects_unknown_algorithm(self):
+        ok, reason = verify_content_digest("md5=:Zm9v:", b"foo")
+        assert not ok
+        assert "no recognised digest" in reason
+
+    def test_verify_handles_multi_algorithm_header(self):
+        body = b"hello"
+        d256 = compute_content_digest(body, "sha-256")
+        d512 = compute_content_digest(body, "sha-512")
+        combined = f"{d256}, {d512}"
+        ok, _ = verify_content_digest(combined, body)
+        assert ok
 
 
 # ---------------------------------------------------------------------------
@@ -398,3 +475,96 @@ class TestEd25519Verification:
         )
         assert result["verified"] is False
         assert "missing" in result["reason"]
+
+    def test_content_digest_covered_and_verified(self):
+        """When @content-digest is in the covered components, the body must
+        hash to the value in the Content-Digest header for verification to pass."""
+        body = b'{"amount":100,"merchant":"x"}'
+        cd = compute_content_digest(body, "sha-256")
+
+        created = int(time.time())
+        sig_input_value = (
+            f'sig1=("@method" "@authority" "@path" "content-digest");'
+            f'keyid="{self.kp["kid"]}";alg="EdDSA";created={created};'
+            f'nonce="cd-test-1";tag="agent-payer-auth"'
+        )
+        sig_input = parse_signature_input(sig_input_value)
+        base = build_signature_base(
+            sig_input,
+            headers={"Content-Digest": cd},
+            method="POST", path="/checkout", authority="merchant.example.com",
+        )
+        signature = self.kp["sign"](base.encode("utf-8"))
+        headers = {
+            "Signature-Input": sig_input_value,
+            "Signature": f"sig1=:{_b64url_no_pad(signature)}:",
+            "Content-Digest": cd,
+        }
+
+        result = verify_rfc9421_signature(
+            headers=headers,
+            method="POST",
+            path="/checkout",
+            authority="merchant.example.com",
+            body=body,
+            issuer="test_issuer",
+            expected_tag="agent-payer-auth",
+            resolver=self.resolver,
+        )
+        assert result["verified"] is True
+
+    def test_content_digest_rejects_tampered_body(self):
+        """Same signature, different body — must fail Content-Digest check."""
+        body = b'{"amount":100}'
+        cd = compute_content_digest(body, "sha-256")
+        created = int(time.time())
+        sig_input_value = (
+            f'sig1=("@method" "content-digest");'
+            f'keyid="{self.kp["kid"]}";alg="EdDSA";created={created};'
+            f'nonce="cd-tamper-1"'
+        )
+        sig_input = parse_signature_input(sig_input_value)
+        base = build_signature_base(
+            sig_input, headers={"Content-Digest": cd}, method="POST",
+        )
+        signature = self.kp["sign"](base.encode("utf-8"))
+        headers = {
+            "Signature-Input": sig_input_value,
+            "Signature": f"sig1=:{_b64url_no_pad(signature)}:",
+            "Content-Digest": cd,
+        }
+        # Pass a different body to verify
+        result = verify_rfc9421_signature(
+            headers=headers,
+            method="POST",
+            body=b'{"amount":9999}',
+            issuer="test_issuer",
+            resolver=self.resolver,
+        )
+        assert result["verified"] is False
+        assert "content_digest_verify_failed" in result["reason"]
+
+    def test_content_digest_missing_when_covered_fails(self):
+        """If @content-digest is covered but the header is absent, fail."""
+        body = b'{"x":1}'
+        created = int(time.time())
+        sig_input_value = (
+            f'sig1=("content-digest");'
+            f'keyid="{self.kp["kid"]}";alg="EdDSA";created={created}'
+        )
+        sig_input = parse_signature_input(sig_input_value)
+        # Build a base WITHOUT a Content-Digest header (degenerate, but the
+        # verifier should refuse before even reaching crypto)
+        base = build_signature_base(sig_input, headers={})
+        signature = self.kp["sign"](base.encode("utf-8"))
+        result = verify_rfc9421_signature(
+            headers={
+                "Signature-Input": sig_input_value,
+                "Signature": f"sig1=:{_b64url_no_pad(signature)}:",
+            },
+            body=body,
+            issuer="test_issuer",
+            resolver=self.resolver,
+        )
+        assert result["verified"] is False
+        assert "content_digest_header_missing_but_covered" in result["reason"]

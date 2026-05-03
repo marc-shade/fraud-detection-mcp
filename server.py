@@ -1055,6 +1055,24 @@ AGENT_USER_AGENT_PATTERNS = {
     "coinbase": ["coinbase-agent", "coinbase agent", "agentkit"],
 }
 
+# Map a verified JWKS issuer name back to the protocol enum used by
+# AGENT_USER_AGENT_PATTERNS. Used by TrafficClassifier so that
+# `verified_protocol` reports the same vocabulary as `claimed_protocol`.
+# Adding an entry here is part of registering a new issuer with the
+# JWKS resolver — the two move together.
+ISSUER_TO_PROTOCOL = {
+    "visa": "visa_tap",
+    "mastercard": "mastercard_agent",
+    "stripe": "stripe_acp",
+    "openai": "openai",
+    "anthropic": "anthropic",
+    "google": "google_ap2",
+    "google_ap2": "google_ap2",
+    "paypal": "paypal",
+    "coinbase": "coinbase",
+    "x402": "x402",
+}
+
 # Browser User-Agent patterns indicating human traffic
 BROWSER_USER_AGENT_PATTERNS = [
     "mozilla/",
@@ -1187,6 +1205,8 @@ class TrafficClassifier:
                     method=metadata.get("http_method"),
                     path=metadata.get("http_path"),
                     authority=metadata.get("http_authority"),
+                    query=metadata.get("http_query"),
+                    body=metadata.get("http_body"),
                     issuer=metadata.get("expected_issuer"),
                     expected_tag=metadata.get("expected_signature_tag"),
                     nonce_cache=_get_nonce_cache(),
@@ -1206,7 +1226,13 @@ class TrafficClassifier:
                 if vresult.get("verified"):
                     verification_status = "verified"
                     verification_reason = "ok"
-                    verified_protocol = vresult.get("issuer") or claimed_protocol
+                    issuer_name = vresult.get("issuer") or ""
+                    # Map issuer back to the protocol enum vocabulary used by
+                    # claimed_protocol so callers see the same vocabulary in
+                    # both fields.
+                    verified_protocol = ISSUER_TO_PROTOCOL.get(
+                        issuer_name.lower(), issuer_name or claimed_protocol
+                    )
                     signals.append("signature_verified")
                     # Boost confidence on verified agent traffic
                     if source == "agent":
@@ -1619,7 +1645,7 @@ class AgentBehavioralFingerprint:
 
     # Number of features in the vector. Bumping this invalidates per-agent
     # models so they re-train against the new shape.
-    FEATURE_DIM = 12
+    FEATURE_DIM = 13
 
     # Maximum observations to keep per agent (bounded memory)
     MAX_HISTORY = 1000
@@ -1715,12 +1741,17 @@ class AgentBehavioralFingerprint:
     ) -> np.ndarray:
         """Extract a numeric feature vector for anomaly detection.
 
-        Features (12 dimensions). Indices 0-5 are timing/decision/structure
-        features computable without transaction context. Indices 6-11 require
+        Features (13 dimensions). Indices 0-5 are timing/decision/structure
+        features computable without transaction context. Indices 6-12 require
         a transaction dict and are crucial for stolen-token replay detection
         (a stolen agent token replayed at the same API timing distribution
         but against a different merchant / amount / location distribution
         will sail through if only timing features are used).
+
+        Hour-of-day uses cyclical (sin/cos) encoding so that 23:00 → 00:00
+        is a small distance in feature space, not the 23-unit jump a raw
+        integer would imply. This matches the convention in
+        ``feature_engineering.py`` for transaction features.
 
         Index | Feature                        | Source
         ----- | ------------------------------ | ------
@@ -1734,8 +1765,9 @@ class AgentBehavioralFingerprint:
         7     | payment_method_hash (0-1)      | transaction.payment_method
         8     | merchant_hash (0-1)            | transaction.merchant
         9     | location_hash (0-1)            | transaction.location
-        10    | hour_of_day (0-23)             | transaction.timestamp
-        11    | field_completeness (0-1)       | transaction (count present
+        10    | hour_sin = sin(2π·h/24)        | transaction.timestamp
+        11    | hour_cos = cos(2π·h/24)        | transaction.timestamp
+        12    | field_completeness (0-1)       | transaction (count present
               |                                |   / EXPECTED_TXN_FIELDS)
         """
         timing = max(0.0, api_timing_ms)  # clamp negatives
@@ -1771,7 +1803,8 @@ class AgentBehavioralFingerprint:
         payment_hash = 0.0
         merchant_hash = 0.0
         location_hash = 0.0
-        hour_of_day = 0.0
+        hour_sin = 0.0
+        hour_cos = 1.0  # cos(0) = 1 when no timestamp; benign neutral value
         completeness = 0.0
         if transaction:
             amount = float(transaction.get("amount") or 0.0)
@@ -1779,7 +1812,10 @@ class AgentBehavioralFingerprint:
             payment_hash = _stable_unit_hash(str(transaction.get("payment_method") or ""))
             merchant_hash = _stable_unit_hash(str(transaction.get("merchant") or ""))
             location_hash = _stable_unit_hash(str(transaction.get("location") or ""))
-            hour_of_day = float(_extract_hour_of_day(transaction.get("timestamp")))
+            hour = _extract_hour_of_day(transaction.get("timestamp"))
+            angle = 2.0 * math.pi * (hour / 24.0)
+            hour_sin = float(math.sin(angle))
+            hour_cos = float(math.cos(angle))
             completeness = _field_completeness(transaction)
 
         return np.array(
@@ -1794,7 +1830,8 @@ class AgentBehavioralFingerprint:
                 payment_hash,
                 merchant_hash,
                 location_hash,
-                hour_of_day,
+                hour_sin,
+                hour_cos,
                 completeness,
             ]]
         )
@@ -3318,9 +3355,25 @@ def analyze_agent_transaction_impl(
 
         anomalies: List[str] = []
 
-        # --- Traffic classification ---
+        # --- Traffic classification (incl. RFC 9421 signature verification
+        # when transaction_data carries `signature_headers`) ---
         classification = traffic_classifier.classify(transaction_data)
         traffic_source = classification["source"]
+        verification_status = classification.get("verification_status", "no_signature_provided")
+        verified_protocol = classification.get("verified_protocol")
+        claimed_protocol = classification.get("claimed_protocol")
+
+        # Surface signature-related findings as anomalies. A *failed*
+        # signature on a claimed-agent request is a high-severity signal —
+        # the transaction is asserting a protocol membership it cannot prove.
+        if verification_status == "verification_failed":
+            anomalies.append("signature_verification_failed")
+            sig_reason = classification.get("verification_reason", "")
+            if sig_reason:
+                anomalies.append(f"signature_failure_{sig_reason.split(':')[0]}")
+        elif verification_status == "unverified" and claimed_protocol:
+            # Claimed protocol but no signature — weaker signal, but worth surfacing
+            anomalies.append("agent_protocol_claimed_but_unsigned")
 
         # --- Identity verification ---
         agent_id = transaction_data.get("agent_identifier")
@@ -3339,6 +3392,16 @@ def analyze_agent_transaction_impl(
                 anomalies.append("unverified_agent_identity")
         else:
             anomalies.append("missing_agent_identifier")
+
+        # Cryptographic signature verification adjusts identity trust.
+        # Verified signature → boost trust (capped at 1.0).
+        # Failed signature on claimed-agent request → drop trust (floored at 0.0).
+        if verification_status == "verified":
+            identity_trust = min(1.0, identity_trust + 0.15)
+            identity_verified = True
+        elif verification_status == "verification_failed":
+            identity_trust = max(0.0, identity_trust - 0.30)
+            identity_verified = False
 
         # --- Behavioral fingerprint ---
         fingerprint_score = 0.5  # neutral default
@@ -3404,6 +3467,10 @@ def analyze_agent_transaction_impl(
             "identity_verified": identity_verified,
             "identity_trust_score": identity_trust,
             "traffic_source": traffic_source,
+            "claimed_protocol": claimed_protocol,
+            "verified_protocol": verified_protocol,
+            "verification_status": verification_status,
+            "verification_reason": classification.get("verification_reason", ""),
             "component_scores": {
                 "transaction": txn_risk,
                 "identity": identity_risk,
@@ -3648,14 +3715,17 @@ def check_idempotency_key_impl(
 def validate_nonce_impl(
     keyid: str,
     nonce: str,
-    record_seen: bool = True,
+    record_seen: bool = False,
 ) -> Dict[str, Any]:
-    """Visa-TAP-compatible nonce replay check.
+    """Visa-TAP-compatible nonce replay PEEK (safe, non-mutating by default).
 
-    Returns ``{seen: bool, recorded: bool, ttl_seconds: float}``.
-    By default the nonce is *recorded* on first sight so a replay in the
-    same 8-minute window will return ``seen: True``. Pass
-    ``record_seen=False`` to query without mutating state.
+    Returns ``{seen: bool, recorded: bool, ttl_seconds: float, ...}``.
+    Default behaviour is a pure query: the cache is consulted but not
+    mutated. Pass ``record_seen=True`` to additionally consume the nonce
+    (or call ``consume_nonce_impl`` for clarity).
+
+    Use ``validate_nonce`` to *check* whether a nonce has been seen
+    without burning it. Use ``consume_nonce`` to *atomically* check + record.
     """
     if not _AGENT_SECURITY_AVAILABLE or _agent_nonce_cache is None:
         return {"seen": False, "recorded": False, "reason": "module_unavailable"}
@@ -3670,6 +3740,46 @@ def validate_nonce_impl(
     return {
         "seen": seen,
         "recorded": recorded,
+        "keyid": keyid,
+        "nonce": nonce,
+        "ttl_seconds": stats["ttl_seconds"],
+        "cache_size": stats["size"],
+    }
+
+
+def consume_nonce_impl(keyid: str, nonce: str) -> Dict[str, Any]:
+    """Atomically check + record a nonce. Returns whether replay was detected.
+
+    This is the operation a signature verifier should call AFTER successful
+    cryptographic verification, to prevent the same signature being replayed.
+
+    Returns ``{accepted: bool, replayed: bool, reason: str, ...}``:
+      - ``accepted=True, replayed=False``: first sight, nonce now recorded
+      - ``accepted=False, replayed=True``: nonce was already seen — REJECT
+        the signature, do NOT process the request
+    """
+    if not _AGENT_SECURITY_AVAILABLE or _agent_nonce_cache is None:
+        return {
+            "accepted": False,
+            "replayed": False,
+            "reason": "module_unavailable",
+        }
+
+    seen = _agent_nonce_cache.seen(keyid, nonce)
+    if seen:
+        return {
+            "accepted": False,
+            "replayed": True,
+            "reason": "nonce_replay_detected",
+            "keyid": keyid,
+            "nonce": nonce,
+        }
+    _agent_nonce_cache.add(keyid, nonce)
+    stats = _agent_nonce_cache.stats()
+    return {
+        "accepted": True,
+        "replayed": False,
+        "reason": "nonce_recorded",
         "keyid": keyid,
         "nonce": nonce,
         "ttl_seconds": stats["ttl_seconds"],
@@ -4745,28 +4855,52 @@ def check_idempotency_key(
 def validate_nonce(
     keyid: str,
     nonce: str,
-    record_seen: bool = True,
+    record_seen: bool = False,
 ) -> Dict[str, Any]:
     """
-    Visa-TAP-compatible nonce replay check (8-minute window).
+    Visa-TAP-compatible nonce replay PEEK (safe, non-mutating by default).
 
-    Maintains an 8-minute rolling cache of (keyid, nonce) tuples. Replays
-    within the window return seen=True so the caller can reject the
-    duplicate signature. By default the nonce is recorded on first sight;
-    pass record_seen=False to query without mutating state.
+    Consults the 8-minute rolling cache of (keyid, nonce) tuples WITHOUT
+    consuming the nonce. Use this to test whether a nonce has been seen
+    in the current window. Use `consume_nonce` to atomically check + record
+    after successful signature verification.
 
     Args:
         keyid: The keyid that signed the request (typically
             'issuer:agent-id' format).
         nonce: The nonce value from RFC 9421 Signature-Input.
-        record_seen: If True (default), an unseen nonce is added to the
-            cache; if False, only queried.
+        record_seen: If True, also record on first-sight; default False
+            (pure query). Prefer the explicit `consume_nonce` tool for
+            recording.
 
     Returns:
         Dict with seen (bool), recorded (bool), keyid, nonce,
         ttl_seconds, cache_size.
     """
     return validate_nonce_impl(keyid, nonce, record_seen)
+
+
+@_monitored("/consume_nonce", "TOOL")
+@mcp.tool()
+def consume_nonce(keyid: str, nonce: str) -> Dict[str, Any]:
+    """
+    Atomically check + record a nonce in the Visa-TAP 8-minute replay window.
+
+    Call AFTER successful cryptographic signature verification to commit the
+    nonce so the same signature cannot be replayed. The single atomic
+    operation prevents a TOCTOU race between peek and record.
+
+    Args:
+        keyid: The keyid that signed the request.
+        nonce: The nonce value from RFC 9421 Signature-Input.
+
+    Returns:
+        Dict with:
+          - accepted=True, replayed=False: first sight, nonce now recorded.
+          - accepted=False, replayed=True: replay detected — REJECT the
+            signature and do NOT process the request.
+    """
+    return consume_nonce_impl(keyid, nonce)
 
 
 @_monitored("/analyze_batch", "TOOL")

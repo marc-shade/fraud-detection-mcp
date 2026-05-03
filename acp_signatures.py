@@ -6,13 +6,41 @@ Implements signature verification compatible with:
   - Stripe ACP (header-level Signature; algorithm bilateral)
   - Generic JWS-bearing protocols
 
-The module is intentionally dependency-light: python-jose handles JWS / JWK,
-and a small in-process JWKS cache avoids hammering issuer well-known endpoints.
+Supports the following RFC 9421 derived components:
+  - @method (HTTP method, uppercased)
+  - @authority (host, lowercased)
+  - @path (request target path)
+  - @query (full query string including leading '?')
+  - @query-param (single named query parameter — see §2.2.8)
+  - @signature-params (the signature metadata line, mandatory trailer)
+
+Body coverage uses RFC 9530 Content-Digest. When the signature covers
+``content-digest``, the verifier computes ``sha-256=:b64:`` and ``sha-512=:b64:``
+from the request body and confirms the header value matches. Header values
+are looked up case-insensitively and used verbatim (no structured-field
+canonicalisation per RFC 8941 yet — sufficient for protocols whose
+covered headers are simple strings, which is the case for Visa TAP and
+Stripe ACP today).
+
+The module is intentionally dependency-light: python-jose handles JWS / JWK
+(except Ed25519 which goes through ``cryptography`` directly because
+python-jose lacks Ed25519 support). A small in-process JWKS cache avoids
+hammering issuer well-known endpoints; fetches retry with exponential
+backoff on transient network failures.
 
 Primary sources:
   - RFC 9421: https://www.rfc-editor.org/rfc/rfc9421
+  - RFC 9530 (Content-Digest): https://www.rfc-editor.org/rfc/rfc9530
   - Visa TAP spec: https://developer.visa.com/capabilities/trusted-agent-protocol/trusted-agent-protocol-specifications
   - Cloudflare Web Bot Auth: https://blog.cloudflare.com/secure-agentic-commerce/
+
+Issuer JWKS landscape (verified 2026-05-03):
+  - Visa: https://mcp.visa.com/.well-known/jwks (live, RSA, sandbox CA)
+  - Mastercard: spec mandates JWKS; no concrete URL published yet
+  - Stripe ACP: bilateral signing, no Stripe-hosted JWKS
+  - Google AP2: DID-based, no centralised JWKS by design
+  - Coinbase x402: on-chain crypto, no JWKS by design
+  - OpenAI / Anthropic: not publicly documented
 """
 from __future__ import annotations
 
@@ -52,6 +80,14 @@ except ImportError:  # pragma: no cover - covered by environment policy
 
 # Default JWKS URLs for known agent operators. Operators can override via
 # JWKSResolver.register_issuer().
+#
+# As of 2026-05-03, Visa is the ONLY agent-commerce issuer with a
+# publicly documented JWKS endpoint. Other issuers (Mastercard, Stripe,
+# OpenAI, Anthropic, Google AP2, Coinbase) either don't publish JWKS by
+# design (DID-based, on-chain, or bilateral signing) or haven't published
+# one yet. Callers using those issuers must call
+# ``jwks_resolver.register_issuer(name, url)`` once the URL becomes
+# available, or inject keys directly into the cache for testing.
 DEFAULT_JWKS_URLS: Dict[str, str] = {
     "visa": "https://mcp.visa.com/.well-known/jwks",
 }
@@ -176,28 +212,48 @@ def build_signature_base(
     method: Optional[str] = None,
     path: Optional[str] = None,
     authority: Optional[str] = None,
+    query: Optional[str] = None,
 ) -> str:
     """Construct the canonical signature base per RFC 9421 §2.3.
 
-    Derived components (`@method`, `@path`, `@authority`, etc.) are sourced
-    from the explicit args; HTTP header components are looked up in `headers`
-    case-insensitively. Caller is responsible for canonical encoding of any
-    structured-field values they pass in.
+    Supported derived components: ``@method``, ``@path``, ``@authority``,
+    ``@query``, ``@query-param`` (with ``;name="..."`` parameter). Other
+    derived components fall back to lookup in ``headers`` under their
+    name (e.g. ``"@target-uri": value`` would be supplied directly).
+
+    HTTP header components are looked up in ``headers`` case-insensitively.
+    Header values are used verbatim — no RFC 8941 structured-field
+    canonicalisation. This is sufficient for the agent commerce protocols
+    we support today (Visa TAP, Stripe ACP, Cloudflare Web Bot Auth's
+    common cases) where covered headers carry simple string values.
+
+    The trailing ``@signature-params`` line is mandatory per RFC 9421 §2.3
+    and is always emitted last.
     """
     # Normalize headers to lowercase keys for case-insensitive lookup.
     norm_headers = {k.lower(): v for k, v in headers.items()}
     lines: List[str] = []
     for component in sig_input.covered_components:
+        c_raw = component
         c = component.lower()
-        if c == "@method":
+        # Strip RFC 9421 component parameters (e.g. ;name="foo")
+        c_base = c.split(";", 1)[0]
+        if c_base == "@method":
             value = (method or "").upper()
-        elif c == "@path":
+        elif c_base == "@path":
             value = path or ""
-        elif c == "@authority":
+        elif c_base == "@authority":
             value = (authority or "").lower()
-        elif c.startswith("@"):
-            # Other derived components — caller must supply via headers dict
-            # under the same name (e.g. "@target-uri").
+        elif c_base == "@query":
+            # @query carries the full query string including leading '?'
+            # per RFC 9421 §2.2.7. Empty query yields literal '?'.
+            value = ("?" + query) if query else "?"
+        elif c_base == "@query-param":
+            # @query-param;name="foo" → value of `foo` parameter
+            param_name = _extract_param(c_raw, "name")
+            value = _query_param_value(query, param_name)
+        elif c_base.startswith("@"):
+            # Unknown derived component — fall back to header dict
             value = norm_headers.get(c, "")
         else:
             value = norm_headers.get(c, "")
@@ -219,6 +275,88 @@ def build_signature_base(
     sp_value += ";" + ";".join(extras)
     lines.append(f'"@signature-params": {sp_value}')
     return "\n".join(lines)
+
+
+_COMPONENT_PARAM_RE = re.compile(r';\s*([a-zA-Z][a-zA-Z0-9_-]*)\s*=\s*"([^"]*)"')
+
+
+def _extract_param(component: str, param_name: str) -> str:
+    """Return the named parameter value from a component string like
+    ``@query-param;name="foo"``. Returns empty string when not found."""
+    for m in _COMPONENT_PARAM_RE.finditer(component):
+        if m.group(1).lower() == param_name.lower():
+            return m.group(2)
+    return ""
+
+
+def _query_param_value(query: Optional[str], name: str) -> str:
+    """Extract the value of a single named parameter from a URL query
+    string. Returns empty string when query is None or name is empty.
+    """
+    if not query or not name:
+        return ""
+    from urllib.parse import parse_qs
+
+    parsed = parse_qs(query, keep_blank_values=True)
+    values = parsed.get(name, [])
+    return values[0] if values else ""
+
+
+def compute_content_digest(body: bytes, algorithm: str = "sha-256") -> str:
+    """Build an RFC 9530 Content-Digest header value.
+
+    Returns the dictionary form ``alg=:b64:`` (e.g.
+    ``sha-256=:RBNvo1WzZ4oRRq0W9+hknpT7T8If536DEMBg9hyq/4o=:``). Used both
+    to derive an expected digest from a known body and to verify an
+    incoming Content-Digest header.
+
+    Args:
+        body: the request body bytes.
+        algorithm: ``sha-256`` or ``sha-512`` (per RFC 9530 §2).
+    """
+    import hashlib
+
+    alg = algorithm.lower()
+    if alg == "sha-256":
+        h = hashlib.sha256(body).digest()
+    elif alg == "sha-512":
+        h = hashlib.sha512(body).digest()
+    else:
+        raise ValueError(f"Unsupported content-digest algorithm: {algorithm}")
+
+    import base64
+
+    encoded = base64.b64encode(h).decode("ascii")
+    return f"{alg}=:{encoded}:"
+
+
+_CONTENT_DIGEST_RE = re.compile(r'(sha-256|sha-512)=:([A-Za-z0-9+/=]+):')
+
+
+def verify_content_digest(header_value: str, body: bytes) -> Tuple[bool, str]:
+    """Verify an RFC 9530 Content-Digest header against a body.
+
+    Returns ``(ok, reason)``. The header may carry multiple algorithms
+    (e.g. ``sha-256=:...:, sha-512=:...:``); ALL must match for success.
+    Returns ``(False, reason)`` if no recognised algorithm is present.
+    """
+    if not header_value:
+        return False, "empty content_digest header"
+    matches = list(_CONTENT_DIGEST_RE.finditer(header_value))
+    if not matches:
+        return False, "no recognised digest algorithm in content_digest"
+    for m in matches:
+        alg = m.group(1)
+        expected_b64 = m.group(2)
+        try:
+            actual = compute_content_digest(body, algorithm=alg)
+        except ValueError as e:
+            return False, str(e)
+        actual_b64 = actual.split(":", 2)[1].rstrip(":")
+        # Pad-tolerant compare
+        if expected_b64.rstrip("=") != actual_b64.rstrip("="):
+            return False, f"{alg}_mismatch"
+    return True, "ok"
 
 
 class JWKSResolver:
@@ -284,16 +422,51 @@ class JWKSResolver:
             return entry.get("keys", {}).get(kid)
 
     def _fetch_jwks(self, jwks_url: str) -> Optional[Dict[str, Dict[str, Any]]]:
-        """Fetch JWKS from a URL. Returns dict {kid -> jwk_dict} or None on error."""
-        try:
-            req = urllib.request.Request(
-                jwks_url,
-                headers={"Accept": "application/json"},
-            )
-            with urllib.request.urlopen(req, timeout=self._timeout) as resp:
-                payload = json.loads(resp.read())
-        except (urllib.error.URLError, json.JSONDecodeError, OSError) as e:
-            logger.warning("JWKS fetch failed for %s: %s", jwks_url, e)
+        """Fetch JWKS from a URL with retry-with-backoff.
+
+        Returns dict ``{kid -> jwk_dict}`` or None on persistent error. Retries
+        up to 3 times on transient network failure (URLError, OSError) with
+        exponential backoff (0.5s, 1.0s, 2.0s). Logs each failure but only
+        WARNs after the final retry.
+        """
+        max_attempts = 3
+        backoff = 0.5
+        last_err: Optional[Exception] = None
+        for attempt in range(1, max_attempts + 1):
+            try:
+                req = urllib.request.Request(
+                    jwks_url,
+                    headers={
+                        "Accept": "application/json",
+                        # Identify ourselves so JWKS hosts can attribute traffic
+                        "User-Agent": "fraud-detection-mcp/jwks-resolver (+rfc9421)",
+                    },
+                )
+                with urllib.request.urlopen(req, timeout=self._timeout) as resp:
+                    payload = json.loads(resp.read())
+                break  # success
+            except (urllib.error.URLError, OSError) as e:
+                last_err = e
+                if attempt < max_attempts:
+                    logger.debug(
+                        "JWKS fetch attempt %d/%d failed for %s: %s; retrying in %.1fs",
+                        attempt, max_attempts, jwks_url, e, backoff,
+                    )
+                    time.sleep(backoff)
+                    backoff *= 2.0
+                    continue
+                logger.warning(
+                    "JWKS fetch failed for %s after %d attempts: %s",
+                    jwks_url, max_attempts, e,
+                )
+                return None
+            except json.JSONDecodeError as e:
+                # Hard error — JWKS body returned but is not valid JSON.
+                # No point retrying.
+                logger.warning("JWKS at %s returned invalid JSON: %s", jwks_url, e)
+                return None
+        else:
+            logger.warning("JWKS fetch unexpected loop exit for %s: %s", jwks_url, last_err)
             return None
         keys = payload.get("keys") or []
         out: Dict[str, Dict[str, Any]] = {}
@@ -313,6 +486,8 @@ def verify_rfc9421_signature(
     method: Optional[str] = None,
     path: Optional[str] = None,
     authority: Optional[str] = None,
+    query: Optional[str] = None,
+    body: Optional[bytes] = None,
     issuer: Optional[str] = None,
     expected_tag: Optional[str] = None,
     resolver: Optional[JWKSResolver] = None,
@@ -324,13 +499,21 @@ def verify_rfc9421_signature(
     Args:
         headers: HTTP headers including Signature-Input and Signature.
         method, path, authority: derived-component values per RFC 9421 §2.2.
+        query: URL query string (without leading '?'). Required when the
+               signature covers ``@query`` or ``@query-param``.
+        body: request body bytes. Required when the signature covers
+              ``content-digest``; the verifier will compute the expected
+              RFC 9530 digest from this body and compare against the
+              header value.
         issuer: issuer name to resolve JWKS against (e.g. "visa", "mastercard").
-                If None, signature_input.keyid must encode the issuer.
+                If None, signature_input.keyid must encode the issuer
+                (e.g. ``"visa:agent-7"``).
         expected_tag: if set, signature.tag must match (Visa TAP uses
                       "agent-browser-auth" / "agent-payer-auth").
         resolver: JWKSResolver instance (defaults to module singleton).
         nonce_cache: optional NonceCache; if provided, replay protection is
-                     enforced.
+                     enforced — a successfully-verified signature consumes
+                     its nonce so a replay in the next 8 minutes will fail.
 
     Returns dict with: verified (bool), reason (str), signature_input (parsed),
     keyid, issuer, algorithm, signature_age_seconds, warnings (List[str]).
@@ -376,6 +559,29 @@ def verify_rfc9421_signature(
             "signature_input": _siginput_to_dict(sig_input),
             "warnings": warnings,
         }
+
+    # Content-Digest verification (RFC 9530). When the signature covers
+    # ``content-digest``, the body MUST hash to the value in the header.
+    if any(c.lower() == "content-digest" for c in sig_input.covered_components):
+        cd_header = norm.get("content-digest")
+        if not cd_header:
+            return {
+                "verified": False,
+                "reason": "content_digest_header_missing_but_covered",
+                "signature_input": _siginput_to_dict(sig_input),
+                "warnings": warnings,
+            }
+        if body is None:
+            warnings.append("content_digest_covered_without_body_supplied")
+        else:
+            ok, reason = verify_content_digest(cd_header, body)
+            if not ok:
+                return {
+                    "verified": False,
+                    "reason": f"content_digest_verify_failed: {reason}",
+                    "signature_input": _siginput_to_dict(sig_input),
+                    "warnings": warnings,
+                }
 
     # Nonce replay protection
     if nonce_cache is not None and sig_input.nonce:
@@ -423,7 +629,8 @@ def verify_rfc9421_signature(
         }
 
     base = build_signature_base(
-        sig_input, headers, method=method, path=path, authority=authority
+        sig_input, headers,
+        method=method, path=path, authority=authority, query=query,
     )
 
     try:
