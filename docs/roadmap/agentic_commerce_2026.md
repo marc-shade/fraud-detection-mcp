@@ -56,7 +56,7 @@
 
 ## 5. Tiered Roadmap
 
-### Tier 0 — Fully real (no theater, no stubs)
+### Tier 0 — Production-grade (no theater, no stubs)
 
 | # | Feature | Status |
 |---|---|---|
@@ -73,6 +73,11 @@
 | F5  | RFC 9421 Content-Digest (RFC 9530 sha-256/sha-512), `@query`, `@query-param;name="..."` | ✅ Implemented |
 | F6  | JWKS fetch retry-with-backoff (3 attempts, 0.5/1/2s), User-Agent, structured logging | ✅ Implemented |
 | F7  | Pre-register verified JWKS URLs (research-gated) | ✅ Visa only (others not publicly published — DID-based, on-chain, bilateral, or undocumented) |
+| **P-A** | **Config-tunable thresholds** — every magic number now in `config.AppConfig` (env-overridable: `ACP_VERIFIED_CONFIDENCE_BOOST` etc.) | ✅ Implemented |
+| **P-B** | **Synthetic calibration + provenance test** — `scripts/calibrate_agent_thresholds.py` writes `docs/calibration/agent_thresholds_<date>.md`; `test_calibration_provenance.py` is a drift-detector | ✅ Implemented |
+| **P-C** | **Pluggable backends** — `NonceBackend` / `IdempotencyBackend` ABCs + InMemory + SQLite (WAL mode + busy_timeout) | ✅ Implemented |
+| **P-D** | **Strong stolen-token replay test** — 60-obs baseline + 5-feature divergent attack must score risk_score >= 0.7 (HIGH) | ✅ Implemented (was >= 0.4 moderate, now >= 0.7 strong) |
+| **P-E** | **Multi-process subprocess test** — two real Python children share a SQLite file; nonce consumed by A is rejected by B | ✅ Implemented |
 
 ### Tier 1 — Production-ready (3–6 weeks)
 

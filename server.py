@@ -35,7 +35,7 @@ from collections import deque
 # Graph analysis
 import networkx as nx
 
-from config import get_config
+from config import get_config, config as _cfg
 from models_validation import TransactionData
 from feature_engineering import FeatureEngineer
 from async_inference import LRUCache
@@ -1234,17 +1234,23 @@ class TrafficClassifier:
                         issuer_name.lower(), issuer_name or claimed_protocol
                     )
                     signals.append("signature_verified")
-                    # Boost confidence on verified agent traffic
+                    # Boost confidence on verified agent traffic (config-tunable)
                     if source == "agent":
-                        confidence = min(1.0, confidence + 0.15)
+                        confidence = min(
+                            1.0,
+                            confidence + _cfg.ACP_VERIFIED_CONFIDENCE_BOOST,
+                        )
                 else:
                     verification_status = "verification_failed"
                     verification_reason = vresult.get("reason", "unknown")
                     signals.append("signature_failed")
                     # A failed signature on a claimed-agent request is
-                    # actively suspicious — drop confidence.
+                    # actively suspicious — drop confidence (config-tunable).
                     if source == "agent":
-                        confidence = max(0.1, confidence - 0.25)
+                        confidence = max(
+                            0.1,
+                            confidence - _cfg.ACP_FAILED_CONFIDENCE_DROP,
+                        )
         elif claimed_protocol:
             # Has a claimed protocol but no signature provided
             verification_status = "unverified"
@@ -1356,6 +1362,41 @@ class AgentIdentityVerifier:
     # Minimum API key length for basic format validation
     MIN_KEY_LENGTH = 16
 
+    # Trust-signal weights — pulled from config so operators can tune
+    # without code changes. Defaults reflect the synthetic-data calibration
+    # (see scripts/calibrate_agent_thresholds.py).
+    @property
+    def _signal_jwt_verified(self) -> float:
+        return _cfg.ACP_JWT_VERIFIED_SIGNAL
+
+    @property
+    def _signal_jwt_exp_only(self) -> float:
+        return _cfg.ACP_JWT_EXP_ONLY_SIGNAL
+
+    @property
+    def _signal_jwt_no_exp(self) -> float:
+        return _cfg.ACP_JWT_NO_EXP_SIGNAL
+
+    @property
+    def _signal_jwt_invalid(self) -> float:
+        return _cfg.ACP_JWT_INVALID_SIGNAL
+
+    @property
+    def _signal_api_key_valid(self) -> float:
+        return _cfg.ACP_API_KEY_VALID_SIGNAL
+
+    @property
+    def _signal_api_key_invalid(self) -> float:
+        return _cfg.ACP_API_KEY_INVALID_SIGNAL
+
+    @property
+    def _signal_registry_new(self) -> float:
+        return _cfg.ACP_REGISTRY_NEW_AGENT_SIGNAL
+
+    @property
+    def _verified_threshold(self) -> float:
+        return _cfg.ACP_IDENTITY_VERIFIED_THRESHOLD
+
     def __init__(self, registry: AgentIdentityRegistry):
         self._registry = registry
 
@@ -1397,20 +1438,20 @@ class AgentIdentityVerifier:
             identity.update(registry_entry)
         else:
             warnings.append("not_in_registry")
-            # Auto-register with low initial trust
+            # Auto-register with low initial trust (config-tunable)
             self._registry.register(agent_identifier)
-            self._registry.update_trust(agent_identifier, 0.3)
-            trust_signals.append(0.3)
+            self._registry.update_trust(agent_identifier, self._signal_registry_new)
+            trust_signals.append(self._signal_registry_new)
 
-        # Signal 2: API key format validation
+        # Signal 2: API key format validation (config-tunable signal weights)
         if api_key:
             if isinstance(api_key, str) and len(api_key) >= self.MIN_KEY_LENGTH:
-                trust_signals.append(0.6)  # key present and reasonable format
+                trust_signals.append(self._signal_api_key_valid)
             else:
                 warnings.append("invalid_key_format")
-                trust_signals.append(0.1)
+                trust_signals.append(self._signal_api_key_invalid)
 
-        # Signal 3: JWT token validation (expiry check only)
+        # Signal 3: JWT token validation
         if token:
             token_trust = self._validate_token(token, warnings)
             trust_signals.append(token_trust)
@@ -1421,10 +1462,10 @@ class AgentIdentityVerifier:
         else:
             trust_score = 0.0
 
-        # Verified if trust >= 0.5 and no critical warnings
+        # Verified if trust >= configured threshold and no critical warnings
         critical_warnings = {"no_identifier", "token_expired"}
         has_critical = bool(critical_warnings & set(warnings))
-        verified = trust_score >= 0.5 and not has_critical
+        verified = trust_score >= self._verified_threshold and not has_critical
 
         return {
             "verified": verified,
@@ -1465,14 +1506,14 @@ class AgentIdentityVerifier:
             payload_bytes = _b64.urlsafe_b64decode(payload_b64)
             payload = json.loads(payload_bytes)
 
-            # --- Stage 2: expiry ---
+            # --- Stage 2: expiry (config-tunable signal weights) ---
             exp = payload.get("exp")
-            stage2_signal = 0.5  # default: no exp claim, neutral
+            stage2_signal = self._signal_jwt_no_exp
             if exp and isinstance(exp, (int, float)):
                 if exp < _time.time():
                     warnings.append("token_expired")
-                    return 0.1
-                stage2_signal = 0.7  # has valid future exp (old behavior)
+                    return self._signal_jwt_invalid
+                stage2_signal = self._signal_jwt_exp_only
 
             # --- Stage 3: cryptographic signature verification ---
             # Only attempt when acp_signatures is available AND the token
@@ -1526,9 +1567,9 @@ class AgentIdentityVerifier:
                 )
             except (JWTError, JWTClaimsError, JWKError, ValueError, TypeError) as e:
                 warnings.append(f"token_signature_invalid:{type(e).__name__}")
-                return 0.1  # actively suspicious
+                return self._signal_jwt_invalid  # actively suspicious
 
-            return 0.85  # signature verified — stronger than expiry-only
+            return self._signal_jwt_verified  # signature verified — strongest signal
 
         except (
             ValueError,
@@ -1539,7 +1580,7 @@ class AgentIdentityVerifier:
             json.JSONDecodeError,
         ):
             warnings.append("token_parse_error")
-            return 0.1
+            return self._signal_jwt_invalid
 
 
 agent_verifier = AgentIdentityVerifier(agent_registry)
@@ -2013,7 +2054,7 @@ class AgentBehavioralFingerprint:
 
             # Clamp risk score
             risk_score = float(max(0.0, min(1.0, risk_score)))
-            is_anomaly = risk_score >= 0.6
+            is_anomaly = risk_score >= _cfg.ACP_FINGERPRINT_ANOMALY_THRESHOLD
 
         # Record outside lock (record acquires its own lock)
         self.record(
@@ -3393,14 +3434,17 @@ def analyze_agent_transaction_impl(
         else:
             anomalies.append("missing_agent_identifier")
 
-        # Cryptographic signature verification adjusts identity trust.
-        # Verified signature → boost trust (capped at 1.0).
-        # Failed signature on claimed-agent request → drop trust (floored at 0.0).
+        # Cryptographic signature verification adjusts identity trust
+        # using config-tunable deltas (see config.ACP_PIPELINE_*).
         if verification_status == "verified":
-            identity_trust = min(1.0, identity_trust + 0.15)
+            identity_trust = min(
+                1.0, identity_trust + _cfg.ACP_PIPELINE_VERIFIED_TRUST_BOOST
+            )
             identity_verified = True
         elif verification_status == "verification_failed":
-            identity_trust = max(0.0, identity_trust - 0.30)
+            identity_trust = max(
+                0.0, identity_trust - _cfg.ACP_PIPELINE_FAILED_TRUST_DROP
+            )
             identity_verified = False
 
         # --- Behavioral fingerprint ---

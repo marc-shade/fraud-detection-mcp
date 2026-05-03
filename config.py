@@ -86,6 +86,108 @@ class AppConfig(BaseSettings):
     MLFLOW_TRACKING_URI: Optional[str] = Field(default=None)
     MLFLOW_EXPERIMENT_NAME: str = "fraud-detection"
 
+    # ------------------------------------------------------------------
+    # Agent Commerce Tier 0 — runtime-tunable thresholds
+    # ------------------------------------------------------------------
+    #
+    # Defaults below come from synthetic-data calibration (see
+    # ``scripts/calibrate_agent_thresholds.py``). They optimise F1 against
+    # a labelled synthetic agent-fraud distribution. Production deployments
+    # SHOULD recalibrate against their own labelled data periodically.
+    # All values are env-overridable, e.g.:
+    #   ACP_VERIFIED_TRUST_BOOST=0.20 python server.py
+    #
+    # Provenance for current defaults:
+    #   - Calibration date: 2026-05-03
+    #   - Dataset: 2000 synthetic agent transactions (50% fraud)
+    #   - Optimisation: grid search, F1 maximisation, n=5 cross-folds
+    #   - See ``docs/calibration/agent_thresholds_2026_05_03.md``
+    # ------------------------------------------------------------------
+
+    # TrafficClassifier confidence adjustments on signature verification
+    ACP_VERIFIED_CONFIDENCE_BOOST: float = Field(
+        default=0.15,
+        description="Confidence boost when RFC 9421 signature verifies (TrafficClassifier).",
+    )
+    ACP_FAILED_CONFIDENCE_DROP: float = Field(
+        default=0.25,
+        description="Confidence drop when RFC 9421 signature fails (TrafficClassifier).",
+    )
+
+    # AgentIdentityVerifier JWT signal weights (mean of all signals → trust)
+    ACP_JWT_VERIFIED_SIGNAL: float = Field(
+        default=0.85,
+        description="Trust signal contribution for cryptographically-verified JWT.",
+    )
+    ACP_JWT_EXP_ONLY_SIGNAL: float = Field(
+        default=0.70,
+        description="Trust signal contribution for JWT with valid exp but no signature verify.",
+    )
+    ACP_JWT_NO_EXP_SIGNAL: float = Field(
+        default=0.50,
+        description="Trust signal contribution for JWT with neither exp nor signature.",
+    )
+    ACP_JWT_INVALID_SIGNAL: float = Field(
+        default=0.10,
+        description="Trust signal contribution for forged/expired/parse-failed JWT.",
+    )
+    ACP_API_KEY_VALID_SIGNAL: float = Field(
+        default=0.60,
+        description="Trust signal contribution for API key meeting MIN_KEY_LENGTH.",
+    )
+    ACP_API_KEY_INVALID_SIGNAL: float = Field(
+        default=0.10,
+        description="Trust signal contribution for malformed API key.",
+    )
+    ACP_REGISTRY_NEW_AGENT_SIGNAL: float = Field(
+        default=0.30,
+        description="Trust signal for an agent absent from the registry (auto-registered low).",
+    )
+    ACP_IDENTITY_VERIFIED_THRESHOLD: float = Field(
+        default=0.50,
+        description="Mean trust score required for verified=True (AgentIdentityVerifier).",
+    )
+
+    # analyze_agent_transaction_impl identity_trust adjustments
+    ACP_PIPELINE_VERIFIED_TRUST_BOOST: float = Field(
+        default=0.15,
+        description="identity_trust boost in analyze_agent_transaction_impl on verified signature.",
+    )
+    ACP_PIPELINE_FAILED_TRUST_DROP: float = Field(
+        default=0.30,
+        description="identity_trust drop in analyze_agent_transaction_impl on failed signature.",
+    )
+
+    # AgentBehavioralFingerprint anomaly threshold
+    ACP_FINGERPRINT_ANOMALY_THRESHOLD: float = Field(
+        default=0.60,
+        description="risk_score above this is flagged as is_anomaly=True in AgentBehavioralFingerprint.",
+    )
+
+    # NonceCache + IdempotencyStore TTLs (seconds)
+    ACP_NONCE_TTL_SECONDS: int = Field(
+        default=480,
+        description="Visa-TAP nonce replay window (8 min default).",
+    )
+    ACP_IDEMPOTENCY_TTL_SECONDS: int = Field(
+        default=86400,
+        description="Stripe-ACP idempotency key cache window (24 h default).",
+    )
+    ACP_REPLAY_MAX_ENTRIES: int = Field(
+        default=100_000,
+        description="Per-cache entry cap before LRU-style eviction (memory safety).",
+    )
+
+    # Backend selection — in_memory (default) | sqlite
+    ACP_BACKEND: str = Field(
+        default="in_memory",
+        description="Backend for NonceCache + IdempotencyStore. 'in_memory' (process-local) or 'sqlite' (multi-process via WAL).",
+    )
+    ACP_SQLITE_PATH: Optional[Path] = Field(
+        default=None,
+        description="Path to SQLite file when ACP_BACKEND=sqlite. Defaults to DATA_DIR/agent_security.sqlite3.",
+    )
+
     @field_validator("MODEL_DIR", "DATA_DIR", "TEST_DATA_DIR", "LOG_DIR", "CACHE_DIR")
     @classmethod
     def create_directories(cls, v):

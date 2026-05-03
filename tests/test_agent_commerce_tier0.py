@@ -102,13 +102,18 @@ class TestBehavioralFingerprint12Features:
         assert abs(v[0, 12] - (2.0 / 6.0)) < 1e-6
 
     def test_stolen_token_replay_detected_by_payment_features(self):
-        """Build a baseline of consistent transactions, then replay against a
-        radically different merchant/amount/location distribution. Even with
-        identical timing, the 12-feature model must flag it as anomalous —
-        which the old 6-feature model could NOT do.
+        """Build a 60-observation baseline of tightly-clustered transactions,
+        then replay with matching timing/decision/structure but a radically
+        different merchant/amount/location/payment_method/hour. The
+        13-feature Isolation Forest must score this as a strong anomaly
+        (risk_score >= 0.7 — HIGH risk per existing thresholds).
+
+        With 60 observations and tight baseline distribution, the model
+        has enough data to make a confident decision; the divergent
+        attack should sit far from the learned manifold and score high.
         """
         fp = AgentBehavioralFingerprint()
-        agent_id = "stolen-token-victim"
+        agent_id = "stolen-token-victim-strong"
         consistent_txn = {
             "amount": 25.0,
             "merchant": "Starbucks",
@@ -117,22 +122,23 @@ class TestBehavioralFingerprint12Features:
             "timestamp": "2026-05-03T08:00:00Z",
             "currency": "USD",
         }
-        # Build 20-observation baseline — all very similar
-        for i in range(20):
+        # Build 60-observation baseline (well above MIN_OBSERVATIONS_FOR_MODEL
+        # threshold of 10) for high-confidence Isolation Forest training.
+        for i in range(60):
             fp.analyze(
                 agent_id=agent_id,
-                api_timing_ms=100.0 + (i % 3),  # tight timing
+                api_timing_ms=100.0 + (i % 3),
                 decision_pattern="approve",
                 request_structure_hash="checkout",
                 transaction=consistent_txn,
             )
-        # Now replay with same timing/decision/structure but different txn
+
         attack_txn = {
-            "amount": 9999.99,
-            "merchant": "AdversaryCasino",
-            "location": "Macau",
-            "payment_method": "crypto",
-            "timestamp": "2026-05-03T03:00:00Z",
+            "amount": 9999.99,         # 400x baseline
+            "merchant": "AdversaryCasino",   # never seen
+            "location": "Macau",       # never seen
+            "payment_method": "crypto",  # never seen (was 'card')
+            "timestamp": "2026-05-03T03:00:00Z",  # 3 AM vs 8 AM baseline
             "currency": "USDT",
         }
         result = fp.analyze(
@@ -142,10 +148,21 @@ class TestBehavioralFingerprint12Features:
             request_structure_hash="checkout",  # in baseline
             transaction=attack_txn,
         )
-        # The Isolation Forest trained on 12 features should still flag this.
-        # (Cannot guarantee high score across all random seeds, but anomaly
-        # behaviour should be present.)
-        assert result["risk_score"] > 0.4
+        # Strong assertion: with a 60-obs baseline and 5-feature divergence
+        # (amount + merchant + location + payment_method + hour), the
+        # IsolationForest trained on 13 features should score this as a
+        # confident anomaly. With the baseline matching on timing /
+        # decision_pattern / request_structure_hash, the transaction-shape
+        # features (indices 6-12) do all the work — proving they're
+        # genuinely required for stolen-token replay defence.
+        assert result["risk_score"] >= 0.7, (
+            f"expected risk >= 0.7 (HIGH); got {result['risk_score']}. "
+            f"details={result['details']}"
+        )
+        assert result["is_anomaly"] is True
+        # Confidence should be high (60-obs baseline is well above
+        # MIN_OBSERVATIONS_FOR_MODEL).
+        assert result["confidence"] >= 0.7
 
     def test_record_with_transaction_persists_features(self):
         fp = AgentBehavioralFingerprint()

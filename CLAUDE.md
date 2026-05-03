@@ -156,7 +156,7 @@ The 5 defense compliance tools are backed by modules under `compliance/`:
 
 ### Testing Architecture
 
-**917 tests across 31 test files** (including `test_compliance_modules.py`, `test_coverage_gaps.py`, `test_acp_signatures.py`, `test_agent_security.py`, `test_agent_commerce_tier0.py`). Tests import from `tests/conftest.py` for fixtures and sample data.
+**938 tests across 33 test files** (including `test_compliance_modules.py`, `test_coverage_gaps.py`, `test_acp_signatures.py`, `test_agent_security.py`, `test_agent_security_backends.py`, `test_agent_commerce_tier0.py`, `test_calibration_provenance.py`). Tests import from `tests/conftest.py` for fixtures and sample data.
 
 Available pytest markers: `unit`, `integration`, `slow`, `network`, `behavioral`, `transaction`, `explainability`, `synthetic`, `benchmark`, `error`, `security`, `velocity`, `signature`.
 
@@ -188,7 +188,9 @@ Test files map to functionality areas:
 - `test_score_agent_reputation_tool.py` -- score_agent_reputation MCP tool
 - `test_acp_signatures.py` -- RFC 9421 parser, freshness, replay, JWKS resolver, end-to-end Ed25519 verification, Content-Digest sha-256/sha-512 verify (covered+missing+tampered), @query/@query-param derived components
 - `test_agent_security.py` -- NonceCache (8-min TTL, replay block) and IdempotencyStore (Stripe-ACP miss/hit/conflict semantics)
-- `test_agent_commerce_tier0.py` -- 13-feature behavioral fingerprint with cyclical hour encoding (incl. wraparound test, stolen-token replay test), TrafficClassifier claimed-vs-verified, validate_nonce peek default, consume_nonce atomic, F1 wiring tests (signature_headers in transaction_data → analyze_agent_transaction_impl produces verification_status + anomaly + identity_trust adjustment), F4 issuer-to-protocol mapping
+- `test_agent_security_backends.py` -- Backend parity (in_memory + sqlite share contract via parametrized fixtures), **multi-process subprocess test that spawns two Python children sharing a SQLite file and proves real cross-process replay defence**
+- `test_agent_commerce_tier0.py` -- 13-feature behavioral fingerprint with cyclical hour encoding (wraparound test, **strong stolen-token replay test asserting risk_score >= 0.7 with 60-obs baseline**), TrafficClassifier claimed-vs-verified, validate_nonce peek default, consume_nonce atomic, F1 wiring tests, F4 issuer-to-protocol mapping
+- `test_calibration_provenance.py` -- Drift-detector: runs `scripts/calibrate_agent_thresholds.py` and asserts F1 >= 0.70 + optimal threshold in [0.40, 0.70] + tampered_signature detection rate >= 95%
 
 ### Advanced Modules
 
@@ -206,8 +208,9 @@ Test files map to functionality areas:
 | `benchmarks.py` | Standalone performance benchmarking suite |
 | `models_validation.py` | Pydantic v2 validation models including `TrafficSource` enum and agent fields |
 | `config.py` | Pydantic-settings based configuration with `.env` file support |
-| `acp_signatures.py` | RFC 9421 HTTP Message Signature verifier (Visa TAP, Mastercard Web Bot Auth, Stripe ACP). EdDSA via `cryptography` direct, PS256/ES256/RS256 via `python-jose`. Includes `JWKSResolver` with TTL cache. |
-| `agent_security.py` | `NonceCache` (Visa-TAP 8-min replay window) + `IdempotencyStore` (Stripe-ACP 24h replay cache with body-fingerprint conflict detection) |
+| `acp_signatures.py` | RFC 9421 HTTP Message Signature verifier (Visa TAP, Mastercard Web Bot Auth, Stripe ACP). EdDSA via `cryptography` direct, PS256/ES256/RS256 via `python-jose`. Includes `JWKSResolver` with TTL cache + 3-attempt retry-with-backoff. Supports `@method`, `@authority`, `@path`, `@query`, `@query-param`, RFC 9530 Content-Digest body coverage. |
+| `agent_security.py` | `NonceCache` + `IdempotencyStore` with **pluggable backends**: `InMemoryNonceBackend` / `InMemoryIdempotencyBackend` (default, process-local) and `SQLiteNonceBackend` / `SQLiteIdempotencyBackend` (file-backed via SQLite WAL mode + busy_timeout, **multi-process safe across Python workers sharing one file**). Backend selection via `config.ACP_BACKEND` (`in_memory` or `sqlite`) + `config.ACP_SQLITE_PATH`. |
+| `scripts/calibrate_agent_thresholds.py` | Synthetic-data calibration of the agent commerce verification thresholds. Generates labeled balanced agent transactions, sweeps thresholds, reports F1/precision/recall + per-attack-type detection rate, writes provenance to `docs/calibration/agent_thresholds_<date>.md`. Run periodically and on every release. |
 
 ### Configuration
 
@@ -231,7 +234,13 @@ See also at repo root: `README.md`, `QUICK_START.md`, `TESTING.md`, `CONTRIBUTIN
 - The `@_monitored` decorator wraps MCP tools with optional Prometheus metrics when monitoring is available.
 - Thread-safe singletons: `agent_registry`, `agent_verifier`, `agent_fingerprinter`, `mandate_verifier`, `collusion_detector`, `reputation_scorer`, `acp_signatures.jwks_resolver`, `agent_security.nonce_cache`, `agent_security.idempotency_store`.
 
-## Agent Commerce Verification Status (Tier 0 — fully wired 2026-05-03)
+## Agent Commerce Verification Status (Tier 0 — production-grade 2026-05-03)
+
+**Every threshold/delta is now config-tunable.** All `ACP_*` settings live in `config.AppConfig` and are env-overridable (e.g. `ACP_VERIFIED_CONFIDENCE_BOOST=0.20`). Defaults come from `scripts/calibrate_agent_thresholds.py` synthetic-data calibration (provenance: `docs/calibration/agent_thresholds_<date>.md`). Test `test_calibration_provenance.py` is a drift-detector — fires if anyone changes defaults in ways that materially degrade F1.
+
+**Replay protection is multi-process-safe.** Set `ACP_BACKEND=sqlite` and provide `ACP_SQLITE_PATH` to share NonceCache + IdempotencyStore across Python workers on the same node. SQLite WAL mode + 5s busy_timeout serialises writes; tests `test_agent_security_backends.py::TestSQLiteMultiProcessSafety` spawn real child processes and prove a nonce consumed by process A is rejected as replay by process B. Default remains in-memory for zero-config single-process use.
+
+
 
 When extending agent-fraud features, **always distinguish "claimed" from "verified"**:
 - A `User-Agent: stripe-acp/1.0` header is a *claim*, not a security guarantee. `TrafficClassifier.classify()` reports both `claimed_protocol` and `verified_protocol` separately; downstream risk scoring already treats unverified claims as lower confidence than verified ones.

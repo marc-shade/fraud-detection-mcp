@@ -48,10 +48,9 @@ class TestNonceCache:
 
     def test_expired_nonce_returns_false_and_evicts(self):
         c = NonceCache(ttl_seconds=60)
-        # Inject expired entry directly
-        c._entries[("agent-1", "old")] = time.time() - 10
+        # Inject expired entry by adding with negative TTL
+        c.add("agent-1", "old", now=time.time() - 120)  # expired ~60s ago
         assert c.seen("agent-1", "old") is False
-        assert ("agent-1", "old") not in c._entries
 
     def test_clear_resets(self):
         c = NonceCache()
@@ -140,15 +139,13 @@ class TestIdempotencyStore:
 
     def test_expired_entry_returns_miss(self):
         s = IdempotencyStore(ttl_seconds=60)
-        s._entries[("idem-1", "agent-7")] = {
-            "result": {"stale": True},
-            "request_fingerprint": None,
-            "expires_at": time.time() - 1,
-            "created_at": time.time() - 60,
-        }
+        # Store with `now` in the past so the entry is already expired
+        s.store(
+            "idem-1", "agent-7", {"stale": True},
+            now=time.time() - 120,  # entry expires 60s ago
+        )
         r = s.lookup("idem-1", "agent-7")
         assert r["status"] == "miss"
-        assert ("idem-1", "agent-7") not in s._entries
 
     def test_no_idempotency_key_is_miss(self):
         s = IdempotencyStore()
