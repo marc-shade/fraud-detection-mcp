@@ -98,6 +98,111 @@ class TestAgentIdentityRegistry:
         assert "agent-2" in agents
 
 
+class TestAgentRegistryMultiProcessSafety:
+    """Cross-process race tests for AgentIdentityRegistry.
+
+    The pre-fix implementation lost ~87% of registrations under 8-process
+    contention because ``open(file, 'w') + json.dump`` truncates first.
+    The fix uses ``fcntl`` advisory lock + tempfile + ``os.replace`` so
+    concurrent processes serialize and no writes are lost.
+    """
+
+    def test_concurrent_registrations_no_loss(self, tmp_path):
+        import sys
+        import subprocess
+        import json
+
+        registry_path = tmp_path / "race_registry.json"
+
+        # Child writes N agents under a unique prefix; parent verifies
+        # the registry holds total = N_PROCS * N_AGENTS_PER_PROC entries.
+        N_PROCS = 4
+        N_AGENTS_PER_PROC = 25
+        EXPECTED_TOTAL = N_PROCS * N_AGENTS_PER_PROC
+
+        project_root = str(Path(__file__).resolve().parent.parent)
+        child_script = (
+            f"import sys; sys.path.insert(0, {project_root!r})\n"
+            "from pathlib import Path\n"
+            "from server import AgentIdentityRegistry\n"
+            "import time\n"
+            "registry = AgentIdentityRegistry(Path(sys.argv[1]))\n"
+            "prefix = sys.argv[2]\n"
+            "n = int(sys.argv[3])\n"
+            "ready_file = Path(sys.argv[4])\n"
+            "go_file = Path(sys.argv[5])\n"
+            "ready_file.touch()\n"
+            "deadline = time.time() + 15\n"
+            "while not go_file.exists() and time.time() < deadline:\n"
+            "    time.sleep(0.005)\n"
+            "for i in range(n):\n"
+            "    registry.register(f'{prefix}-{i}')\n"
+            "print('done')\n"
+        )
+
+        ready_dir = tmp_path / "ready"
+        ready_dir.mkdir()
+        go_file = tmp_path / "go.flag"
+
+        procs = []
+        for p in range(N_PROCS):
+            ready_file = ready_dir / f"ready_{p}"
+            proc = subprocess.Popen(
+                [
+                    sys.executable, "-c", child_script,
+                    str(registry_path), f"agent-p{p}",
+                    str(N_AGENTS_PER_PROC),
+                    str(ready_file), str(go_file),
+                ],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            )
+            procs.append(proc)
+
+        # Wait until all children are ready. Server imports + sklearn +
+        # torch can take 10-30s per child process; 120s deadline gives
+        # plenty of slack on slow CI without false positives.
+        import time
+        deadline = time.time() + 120
+        while time.time() < deadline:
+            ready = sum(1 for f in ready_dir.iterdir() if f.is_file())
+            if ready >= N_PROCS:
+                break
+            time.sleep(0.1)
+        else:
+            ready_count = sum(1 for f in ready_dir.iterdir() if f.is_file())
+            for p in procs:
+                p.kill()
+            raise AssertionError(
+                f"only {ready_count}/{N_PROCS} children became ready in 120s"
+            )
+
+        # Drop the go-flag
+        go_file.touch()
+
+        for proc in procs:
+            stdout, stderr = proc.communicate(timeout=60)
+            assert proc.returncode == 0, (
+                f"child failed: rc={proc.returncode} stdout={stdout!r} stderr={stderr!r}"
+            )
+
+        # Verify the registry file is well-formed JSON
+        text = registry_path.read_text()
+        data = json.loads(text)  # raises if corrupted
+
+        # Every single registration should be present — pre-fix this lost
+        # ~87% of registrations under the same workload.
+        assert len(data) == EXPECTED_TOTAL, (
+            f"Expected {EXPECTED_TOTAL} agents, found {len(data)}. "
+            f"Lost {EXPECTED_TOTAL - len(data)} agent registrations to race "
+            f"— AgentIdentityRegistry write path is NOT multi-process safe."
+        )
+
+        # Sanity: every prefix range is fully present
+        for p in range(N_PROCS):
+            for i in range(N_AGENTS_PER_PROC):
+                assert f"agent-p{p}-{i}" in data, f"missing agent-p{p}-{i}"
+
+
 class TestAgentIdentityVerifier:
     """Tests for agent credential validation"""
 

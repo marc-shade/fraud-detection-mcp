@@ -59,19 +59,19 @@ mypy server.py --ignore-missing-imports
 
 ### Core Analyzer Classes (server.py)
 
-1. **`BehavioralBiometrics`** -- Keystroke dynamics via Isolation Forest, mouse movement patterns via One-Class SVM, touch screen patterns via LOF. Extracts 10 statistical features (5 dwell time + 5 flight time).
+1. **`BehavioralBiometrics`** -- Keystroke dynamics via Isolation Forest, mouse movement patterns via One-Class SVM, touch screen patterns via LOF. Extracts 10 statistical features (5 dwell time + 5 flight time). Reported `confidence` is derived from sample size (saturating at ~20 keystrokes) and decision-boundary margin, capped at 0.85 because the model bootstraps from synthetic gaussian data (replace via `train_models` for higher justified confidence).
 
-2. **`TransactionAnalyzer`** -- 46-feature extraction via `FeatureEngineer`, Isolation Forest + Autoencoder ensemble scoring with configurable weights (default 60/40). Supports model persistence (`save_models`/`load_models` to `models/saved/`), hot-reload after training, and falls back to synthetic-data initialization when no saved models exist.
+2. **`TransactionAnalyzer`** -- 46-feature extraction via `FeatureEngineer`, Isolation Forest + Autoencoder ensemble scoring with configurable weights (default 60/40). Supports model persistence (`save_models`/`load_models` to `models/saved/`), hot-reload after training, and falls back to synthetic-data initialization when no saved models exist. Reported `confidence` is derived from decision-boundary margin (60%) + IF/AE ensemble agreement (40%) + a small uplift when models came from real-data training rather than the synthetic bootstrap; capped at 0.95.
 
 3. **`UserTransactionHistory`** -- Thread-safe, bounded per-user transaction history for velocity analysis. Uses `collections.deque` with LRU eviction. Provides `record()`, `get_history()`, `check_velocity()`, and `get_user_stats()` methods.
 
-4. **`NetworkAnalyzer`** -- Builds a NetworkX graph of entity connections. Calculates degree, clustering coefficient, betweenness/closeness centrality for fraud ring detection.
+4. **`NetworkAnalyzer`** -- Builds a NetworkX graph of entity connections. Calculates degree, clustering coefficient, betweenness/closeness centrality for fraud ring detection. Reported `confidence` is derived from total graph size + per-entity local connectivity (each saturating exponentially) and capped at 0.9 — small graphs return low confidence, dense neighborhoods on a 50+ node graph saturate near the cap.
 
 ### Agent Transaction Protection Classes (server.py)
 
 5. **`TrafficClassifier`** -- Classifies transactions as human, agent, or unknown. Recognizes 9 agent protocols (Stripe ACP, Visa TAP, Mastercard Agent Pay, Google AP2, PayPal, Coinbase, OpenAI, Anthropic, x402) via user_agent patterns, explicit flags, and agent identifiers. **Reports BOTH `claimed_protocol` (string-match only) AND `verified_protocol` (passes RFC 9421 signature verification)**, plus `verification_status` enum {`verified`, `unverified`, `verification_failed`, `no_signature_provided`, `verification_unavailable`}. Downstream code MUST distinguish the two: a User-Agent string is not a security guarantee.
 
-6. **`AgentIdentityRegistry`** -- Thread-safe JSON-backed registry at `data/agent_registry.json`. Tracks agent_id, agent_type, first_seen, last_seen, transaction_count, trust_score. Methods: `register()`, `lookup()`, `record_transaction()`, `update_trust()`, `list_agents()`.
+6. **`AgentIdentityRegistry`** -- Thread- and process-safe JSON-backed registry at `data/agent_registry.json`. Tracks agent_id, agent_type, first_seen, last_seen, transaction_count, trust_score. Methods: `register()`, `lookup()`, `record_transaction()`, `update_trust()`, `list_agents()`, `refresh()`. Multi-process safety: every mutation acquires an exclusive `fcntl.flock` advisory lock on `data/agent_registry.json.lock`, re-reads the file under the lock, applies the change, and writes back via `tempfile + os.replace` (atomic rename). Pre-fix this used `open + json.dump` (truncate-then-write) and lost ~87% of registrations under 8-process contention; the fix is verified by `tests/test_agent_identity.py::TestAgentRegistryMultiProcessSafety::test_concurrent_registrations_no_loss` which spawns 4 children each registering 25 agents and asserts all 100 are present in the final registry. On Windows where `fcntl` is unavailable, the registry degrades to thread-only locking.
 
 7. **`AgentIdentityVerifier`** -- Validates agent credentials. Three signals: registry membership, API key format (min 16 chars), JWT token (3-stage validation: parse → exp claim → cryptographic signature verification against issuer's JWKS via `acp_signatures.jwks_resolver` when an `iss` claim is present). Trust = average of signals. Verified = trust >= 0.5 and no critical warnings. A *crypto-verified* JWT contributes 0.85 (vs 0.7 for exp-only and 0.1 for forged). Auto-registers unknown agents with trust=0.3.
 
@@ -156,7 +156,7 @@ The 5 defense compliance tools are backed by modules under `compliance/`:
 
 ### Testing Architecture
 
-**943 tests across 33 test files** (including `test_compliance_modules.py`, `test_coverage_gaps.py`, `test_acp_signatures.py`, `test_agent_security.py`, `test_agent_security_backends.py`, `test_agent_commerce_tier0.py`, `test_calibration_provenance.py`). Tests import from `tests/conftest.py` for fixtures and sample data.
+**945 tests across 33 test files** (including `test_compliance_modules.py`, `test_coverage_gaps.py`, `test_acp_signatures.py`, `test_agent_security.py`, `test_agent_security_backends.py`, `test_agent_commerce_tier0.py`, `test_calibration_provenance.py`). Tests import from `tests/conftest.py` for fixtures and sample data.
 
 Available pytest markers: `unit`, `integration`, `slow`, `network`, `behavioral`, `transaction`, `explainability`, `synthetic`, `benchmark`, `error`, `security`, `velocity`, `signature`.
 

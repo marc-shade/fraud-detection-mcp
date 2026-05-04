@@ -260,11 +260,13 @@ class TestNetworkAnalysis:
         # Graph should have grown
         assert len(analyzer.transaction_graph.nodes()) > initial_node_count
 
-    def test_confidence_score_value(self, analyzer, sample_network_data):
-        """Test that confidence score has expected value"""
+    def test_confidence_in_valid_range(self, analyzer, sample_network_data):
+        """Confidence is derived from graph size + entity connectivity
+        and is bounded in [0, 0.9]. (Pre-fix this asserted a hardcoded
+        constant 0.82 — theater; it never moved with inputs.)"""
         result = analyzer.analyze_network_risk(sample_network_data)
 
-        assert result["confidence"] == 0.82
+        assert 0.0 <= result["confidence"] <= 0.9
 
     def test_error_handling(self, analyzer):
         """Test error handling with malformed data"""

@@ -120,11 +120,13 @@ class TestEnsembleScoring:
         result = transaction_analyzer.analyze_transaction({"amount": 100})
         assert result["analysis_type"] == "transaction_pattern"
 
-    def test_confidence_unchanged(self):
+    def test_confidence_in_valid_range(self):
+        """Confidence is now derived from margin + ensemble agreement, not
+        a hardcoded constant. Bounded in [0, 0.95]."""
         from server import transaction_analyzer
 
         result = transaction_analyzer.analyze_transaction({"amount": 100})
-        assert result["confidence"] == 0.88
+        assert 0.0 <= result["confidence"] <= 0.95
 
 
 class TestAutoencoderPersistence:

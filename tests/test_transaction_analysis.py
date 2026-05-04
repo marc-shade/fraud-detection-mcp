@@ -176,11 +176,14 @@ class TestTransactionAnalysis:
 
         assert 0.0 <= result["risk_score"] <= 1.0
 
-    def test_confidence_score_value(self, analyzer, sample_transaction_data):
-        """Test that confidence score has expected value"""
+    def test_confidence_in_valid_range(self, analyzer, sample_transaction_data):
+        """Confidence is derived from decision-margin + ensemble agreement
+        and is bounded in [0, 0.95]. (Pre-fix this asserted a hardcoded
+        constant 0.88 — that was theater; the value never moved with
+        inputs and didn't reflect actual model uncertainty.)"""
         result = analyzer.analyze_transaction(sample_transaction_data)
 
-        assert result["confidence"] == 0.88
+        assert 0.0 <= result["confidence"] <= 0.95
 
     def test_anomaly_score_returned(self, analyzer, sample_transaction_data):
         """Test that anomaly score is included in results"""

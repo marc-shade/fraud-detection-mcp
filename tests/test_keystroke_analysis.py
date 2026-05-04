@@ -232,8 +232,31 @@ class TestKeystrokeDynamicsAnalysis:
 
         assert 0.0 <= result["risk_score"] <= 1.0
 
-    def test_confidence_score_value(self, analyzer, sample_keystroke_data):
-        """Test that confidence score has expected value"""
+    def test_confidence_in_valid_range(self, analyzer, sample_keystroke_data):
+        """Confidence is derived from sample size + decision-margin and is
+        bounded in [0, 0.85]. (The 0.85 cap reflects the synthetic-data
+        bootstrap; a real-trained model would justify higher.)"""
         result = analyzer.analyze_keystroke_dynamics(sample_keystroke_data)
 
-        assert result["confidence"] == 0.85
+        assert 0.0 <= result["confidence"] <= 0.85
+        # With a non-trivial sample, confidence should not be zero
+        assert result["confidence"] > 0.0
+
+    def test_confidence_grows_with_sample_size(self, analyzer):
+        """More keystrokes → higher confidence (the size-component is
+        a real signal, not a constant)."""
+        small = [
+            {"key": "a", "press_time": 0.0, "release_time": 0.1},
+            {"key": "b", "press_time": 0.2, "release_time": 0.3},
+        ]
+        large = [
+            {"key": chr(97 + (i % 26)), "press_time": i * 0.1,
+             "release_time": i * 0.1 + 0.05}
+            for i in range(40)
+        ]
+        small_conf = analyzer.analyze_keystroke_dynamics(small)["confidence"]
+        large_conf = analyzer.analyze_keystroke_dynamics(large)["confidence"]
+        assert large_conf > small_conf, (
+            f"Confidence should grow with sample size: "
+            f"small={small_conf}, large={large_conf}"
+        )
