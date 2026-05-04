@@ -583,7 +583,10 @@ def verify_rfc9421_signature(
                     "warnings": warnings,
                 }
 
-    # Nonce replay protection
+    # Nonce replay protection — early peek (optimization only). The
+    # *atomic* commit happens after successful crypto verify, below, via
+    # ``nonce_cache.consume(...)`` — that is what actually defends against
+    # concurrent replay (the early peek is racy by design).
     if nonce_cache is not None and sig_input.nonce:
         seen = nonce_cache.seen(sig_input.keyid, sig_input.nonce)
         if seen:
@@ -665,9 +668,19 @@ def verify_rfc9421_signature(
             "warnings": warnings,
         }
 
-    # Mark nonce as seen *after* successful verification
+    # Atomically commit the nonce *after* successful verification. If a
+    # concurrent caller raced us through the early peek above, ``consume``
+    # will return False for the loser — we then reject as replay even
+    # though crypto succeeded. Both threads/processes can't slip through.
     if nonce_cache is not None and sig_input.nonce:
-        nonce_cache.add(sig_input.keyid, sig_input.nonce)
+        accepted = nonce_cache.consume(sig_input.keyid, sig_input.nonce)
+        if not accepted:
+            return {
+                "verified": False,
+                "reason": "nonce_replay_detected_at_commit",
+                "signature_input": _siginput_to_dict(sig_input),
+                "warnings": warnings,
+            }
 
     age = (now or time.time()) - sig_input.created
     return {

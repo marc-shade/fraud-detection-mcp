@@ -69,6 +69,18 @@ class NonceBackend(abc.ABC):
     def add(self, keyid: str, nonce: str, expires_at: float) -> None: ...
 
     @abc.abstractmethod
+    def consume(
+        self, keyid: str, nonce: str, expires_at: float, now: float
+    ) -> bool:
+        """Atomic check-and-add. Returns True if the nonce was unseen and is
+        now recorded; False if it had already been seen (replay).
+
+        Implementations MUST be atomic across whatever concurrency boundary
+        they claim to support: thread-safe for in-memory backends, *and*
+        process-safe for SQLite/Redis backends.
+        """
+
+    @abc.abstractmethod
     def stats(self) -> Dict[str, Any]: ...
 
     @abc.abstractmethod
@@ -133,11 +145,24 @@ class InMemoryNonceBackend(NonceBackend):
             self._entries[(keyid, nonce)] = expires_at
             now = time.time()
             self._maybe_sweep_unlocked(now)
-            if len(self._entries) > self._max:
-                excess = len(self._entries) - self._max
-                ordered = sorted(self._entries.items(), key=lambda kv: kv[1])
-                for k, _ in ordered[:excess]:
-                    self._entries.pop(k, None)
+            self._evict_unlocked()
+
+    def consume(
+        self, keyid: str, nonce: str, expires_at: float, now: float
+    ) -> bool:
+        """Atomic check-and-add under one lock acquisition.
+
+        Returns True if the nonce was unseen (or expired) and is now
+        recorded fresh; False if it was already seen and unexpired (replay).
+        """
+        with self._lock:
+            existing = self._entries.get((keyid, nonce))
+            if existing is not None and existing >= now:
+                return False  # replay: still valid in cache
+            self._entries[(keyid, nonce)] = expires_at
+            self._maybe_sweep_unlocked(now)
+            self._evict_unlocked()
+            return True
 
     def stats(self) -> Dict[str, Any]:
         with self._lock:
@@ -151,6 +176,14 @@ class InMemoryNonceBackend(NonceBackend):
         with self._lock:
             self._entries.clear()
             self._calls_since_sweep = 0
+
+    def _evict_unlocked(self) -> None:
+        if len(self._entries) <= self._max:
+            return
+        excess = len(self._entries) - self._max
+        ordered = sorted(self._entries.items(), key=lambda kv: kv[1])
+        for k, _ in ordered[:excess]:
+            self._entries.pop(k, None)
 
     def _maybe_sweep_unlocked(self, now: float) -> None:
         self._calls_since_sweep += 1
@@ -325,9 +358,49 @@ class SQLiteNonceBackend(NonceBackend):
                 "VALUES(?, ?, ?)",
                 (keyid, nonce, float(expires_at)),
             )
+            self._conn.commit()
             now = time.time()
             self._maybe_sweep_unlocked(now)
             self._maybe_evict_unlocked()
+
+    def consume(
+        self, keyid: str, nonce: str, expires_at: float, now: float
+    ) -> bool:
+        """Atomic check-and-add via SQLite ``BEGIN IMMEDIATE`` + ``INSERT ...
+        ON CONFLICT DO NOTHING``.
+
+        ``BEGIN IMMEDIATE`` acquires the writer lock at statement start, so
+        concurrent processes serialize on the database file (busy_timeout =
+        5s). Within the transaction we evict an expired entry for the
+        target nonce and then attempt an insert that no-ops on conflict.
+        ``rowcount`` distinguishes ``1`` (we won — first claim) from ``0``
+        (we lost — replay).
+
+        Returns True if the nonce was unseen/expired and is now recorded;
+        False if a valid entry existed (replay).
+        """
+        with self._lock:
+            try:
+                self._conn.execute("BEGIN IMMEDIATE")
+                # Evict an expired entry for THIS nonce (cheap, targeted)
+                self._conn.execute(
+                    "DELETE FROM nonces WHERE keyid = ? AND nonce = ? "
+                    "AND expires_at < ?",
+                    (keyid, nonce, now),
+                )
+                cur = self._conn.execute(
+                    "INSERT INTO nonces(keyid, nonce, expires_at) "
+                    "VALUES(?, ?, ?) ON CONFLICT(keyid, nonce) DO NOTHING",
+                    (keyid, nonce, float(expires_at)),
+                )
+                accepted = cur.rowcount == 1
+                self._conn.commit()
+            except Exception:
+                self._conn.rollback()
+                raise
+            self._maybe_sweep_unlocked(now)
+            self._maybe_evict_unlocked()
+            return accepted
 
     def stats(self) -> Dict[str, Any]:
         with self._lock:
@@ -533,6 +606,21 @@ class NonceCache:
             return
         n = now or time.time()
         self._backend.add(keyid, nonce, n + self._ttl)
+
+    def consume(self, keyid: str, nonce: str, now: Optional[float] = None) -> bool:
+        """Atomic check-and-add. Returns True if accepted (first sight),
+        False if the nonce was already seen (replay).
+
+        This is the operation a signature verifier should call AFTER
+        successful cryptographic verification. Unlike ``seen()`` followed by
+        ``add()``, this is safe under concurrent threads AND processes (when
+        backed by SQLite).
+        """
+        if not nonce:
+            # Empty nonce: never seen, never recorded
+            return False
+        n = now or time.time()
+        return self._backend.consume(keyid, nonce, n + self._ttl, n)
 
     def stats(self) -> Dict[str, Any]:
         s = self._backend.stats()

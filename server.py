@@ -3809,21 +3809,26 @@ def consume_nonce_impl(keyid: str, nonce: str) -> Dict[str, Any]:
             "reason": "module_unavailable",
         }
 
-    seen = _agent_nonce_cache.seen(keyid, nonce)
-    if seen:
+    # Atomic check-and-add. Safe under concurrent threads AND processes
+    # (with the SQLite backend) — uses BEGIN IMMEDIATE + ON CONFLICT DO
+    # NOTHING so two callers racing on the same nonce will see exactly one
+    # ``accepted=True`` and the rest ``replayed=True``.
+    accepted = _agent_nonce_cache.consume(keyid, nonce)
+    stats = _agent_nonce_cache.stats()
+    if accepted:
         return {
-            "accepted": False,
-            "replayed": True,
-            "reason": "nonce_replay_detected",
+            "accepted": True,
+            "replayed": False,
+            "reason": "nonce_recorded",
             "keyid": keyid,
             "nonce": nonce,
+            "ttl_seconds": stats["ttl_seconds"],
+            "cache_size": stats["size"],
         }
-    _agent_nonce_cache.add(keyid, nonce)
-    stats = _agent_nonce_cache.stats()
     return {
-        "accepted": True,
-        "replayed": False,
-        "reason": "nonce_recorded",
+        "accepted": False,
+        "replayed": True,
+        "reason": "nonce_replay_detected",
         "keyid": keyid,
         "nonce": nonce,
         "ttl_seconds": stats["ttl_seconds"],

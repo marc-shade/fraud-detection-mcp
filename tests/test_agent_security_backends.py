@@ -90,6 +90,41 @@ class TestNonceBackendsParity:
         c.clear()
         assert c.stats()["size"] == 0
 
+    def test_consume_first_call_accepts_second_replays(self, nonce_cache_with_backend):
+        c = nonce_cache_with_backend
+        assert c.consume("agent-1", "fresh-nonce") is True
+        assert c.consume("agent-1", "fresh-nonce") is False  # replay
+
+    def test_consume_thread_race_exactly_one_winner(self, nonce_cache_with_backend):
+        """All N threads racing to consume the same nonce — exactly one wins."""
+        import threading
+
+        c = nonce_cache_with_backend
+        N = 50
+        results: list[bool] = []
+        results_lock = threading.Lock()
+        barrier = threading.Barrier(N)
+
+        def race():
+            barrier.wait()
+            r = c.consume("race-key", "thread-race-nonce")
+            with results_lock:
+                results.append(r)
+
+        threads = [threading.Thread(target=race) for _ in range(N)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        accepted = sum(1 for r in results if r)
+        replayed = sum(1 for r in results if not r)
+        assert accepted == 1, (
+            f"Expected exactly 1 acceptance under thread race, got "
+            f"{accepted} accepted / {replayed} replayed. consume() not atomic."
+        )
+        assert replayed == N - 1
+
 
 class TestIdempotencyBackendsParity:
     def test_miss_then_store_then_hit(self, idempotency_store_with_backend):
@@ -141,19 +176,32 @@ action = sys.argv[1]
 db_path = sys.argv[2]
 keyid = sys.argv[3]
 nonce = sys.argv[4]
+ready_file = sys.argv[5] if len(sys.argv) > 5 else None
+go_file = sys.argv[6] if len(sys.argv) > 6 else None
 
 cache = NonceCache(ttl_seconds=60,
                    backend=SQLiteNonceBackend(path=Path(db_path)))
 
 if action == "consume":
-    seen = cache.seen(keyid, nonce)
-    if not seen:
-        cache.add(keyid, nonce)
-        print(json.dumps({"accepted": True, "replayed": False}))
-    else:
-        print(json.dumps({"accepted": False, "replayed": True}))
+    # Atomic check-and-add. This is the production code path —
+    # see agent_security.NonceCache.consume() and the SQLite backend's
+    # BEGIN IMMEDIATE + INSERT ... ON CONFLICT DO NOTHING.
+    accepted = cache.consume(keyid, nonce)
+    print(json.dumps({"accepted": accepted, "replayed": not accepted}))
 elif action == "peek":
     print(json.dumps({"seen": cache.seen(keyid, nonce)}))
+elif action == "consume_with_barrier":
+    # Cross-process race test: signal ready, then wait for go-signal,
+    # then race to consume the SAME nonce. Exactly one process should
+    # win (accepted=True); the rest must lose (accepted=False).
+    if ready_file:
+        Path(ready_file).touch()
+    if go_file:
+        deadline = time.time() + 10.0
+        while not Path(go_file).exists() and time.time() < deadline:
+            time.sleep(0.005)
+    accepted = cache.consume(keyid, nonce)
+    print(json.dumps({"accepted": accepted, "replayed": not accepted}))
 """
 
 
@@ -206,6 +254,85 @@ class TestSQLiteMultiProcessSafety:
         # Process B agrees — empty cache
         r_b = _run_child("peek", db_path, "k", "never-added")
         assert r_b == {"seen": False}
+
+    def test_concurrent_consume_atomic_across_processes(self, tmp_path):
+        """REAL race test: spawn N child processes that all race to consume
+        the same nonce simultaneously. Exactly ONE must win (accepted=True);
+        the rest must lose (replayed=True).
+
+        This caught a TOCTOU race in the pre-atomic ``seen() then add()``
+        pattern where 30 concurrent processes ALL got accepted=True.
+        """
+        import json
+        import time
+
+        db_path = str(tmp_path / "race.sqlite3")
+        keyid = "race-key"
+        nonce = "race-nonce-only-one-winner"
+
+        # Initialize the schema once in the parent so children can race
+        # without colliding on schema creation.
+        from agent_security import NonceCache, SQLiteNonceBackend
+        NonceCache(backend=SQLiteNonceBackend(path=Path(db_path)))
+
+        N_PROCS = 8
+        ready_dir = tmp_path / "ready"
+        ready_dir.mkdir()
+        go_file = tmp_path / "go.flag"
+
+        project_root = str(Path(__file__).resolve().parent.parent)
+        script = _CHILD_SCRIPT_TEMPLATE % project_root
+
+        procs = []
+        for i in range(N_PROCS):
+            ready_file = ready_dir / f"ready_{i}"
+            p = subprocess.Popen(
+                [
+                    sys.executable, "-c", script, "consume_with_barrier",
+                    db_path, keyid, nonce, str(ready_file), str(go_file),
+                ],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+            )
+            procs.append(p)
+
+        # Wait until all children signal ready
+        deadline = time.time() + 15.0
+        while time.time() < deadline:
+            ready = sum(1 for f in ready_dir.iterdir() if f.is_file())
+            if ready >= N_PROCS:
+                break
+            time.sleep(0.01)
+        else:
+            for p in procs:
+                p.kill()
+            raise AssertionError("children did not all become ready in time")
+
+        # Drop the go-flag — children unblock simultaneously
+        go_file.touch()
+
+        # Collect results
+        accepted_count = 0
+        replayed_count = 0
+        for p in procs:
+            stdout, stderr = p.communicate(timeout=20)
+            assert p.returncode == 0, (
+                f"child failed: rc={p.returncode} stdout={stdout!r} stderr={stderr!r}"
+            )
+            last = [ln for ln in stdout.strip().splitlines() if ln.startswith("{")][-1]
+            r = json.loads(last)
+            if r["accepted"]:
+                accepted_count += 1
+            else:
+                replayed_count += 1
+
+        assert accepted_count == 1, (
+            f"Expected exactly 1 acceptance under cross-process race, got "
+            f"{accepted_count} accepted / {replayed_count} replayed. "
+            f"This means consume() is NOT atomic across processes — replay "
+            f"protection is broken."
+        )
+        assert replayed_count == N_PROCS - 1
 
 
 # ---------------------------------------------------------------------------
