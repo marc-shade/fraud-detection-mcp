@@ -246,3 +246,9 @@ htmlcov/
 *.pyc
 .env.*
 !.env.example
+# Fraud-detection-mcp runtime
+data/agent_registry.json
+data/agent_registry.json.lock
+data/*.sqlite3
+data/*.sqlite3-*
+
