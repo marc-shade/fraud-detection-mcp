@@ -134,6 +134,13 @@ model_cache_hits = Counter(
     registry=REGISTRY,
 )
 
+model_cache_misses = Counter(
+    "fraud_model_cache_misses_total",
+    "Model cache misses (paired with model_cache_hits — needed to compute hit rate externally).",
+    ["cache_type"],
+    registry=REGISTRY,
+)
+
 # Application Info
 app_info = Info(
     "fraud_detection_app", "Fraud detection application information", registry=REGISTRY
@@ -350,6 +357,13 @@ class MonitoringManager:
     def record_cache_hit(self, cache_type: str) -> None:
         """Record cache hit."""
         model_cache_hits.labels(cache_type=cache_type).inc()
+
+    def record_cache_miss(self, cache_type: str) -> None:
+        """Record cache miss. Pairs with record_cache_hit so an external
+        Prometheus dashboard can compute hit-rate as
+        ``hits / (hits + misses)``. Pre-fix only hits were exported,
+        making the rate uncomputable."""
+        model_cache_misses.labels(cache_type=cache_type).inc()
 
     def update_system_metrics(self) -> None:
         """Update system resource metrics."""

@@ -1818,171 +1818,12 @@ traffic_classifier = TrafficClassifier()
 # =============================================================================
 
 
-class AgentIdentityRegistry:
-    """Thread- and process-safe JSON-backed registry of known AI agent identities.
-
-    Tracks agent identifiers, types, trust scores, and transaction history.
-
-    **Concurrency model**: every mutation acquires an exclusive ``fcntl``
-    advisory lock on the registry file (or its sibling ``.lock`` file on
-    platforms where ``fcntl`` is unavailable), re-reads from disk, applies
-    the change to that fresh state, and writes back atomically via
-    tempfile-then-rename. This means concurrent processes see each other's
-    writes; the older "open + json.dump" pattern was demonstrated to lose
-    87% of registrations under 8-process contention (see
-    ``tests/test_agent_security_backends.py``).
-    """
-
-    def __init__(self, registry_path: Optional[Path] = None):
-        self._path = registry_path or Path("data/agent_registry.json")
-        self._thread_lock = threading.Lock()
-        self._lock_path = self._path.with_suffix(self._path.suffix + ".lock")
-        self._agents: Dict[str, Dict[str, Any]] = {}
-        self._load_unlocked()
-
-    def _load_unlocked(self):
-        """Load registry from disk into ``self._agents``. Used inside the
-        critical section after acquiring the file lock — and once at __init__
-        before any other process is accessing this instance."""
-        if self._path.exists():
-            try:
-                with open(self._path, "r") as f:
-                    data = f.read()
-                if data.strip():
-                    self._agents = json.loads(data)
-                else:
-                    self._agents = {}
-            except (json.JSONDecodeError, OSError):
-                # Corrupted JSON or read error: treat as empty so we can
-                # rebuild rather than refuse-to-start.
-                self._agents = {}
-        else:
-            self._agents = {}
-
-    def _atomic_write_unlocked(self) -> None:
-        """Write ``self._agents`` to disk via tempfile + os.replace.
-
-        ``os.replace`` is atomic on POSIX and Windows (NTFS) — readers see
-        either the old file or the new file, never a half-written one.
-        Caller MUST hold both ``_thread_lock`` and the file lock.
-        """
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        # Use NamedTemporaryFile in the same directory so os.replace is on
-        # the same filesystem (cross-fs rename is not atomic).
-        import tempfile as _tempfile
-        fd = None
-        tmp_path = None
-        try:
-            fd, tmp_path_str = _tempfile.mkstemp(
-                prefix=".agent_registry.",
-                suffix=".tmp",
-                dir=str(self._path.parent),
-            )
-            tmp_path = Path(tmp_path_str)
-            with os.fdopen(fd, "w") as f:
-                fd = None  # ownership transferred to file object
-                json.dump(self._agents, f, indent=2, default=str)
-                f.flush()
-                os.fsync(f.fileno())
-            os.replace(tmp_path, self._path)
-            tmp_path = None
-        finally:
-            if fd is not None:
-                try:
-                    os.close(fd)
-                except OSError:
-                    pass
-            if tmp_path is not None and tmp_path.exists():
-                try:
-                    tmp_path.unlink()
-                except OSError:
-                    pass
-
-    @contextlib.contextmanager
-    def _file_lock(self):
-        """Cross-process exclusive lock via ``fcntl.flock`` on a sibling
-        ``.lock`` file. POSIX-only; on platforms without ``fcntl`` (Windows)
-        this degrades to thread-local locking only — log a warning so the
-        operator knows.
-        """
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        if fcntl is None:
-            # No cross-process lock available; thread lock only.
-            yield
-            return
-        # Open lock file (create if missing). Keep the fd open for the
-        # duration of the critical section.
-        lock_fd = os.open(
-            str(self._lock_path),
-            os.O_RDWR | os.O_CREAT,
-            0o600,
-        )
-        try:
-            fcntl.flock(lock_fd, fcntl.LOCK_EX)
-            try:
-                yield
-            finally:
-                fcntl.flock(lock_fd, fcntl.LOCK_UN)
-        finally:
-            os.close(lock_fd)
-
-    def register(
-        self, agent_id: str, agent_type: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """Register a new agent or return existing entry. Multi-process safe."""
-        with self._thread_lock, self._file_lock():
-            self._load_unlocked()  # pick up any other process's writes
-            if agent_id in self._agents:
-                return self._agents[agent_id]
-            entry = {
-                "agent_id": agent_id,
-                "agent_type": agent_type,
-                "first_seen": datetime.now().isoformat(),
-                "last_seen": datetime.now().isoformat(),
-                "transaction_count": 0,
-                "trust_score": 0.5,
-            }
-            self._agents[agent_id] = entry
-            self._atomic_write_unlocked()
-            return entry
-
-    def lookup(self, agent_id: str) -> Optional[Dict[str, Any]]:
-        """Look up an agent. Reads in-memory cache (no file lock); for
-        callers that need cross-process freshness, call ``refresh()`` first."""
-        with self._thread_lock:
-            return self._agents.get(agent_id)
-
-    def refresh(self) -> None:
-        """Re-read the registry file under the file lock. Use this when a
-        caller needs to see writes made by other processes since this
-        instance's last mutation."""
-        with self._thread_lock, self._file_lock():
-            self._load_unlocked()
-
-    def record_transaction(self, agent_id: str):
-        """Record a transaction for an agent, incrementing count. MP-safe."""
-        with self._thread_lock, self._file_lock():
-            self._load_unlocked()
-            if agent_id in self._agents:
-                self._agents[agent_id]["transaction_count"] += 1
-                self._agents[agent_id]["last_seen"] = datetime.now().isoformat()
-                self._atomic_write_unlocked()
-
-    def update_trust(self, agent_id: str, trust_score: float):
-        """Update an agent's trust score (clamped to [0, 1]). MP-safe."""
-        with self._thread_lock, self._file_lock():
-            self._load_unlocked()
-            if agent_id in self._agents:
-                self._agents[agent_id]["trust_score"] = max(0.0, min(1.0, trust_score))
-                self._atomic_write_unlocked()
-
-    def list_agents(self) -> Dict[str, Dict[str, Any]]:
-        """Return all registered agents (in-memory snapshot)."""
-        with self._thread_lock:
-            return dict(self._agents)
-
-
-agent_registry = AgentIdentityRegistry()
+# AgentIdentityRegistry was extracted to its own module 2026-05-04 so
+# subprocess-based concurrency tests can import it without paying the
+# cost of importing the full server.py (model fits, MCP setup, etc.).
+# The class + singleton are re-exported here so external callers that
+# do ``from server import AgentIdentityRegistry`` keep working.
+from agent_registry import AgentIdentityRegistry, agent_registry  # noqa: F401
 
 
 class AgentIdentityVerifier:
@@ -3041,29 +2882,43 @@ class CollusionDetector:
                 score_components.append(min(1.0, len(sources) * 0.15))
 
         # --- Volume anomaly ---
+        # Pre-fix: ``break`` after the first match meant we'd report only
+        # one (src, tgt) volume burst per detect() even if multiple pairs
+        # were colluding simultaneously. Now we report every distinct pair
+        # but deduplicate so we don't double-count (the same edge appears
+        # once per interaction in ``recent``).
+        seen_pairs: set = set()
         for interaction in recent:
             src, tgt = interaction["source"], interaction["target"]
+            if (src, tgt) in seen_pairs:
+                continue
             if self.graph.has_edge(src, tgt):
                 edge = self.graph[src][tgt]
-                if edge["transaction_count"] >= 10:
-                    recent_ts = [t for t in edge["timestamps"] if t >= cutoff]
-                    if len(recent_ts) >= 10:
-                        evidence.append(
-                            f"volume_anomaly: {src} -> {tgt} had "
-                            f"{len(recent_ts)} transactions in window"
-                        )
-                        suspected.add(src)
-                        suspected.add(tgt)
-                        score_components.append(min(1.0, len(recent_ts) * 0.05))
-                        break  # One volume anomaly per detect call
+                recent_ts = [t for t in edge["timestamps"] if t >= cutoff]
+                if len(recent_ts) >= 10:
+                    seen_pairs.add((src, tgt))
+                    evidence.append(
+                        f"volume_anomaly: {src} -> {tgt} had "
+                        f"{len(recent_ts)} transactions in window"
+                    )
+                    suspected.add(src)
+                    suspected.add(tgt)
+                    score_components.append(min(1.0, len(recent_ts) * 0.05))
 
         collusion_score = 0.0
         if score_components:
             collusion_score = float(min(1.0, max(score_components)))
 
+        # ``suspected_ring`` reports ALL parties implicated in the
+        # detected collusion patterns — not just the queried subset.
+        # ``query_in_ring`` is the queried-agents subset for backward
+        # compatibility. Pre-fix the API only returned the queried
+        # subset which produced an empty list when the query didn't
+        # include the actual ring members, despite collusion_score > 0.
         return {
             "collusion_score": collusion_score,
-            "suspected_ring": sorted(suspected & set(agent_ids)),
+            "suspected_ring": sorted(suspected),
+            "query_in_ring": sorted(suspected & set(agent_ids)),
             "evidence": evidence,
             "graph_metrics": self._graph_metrics(),
         }
@@ -3301,6 +3156,8 @@ def analyze_transaction_impl(
                     monitor.record_cache_hit(cache_type="prediction")
             else:
                 _inference_stats["cache_misses"] += 1
+                if monitor is not None:
+                    monitor.record_cache_miss(cache_type="prediction")
 
         # Run the ML inference if we didn't get a cache hit.
         if transaction_result is None:
@@ -4258,7 +4115,7 @@ def analyze_agent_transaction_impl(
         # Fingerprint match = 1 - fingerprint_score (high match = low risk)
         fingerprint_match = float(max(0.0, min(1.0, 1.0 - fingerprint_score)))
 
-        return {
+        result = {
             "risk_score": risk_score,
             "anomalies": anomalies,
             "fingerprint_match": fingerprint_match,
@@ -4278,6 +4135,31 @@ def analyze_agent_transaction_impl(
             },
             "analysis_timestamp": datetime.now().isoformat(),
         }
+
+        # ----- Trust-score feedback loop (registry update) -----
+        # EWMA: new_trust = (1 - alpha) * old_trust + alpha * (1 - risk_score)
+        # When the transaction is high-risk, double the learning rate so the
+        # penalty is applied faster than the reward (asymmetric update,
+        # standard for security-relevant scoring). Pre-fix the registry's
+        # trust_score was set at auto-register and NEVER updated, so the
+        # 'longitudinal reputation' computation used a constant trust
+        # component forever — feedback channel was dead.
+        if agent_id:
+            registry_entry = agent_registry.lookup(str(agent_id))
+            if registry_entry is not None:
+                old_trust = float(registry_entry.get("trust_score", 0.5))
+                alpha = _cfg.ACP_TRUST_LEARNING_RATE
+                if risk_score >= _cfg.ACP_TRUST_HIGH_RISK_THRESHOLD:
+                    alpha = min(1.0, alpha * 2.0)  # penalize faster
+                target = 1.0 - risk_score
+                new_trust = (1.0 - alpha) * old_trust + alpha * target
+                new_trust = max(0.0, min(1.0, new_trust))
+                agent_registry.update_trust(str(agent_id), new_trust)
+                # Also surface the feedback in the result so callers can
+                # see the effect without a separate registry lookup.
+                result["registry_trust_before"] = old_trust
+                result["registry_trust_after"] = new_trust
+        return result
 
     except Exception as e:
         logger.error(f"Agent transaction analysis failed: {e}")

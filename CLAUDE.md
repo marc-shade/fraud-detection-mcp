@@ -79,9 +79,9 @@ mypy server.py --ignore-missing-imports
 
 9. **`MandateVerifier`** -- Stateless mandate compliance checker. Validates transactions against caller-supplied mandate dict: max_amount, daily_limit, allowed_merchants, blocked_merchants, allowed_locations, time_window (start/end HH:MM). `verify()` accepts an optional `history` parameter (list of prior transaction dicts with `recorded_at` + `amount`) — when provided, `daily_limit` checks the **24h cumulative spend** rather than the single-transaction amount. Without history, daily_limit degrades to single-transaction comparison and the result includes a `daily_limit_no_history` warning. `analyze_agent_transaction_impl` automatically passes the agent's `user_history.get_history(agent_id)` so the cumulative path is the production default. Returns compliance status, violations, drift_score, utilization (incl. `daily_total_prior` + `daily_total_projected`), and warnings.
 
-10. **`CollusionDetector`** -- Directed graph of agent interactions. Detects circular flows (`nx.simple_cycles`), temporal clustering (3+ agents targeting same entity), and volume anomalies (10+ transactions between pair in window). Memory-bounded with LRU eviction.
+10. **`CollusionDetector`** -- Directed graph of agent interactions. Detects circular flows (`nx.simple_cycles`), temporal clustering (3+ agents targeting same entity), and volume anomalies (10+ transactions between pair in window). Memory-bounded with LRU eviction. `detect()` returns `suspected_ring` = ALL agents implicated in detected patterns (was: queried subset only — silent dropout when query didn't include the actual ring members), plus `query_in_ring` for the queried-subset back-compat field. Volume anomaly reports every distinct (src, tgt) pair with a burst, deduplicated (was: `break` after first match swallowed concurrent collusion).
 
-11. **`AgentReputationScorer`** -- Longitudinal reputation from existing singletons: trust score (40%), transaction history (25%), behavioral consistency (25%), collusion safety (10%). History caps at 100 transactions for full credit.
+11. **`AgentReputationScorer`** -- Longitudinal reputation from existing singletons: trust score (40%), transaction history (25%), behavioral consistency (25%), collusion safety (10%). History caps at 100 transactions for full credit. The trust component is **fed by an EWMA loop** in `analyze_agent_transaction_impl`: after every analysis, the agent's persisted `trust_score` is updated as `new = (1 - α) * old + α * (1 - risk_score)` with `α = ACP_TRUST_LEARNING_RATE` (default 0.05) doubled when `risk_score >= ACP_TRUST_HIGH_RISK_THRESHOLD` (asymmetric — penalty applies faster than reward). Result includes `registry_trust_before` and `registry_trust_after` so callers can audit the feedback. Pre-2026-05-04 the registry's `trust_score` was set at auto-register and never updated; "longitudinal reputation" used a frozen value forever.
 
 ### Agent Commerce Replay-Protection Modules
 
@@ -156,7 +156,7 @@ The 5 defense compliance tools are backed by modules under `compliance/`:
 
 ### Testing Architecture
 
-**976 tests across 33 test files** (including `test_compliance_modules.py`, `test_coverage_gaps.py`, `test_acp_signatures.py`, `test_agent_security.py`, `test_agent_security_backends.py`, `test_agent_commerce_tier0.py`, `test_calibration_provenance.py`). Tests import from `tests/conftest.py` for fixtures and sample data.
+**983 tests across 33 test files** (including `test_compliance_modules.py`, `test_coverage_gaps.py`, `test_acp_signatures.py`, `test_agent_security.py`, `test_agent_security_backends.py`, `test_agent_commerce_tier0.py`, `test_calibration_provenance.py`). Tests import from `tests/conftest.py` for fixtures and sample data.
 
 Available pytest markers: `unit`, `integration`, `slow`, `network`, `behavioral`, `transaction`, `explainability`, `synthetic`, `benchmark`, `error`, `security`, `velocity`, `signature`.
 
@@ -198,7 +198,8 @@ Test files map to functionality areas:
 |--------|---------|
 | `feature_engineering.py` | 46-feature extraction with cyclical encoding, z-scores, velocity features |
 | `training_pipeline.py` | Full ML pipeline: SMOTE resampling, cross-validation, Optuna hyperparameter tuning, MLflow tracking |
-| `async_inference.py` | LRU cache for inference results with configurable TTL and max size |
+| `async_inference.py` | LRU cache (with optional TTL) used by the production prediction pipeline. The pre-2026-05-04 ``AsyncInferenceEngine`` / ``AsyncFraudDetector`` / ``create_inference_engine`` classes were aspirational scaffolding never wired into ``server.py`` and were removed — only ``LRUCache`` remains. |
+| `agent_registry.py` | Standalone module exposing `AgentIdentityRegistry` + `agent_registry` singleton. Extracted from `server.py` 2026-05-04 so subprocess concurrency tests can import it without paying the full server-import cost (model fits, MCP setup, etc.). `server.py` re-exports both names for backward compatibility. |
 | `explainability.py` | SHAP-based explanations with graceful fallback when SHAP unavailable |
 | `security_utils.py` | Input sanitization (XSS/SQLi prevention) and in-memory rate limiter |
 | `monitoring.py` | Prometheus metrics, structlog, health checks, Grafana dashboard config |

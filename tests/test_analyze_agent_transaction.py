@@ -338,3 +338,118 @@ class TestMandateInAgentTransaction:
             mandate={"max_amount": 100.0},
         )
         assert any("mandate" in a for a in result["anomalies"])
+
+
+class TestTrustFeedbackLoop:
+    """Pre-2026-05-04 the registry trust_score was set at auto-register
+    (default 0.30) and NEVER updated. The 'longitudinal reputation'
+    component used a frozen trust value forever. Now trust EWMA-updates
+    after each analyze_agent_transaction_impl call, with asymmetric
+    learning (penalty rate 2x reward rate).
+    """
+
+    def setup_method(self):
+        from agent_registry import agent_registry
+        agent_registry._agents = {}
+
+    def test_low_risk_transactions_increase_trust(self):
+        """Repeated low-risk transactions should pull trust toward 1.0."""
+        from server import analyze_agent_transaction_impl
+        from agent_registry import agent_registry
+
+        txn = {
+            "amount": 50.0, "merchant": "Amazon", "location": "US",
+            "timestamp": "2026-05-04T12:00:00Z",
+            "payment_method": "credit_card",
+            "is_agent": True,
+            "agent_identifier": "test-good-agent",
+            "user_agent": "stripe-acp/1.0",
+            "api_key": "a" * 40,
+        }
+
+        # First call seeds the registry; trust starts ~0.30
+        r1 = analyze_agent_transaction_impl(txn)
+        assert "registry_trust_after" in r1
+        first_trust = r1["registry_trust_after"]
+
+        # Run several more low-risk calls; trust should drift upward
+        for _ in range(5):
+            r = analyze_agent_transaction_impl(txn)
+        last_trust = r["registry_trust_after"]
+        assert last_trust > first_trust, (
+            f"Trust did not increase: {first_trust:.3f} → {last_trust:.3f}. "
+            "EWMA feedback loop is dead."
+        )
+        # Persisted in registry
+        entry = agent_registry.lookup("test-good-agent")
+        assert entry is not None
+        assert abs(entry["trust_score"] - last_trust) < 0.01
+
+    def test_high_risk_transactions_decrease_trust(self):
+        """A clearly-fraud transaction (mandate violation + invalid key)
+        should drop trust below the bootstrap level. Pre-fix trust only
+        ever monotonically climbed because the registry update was absent.
+        """
+        from server import analyze_agent_transaction_impl
+        from agent_registry import agent_registry
+
+        # Bootstrap with low-risk calls to lift trust above the seed
+        good = {
+            "amount": 50.0, "merchant": "Amazon", "location": "US",
+            "timestamp": "2026-05-04T12:00:00Z",
+            "payment_method": "credit_card",
+            "is_agent": True,
+            "agent_identifier": "test-bad-agent",
+            "user_agent": "stripe-acp/1.0",
+            "api_key": "a" * 40,
+        }
+        for _ in range(8):
+            r_good = analyze_agent_transaction_impl(good)
+        peak_trust = r_good["registry_trust_after"]
+
+        # Reliably-high-risk: mandate violation pushes risk_score
+        # over the HIGH threshold so the asymmetric penalty applies.
+        bad = {
+            "amount": 50000.0, "merchant": "TotallyEvil", "location": "Russia",
+            "timestamp": "2026-05-04T12:00:00Z",
+            "payment_method": "crypto",
+            "is_agent": True,
+            "agent_identifier": "test-bad-agent",
+            "user_agent": "stripe-acp/1.0",
+            "api_key": "x",  # malformed → low identity signal
+        }
+        mandate = {
+            "max_amount": 100.0,
+            "allowed_merchants": ["Amazon"],
+            "allowed_locations": ["US"],
+        }
+        for _ in range(15):
+            r_bad = analyze_agent_transaction_impl(bad, mandate=mandate)
+        post_bad_trust = r_bad["registry_trust_after"]
+
+        assert post_bad_trust < peak_trust, (
+            f"Trust did not decrease after high-risk transactions: "
+            f"{peak_trust:.3f} → {post_bad_trust:.3f}. "
+            f"Final risk_score={r_bad['risk_score']:.3f}"
+        )
+        entry = agent_registry.lookup("test-bad-agent")
+        assert entry is not None
+        assert abs(entry["trust_score"] - post_bad_trust) < 0.01
+
+    def test_trust_clamped_to_unit_interval(self):
+        """Trust must stay within [0, 1] no matter how extreme the inputs."""
+        from server import analyze_agent_transaction_impl
+
+        txn = {
+            "amount": 50.0, "merchant": "Amazon",
+            "timestamp": "2026-05-04T12:00:00Z",
+            "payment_method": "credit_card",
+            "is_agent": True,
+            "agent_identifier": "test-clamp-agent",
+            "user_agent": "stripe-acp/1.0",
+            "api_key": "a" * 40,
+        }
+        for _ in range(50):
+            r = analyze_agent_transaction_impl(txn)
+            t = r["registry_trust_after"]
+            assert 0.0 <= t <= 1.0, f"Trust out of range: {t}"

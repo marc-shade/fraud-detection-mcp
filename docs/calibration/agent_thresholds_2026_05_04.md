@@ -1,10 +1,10 @@
 # Agent Commerce Threshold Calibration Report
 
-**Date**: 2026-05-04T09:42:45.165058
+**Date**: 2026-05-04T12:25:06.226486
 **Sample size**: 200
 **Random seed**: 42
-**Optimal F1 operating threshold**: `0.45`
-**Best F1**: `0.8585` (precision=0.8125, recall=0.9100)
+**Optimal F1 operating threshold**: `0.50`
+**Best F1**: `0.8372` (precision=1.0000, recall=0.7200)
 
 ## Operating curve
 
@@ -18,11 +18,11 @@
 | 0.25 | 0.500 | 1.000 | 0.667 | 100 | 100 | 0 | 0 |
 | 0.30 | 0.500 | 1.000 | 0.667 | 100 | 100 | 0 | 0 |
 | 0.35 | 0.500 | 1.000 | 0.667 | 100 | 100 | 0 | 0 |
-| 0.40 | 0.503 | 1.000 | 0.669 | 100 | 99 | 1 | 0 |
-| 0.45 | 0.812 | 0.910 | 0.858 | 91 | 21 | 79 | 9 |
-| 0.50 | 1.000 | 0.740 | 0.851 | 74 | 0 | 100 | 26 |
+| 0.40 | 0.518 | 1.000 | 0.683 | 100 | 93 | 7 | 0 |
+| 0.45 | 0.585 | 0.760 | 0.661 | 76 | 54 | 46 | 24 |
+| 0.50 | 1.000 | 0.720 | 0.837 | 72 | 0 | 100 | 28 |
 | 0.55 | 1.000 | 0.380 | 0.551 | 38 | 0 | 100 | 62 |
-| 0.60 | 1.000 | 0.150 | 0.261 | 15 | 0 | 100 | 85 |
+| 0.60 | 1.000 | 0.140 | 0.246 | 14 | 0 | 100 | 86 |
 | 0.65 | 0.000 | 0.000 | 0.000 | 0 | 0 | 100 | 100 |
 | 0.70 | 0.000 | 0.000 | 0.000 | 0 | 0 | 100 | 100 |
 | 0.75 | 0.000 | 0.000 | 0.000 | 0 | 0 | 100 | 100 |
@@ -36,11 +36,11 @@
 
 | attack | n | detected | detection_rate | mean_risk | min | max |
 |---|---|---|---|---|---|---|
-| tampered_signature | 28 | 28 | 1.000 | 0.531 | 0.523 | 0.549 |
-| high_amount_unusual_hour | 15 | 15 | 1.000 | 0.624 | 0.602 | 0.627 |
-| no_signature_claimed | 25 | 16 | 0.640 | 0.453 | 0.437 | 0.468 |
-| novel_merchant_location | 23 | 23 | 1.000 | 0.577 | 0.577 | 0.577 |
-| forged_key | 9 | 9 | 1.000 | 0.517 | 0.497 | 0.530 |
+| tampered_signature | 28 | 28 | 1.000 | 0.520 | 0.507 | 0.538 |
+| high_amount_unusual_hour | 15 | 15 | 1.000 | 0.622 | 0.599 | 0.625 |
+| no_signature_claimed | 25 | 0 | 0.000 | 0.442 | 0.432 | 0.456 |
+| novel_merchant_location | 23 | 23 | 1.000 | 0.575 | 0.574 | 0.575 |
+| forged_key | 9 | 6 | 0.667 | 0.504 | 0.496 | 0.511 |
 
 ## Calibrated config defaults
 
@@ -64,5 +64,8 @@ ACP_PIPELINE_FAILED_TRUST_DROP = 0.3
 ACP_PIPELINE_VERIFIED_TRUST_BOOST = 0.15
 ACP_REGISTRY_NEW_AGENT_SIGNAL = 0.3
 ACP_REPLAY_MAX_ENTRIES = 100000
+ACP_TRUST_HIGH_RISK_THRESHOLD = 0.6
+ACP_TRUST_LEARNING_RATE = 0.05
+ACP_TRUST_LOW_RISK_THRESHOLD = 0.3
 ACP_VERIFIED_CONFIDENCE_BOOST = 0.15
 ```

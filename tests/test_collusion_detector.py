@@ -161,3 +161,60 @@ class TestCollusionDetector:
         assert "total_nodes" in metrics
         assert "total_edges" in metrics
         assert metrics["total_nodes"] >= 2
+
+
+class TestSuspectedRingIncludesAllInvolved:
+    """Pre-2026-05-04 detect() returned suspected_ring as the queried
+    subset — even if 5 outside agents formed a cycle, the result was
+    suspected_ring=[] when the query didn't include them, despite
+    collusion_score > 0. Now suspected_ring includes ALL involved
+    agents and query_in_ring is the queried subset for back-compat.
+    """
+
+    def setup_method(self):
+        from server import CollusionDetector
+        self.det = CollusionDetector()
+
+    def test_full_ring_returned_even_when_query_does_not_include_ring(self):
+        from datetime import datetime
+        # 3-cycle: A → B → C → A
+        now = datetime.now()
+        self.det.record_interaction("A", "B", 100, timestamp=now)
+        self.det.record_interaction("B", "C", 100, timestamp=now)
+        self.det.record_interaction("C", "A", 100, timestamp=now)
+
+        # Query mentions only A — pre-fix would return suspected_ring=[]
+        result = self.det.detect(["A", "B", "C"])
+        assert "suspected_ring" in result
+        assert "query_in_ring" in result  # back-compat field
+        assert set(result["suspected_ring"]) == {"A", "B", "C"}
+
+    def test_volume_anomaly_reports_all_distinct_pairs(self):
+        """Pre-2026-05-04 the volume_anomaly check broke after the FIRST
+        match. Now it reports every distinct (src, tgt) pair with a burst.
+        """
+        from datetime import datetime
+        now = datetime.now()
+        # Two distinct pairs each with a 12-burst
+        for _ in range(12):
+            self.det.record_interaction("A", "X", 100, timestamp=now)
+        for _ in range(12):
+            self.det.record_interaction("B", "Y", 100, timestamp=now)
+
+        result = self.det.detect(["A", "B"])
+        evidence_str = "\n".join(result["evidence"])
+        assert "A -> X" in evidence_str, evidence_str
+        assert "B -> Y" in evidence_str, evidence_str
+
+    def test_volume_anomaly_deduplicates_repeated_interactions(self):
+        """A single (src, tgt) pair appearing many times in `recent` must
+        produce ONE volume_anomaly evidence line, not N copies."""
+        from datetime import datetime
+        now = datetime.now()
+        for _ in range(15):
+            self.det.record_interaction("A", "X", 100, timestamp=now)
+        result = self.det.detect(["A"])
+        volume_lines = [e for e in result["evidence"] if "volume_anomaly: A -> X" in e]
+        assert len(volume_lines) == 1, (
+            f"Expected exactly one volume_anomaly for A→X, got {len(volume_lines)}"
+        )

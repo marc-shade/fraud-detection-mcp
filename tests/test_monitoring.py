@@ -177,3 +177,42 @@ class TestMonitoringActuallyFiresOnMcpToolCall:
             f"dispatch path — likely the @mcp.tool()/@_monitored decorator order "
             f"got swapped back."
         )
+
+
+class TestCacheMissesAreRecorded:
+    """Pre-2026-05-04 only model_cache_hits was exported to Prometheus —
+    misses were tracked only in the in-process _inference_stats counter.
+    This made the cache hit RATE uncomputable from external metrics.
+    Now record_cache_miss exports model_cache_misses_total."""
+
+    def test_cache_miss_increments_prometheus_counter(self):
+        from server import MONITORING_AVAILABLE
+        if not MONITORING_AVAILABLE:
+            import pytest
+            pytest.skip("monitoring not available")
+        from monitoring import model_cache_misses, MonitoringManager
+
+        # Use a fresh monitor to avoid cross-test contamination
+        mgr = MonitoringManager(app_name="test", version="0.0.0")
+
+        def _count():
+            # ``Counter.collect()`` yields one Metric whose ``samples``
+            # include both the ``<name>_total`` (actual count) and a
+            # ``<name>_created`` (Unix timestamp) per labelset. Filter
+            # on name suffix; pre-fix the test summed both and got a
+            # 1.7B number from the timestamp.
+            total = 0.0
+            for metric in model_cache_misses.collect():
+                for s in metric.samples:
+                    if (
+                        s.name.endswith("_total")
+                        and s.labels.get("cache_type") == "prediction"
+                    ):
+                        total += s.value
+            return total
+
+        before = _count()
+        mgr.record_cache_miss(cache_type="prediction")
+        mgr.record_cache_miss(cache_type="prediction")
+        after = _count()
+        assert after == before + 2, f"Expected +2, got {after - before}"

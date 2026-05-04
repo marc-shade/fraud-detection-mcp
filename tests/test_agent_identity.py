@@ -124,7 +124,9 @@ class TestAgentRegistryMultiProcessSafety:
         child_script = (
             f"import sys; sys.path.insert(0, {project_root!r})\n"
             "from pathlib import Path\n"
-            "from server import AgentIdentityRegistry\n"
+            # Import from the lightweight standalone module so children
+            # don't pay the full server.py import cost (model fits etc.).
+            "from agent_registry import AgentIdentityRegistry\n"
             "import time\n"
             "registry = AgentIdentityRegistry(Path(sys.argv[1]))\n"
             "prefix = sys.argv[2]\n"

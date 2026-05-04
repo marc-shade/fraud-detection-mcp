@@ -164,6 +164,29 @@ class AppConfig(BaseSettings):
         description="risk_score above this is flagged as is_anomaly=True in AgentBehavioralFingerprint.",
     )
 
+    # Trust-score feedback loop. After every analyze_agent_transaction
+    # call we update the agent's persisted trust_score based on the
+    # current transaction's risk_score, using EWMA smoothing so a
+    # single anomalous transaction doesn't tank a long history.
+    #
+    # new_trust = (1 - learning_rate) * old_trust + learning_rate * (1 - risk_score)
+    #
+    # Pre-fix: trust was set at auto-register and NEVER moved, so the
+    # 'longitudinal reputation' scoring used a constant trust component
+    # forever — the whole feedback channel was dead.
+    ACP_TRUST_LEARNING_RATE: float = Field(
+        default=0.05,
+        description="EWMA learning rate for the trust-score feedback loop. 0.05 = each transaction nudges trust by ~5% toward (1-risk_score). Higher = more reactive, lower = more conservative.",
+    )
+    ACP_TRUST_LOW_RISK_THRESHOLD: float = Field(
+        default=0.30,
+        description="risk_score < this is treated as 'good behaviour' for trust feedback (full reward).",
+    )
+    ACP_TRUST_HIGH_RISK_THRESHOLD: float = Field(
+        default=0.60,
+        description="risk_score >= this is treated as 'bad behaviour' for trust feedback (penalty mode applies, learning rate doubled).",
+    )
+
     # NonceCache + IdempotencyStore TTLs (seconds)
     ACP_NONCE_TTL_SECONDS: int = Field(
         default=480,
