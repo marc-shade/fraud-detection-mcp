@@ -599,11 +599,16 @@ def verify_rfc9421_signature(
     elif nonce_cache is not None and not sig_input.nonce:
         warnings.append("nonce_absent")
 
-    # Crypto verification
-    if not JOSE_AVAILABLE:
+    # Crypto verification — EdDSA goes through ``cryptography`` directly
+    # and does NOT require python-jose. Only fail-closed when jose is
+    # missing AND the algorithm needs jose (PS256/ES256/RS256). This used
+    # to bail unconditionally, which made the EdDSA fallback in
+    # ``_verify_with_jwk`` dead code in any jose-less environment.
+    _alg_requires_jose = sig_input.alg != "EdDSA"
+    if _alg_requires_jose and not JOSE_AVAILABLE:
         return {
             "verified": False,
-            "reason": "jose_library_unavailable",
+            "reason": f"jose_library_unavailable_for_alg_{sig_input.alg}",
             "signature_input": _siginput_to_dict(sig_input),
             "warnings": warnings,
         }

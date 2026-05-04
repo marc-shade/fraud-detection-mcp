@@ -269,6 +269,42 @@ class TestImplExceptionPaths:
             # The health_check_impl checks "if monitor is not None"
             result = health_check_impl()
         assert "error" in result.get("system", {})
+        # Monitor failure should degrade health (was: silently 'healthy').
+        assert result["status"] in ("degraded", "unhealthy")
+        assert "monitor_check_failed" in result.get("failures", [])
+
+    def test_health_check_unhealthy_when_critical_models_missing(self):
+        """Pre-fix: health_check returned 'healthy' even with NULL models
+        (or crashed on .feature_names attribute access — even worse).
+        Post-fix: returns status='unhealthy' + populated 'failures' list."""
+        from server import transaction_analyzer
+        original_iso = transaction_analyzer.isolation_forest
+        original_fe = transaction_analyzer.feature_engineer
+        try:
+            transaction_analyzer.isolation_forest = None
+            transaction_analyzer.feature_engineer = None
+            result = health_check_impl()
+            assert result["status"] == "unhealthy"
+            assert "isolation_forest_missing" in result["failures"]
+            assert "feature_engineer_missing" in result["failures"]
+            assert result["models"]["feature_count"] == 0  # safe default
+        finally:
+            transaction_analyzer.isolation_forest = original_iso
+            transaction_analyzer.feature_engineer = original_fe
+
+    def test_health_check_does_not_crash_on_missing_components(self):
+        """A health check that raises on a failed component is worse than
+        no check at all. Verify it always returns a dict."""
+        from server import transaction_analyzer
+        original_fe = transaction_analyzer.feature_engineer
+        try:
+            transaction_analyzer.feature_engineer = None
+            result = health_check_impl()
+            # Did not raise
+            assert isinstance(result, dict)
+            assert "status" in result
+        finally:
+            transaction_analyzer.feature_engineer = original_fe
 
     def test_generate_synthetic_dataset_exception(self):
         """Lines 1806-1808: generate_synthetic_dataset_impl catches exception."""

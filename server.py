@@ -386,6 +386,289 @@ class BehavioralBiometrics:
             logger.error(f"Feature extraction error: {e}")
             return None
 
+    # ------------------------------------------------------------------
+    # Mouse pattern analysis
+    # ------------------------------------------------------------------
+
+    def analyze_mouse_dynamics(
+        self, mouse_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Analyze mouse movement + click patterns for behavioral anomalies.
+
+        Expected shape (per ``docs/API.md``):
+          ``{"movements": [{"x", "y", "timestamp"}, ...],
+             "clicks":    [{"x", "y", "timestamp", "button"}, ...]}``
+
+        Extracts 5 features (avg velocity, click rate, idle time,
+        path linearity, total events) and runs the One-Class SVM
+        bootstrapped at startup. Like ``BehavioralBiometrics`` keystroke
+        analysis the SVM is fit on synthetic gaussian data — replace via
+        retraining for production.
+        """
+        try:
+            if not isinstance(mouse_data, dict):
+                return {
+                    "risk_score": 0.0,
+                    "confidence": 0.0,
+                    "status": "error",
+                    "error": f"mouse_data must be a dict, got {type(mouse_data).__name__}",
+                }
+
+            movements = mouse_data.get("movements", []) or []
+            clicks = mouse_data.get("clicks", []) or []
+
+            if not movements and not clicks:
+                return {"risk_score": 0.0, "confidence": 0.0, "status": "no_data"}
+
+            features = self._extract_mouse_features(movements, clicks)
+            if features is None:
+                return {
+                    "risk_score": 0.0,
+                    "confidence": 0.0,
+                    "status": "error",
+                    "error": "could not extract valid features from mouse data",
+                }
+
+            anomaly_score = self.mouse_model.decision_function([features])[0]
+            is_anomaly = self.mouse_model.predict([features])[0] == -1
+            risk_score = float(max(0, min(1, (0.5 - anomaly_score) * 2)))
+
+            n_events = len(movements) + len(clicks)
+            size_conf = 1.0 - math.exp(-n_events / 30.0)
+            margin_conf = min(1.0, abs(float(anomaly_score)) * 4.0)
+            confidence = float(min(0.85, 0.4 * size_conf + 0.6 * margin_conf))
+
+            return {
+                "risk_score": risk_score,
+                "is_anomaly": bool(is_anomaly),
+                "confidence": confidence,
+                "analysis_type": "mouse_dynamics",
+                "movements_analyzed": len(movements),
+                "clicks_analyzed": len(clicks),
+            }
+        except Exception as e:
+            logger.error(f"Mouse analysis error: {e}")
+            return {
+                "risk_score": 0.0,
+                "confidence": 0.0,
+                "status": "error",
+                "error": str(e),
+            }
+
+    def _extract_mouse_features(
+        self, movements: List[Dict], clicks: List[Dict]
+    ) -> Optional[List[float]]:
+        """Extract 5 numerical mouse features.
+
+        Features (in order):
+          0. mean_velocity  — pixels per second across consecutive movements
+          1. click_rate     — clicks per second over the observed span
+          2. mean_idle_ms   — mean inter-event gap in milliseconds
+          3. path_linearity — straight-line / total-path distance ratio
+                              (1.0 = perfectly straight; <1.0 = curved/jittered)
+          4. total_events   — log1p(len(movements) + len(clicks))
+        """
+        try:
+            n_moves = len(movements)
+            if n_moves < 2 and not clicks:
+                return None
+
+            # 0 + 3: velocity + linearity
+            mean_velocity = 0.0
+            path_linearity = 1.0
+            total_path = 0.0
+            if n_moves >= 2:
+                xs, ys, ts = [], [], []
+                for m in movements:
+                    try:
+                        xs.append(float(m["x"]))
+                        ys.append(float(m["y"]))
+                        ts.append(float(m["timestamp"]))
+                    except (KeyError, TypeError, ValueError):
+                        continue
+                if len(xs) >= 2:
+                    velocities = []
+                    for i in range(1, len(xs)):
+                        dx = xs[i] - xs[i - 1]
+                        dy = ys[i] - ys[i - 1]
+                        dt = max(ts[i] - ts[i - 1], 1e-3)
+                        seg = math.hypot(dx, dy)
+                        total_path += seg
+                        velocities.append(seg / dt * 1000.0)  # px/s
+                    mean_velocity = float(np.mean(velocities)) if velocities else 0.0
+                    straight_dist = math.hypot(xs[-1] - xs[0], ys[-1] - ys[0])
+                    if total_path > 0:
+                        path_linearity = float(min(1.0, straight_dist / total_path))
+
+            # 1: click rate
+            click_rate = 0.0
+            if clicks:
+                click_ts = []
+                for c in clicks:
+                    try:
+                        click_ts.append(float(c["timestamp"]))
+                    except (KeyError, TypeError, ValueError):
+                        continue
+                if click_ts:
+                    span_ms = max(click_ts) - min(click_ts)
+                    if span_ms > 0:
+                        click_rate = (len(click_ts) - 1) / (span_ms / 1000.0)
+                    else:
+                        click_rate = float(len(click_ts))
+
+            # 2: mean inter-event idle
+            all_ts = []
+            for m in movements:
+                try:
+                    all_ts.append(float(m["timestamp"]))
+                except (KeyError, TypeError, ValueError):
+                    pass
+            for c in clicks:
+                try:
+                    all_ts.append(float(c["timestamp"]))
+                except (KeyError, TypeError, ValueError):
+                    pass
+            mean_idle_ms = 0.0
+            if len(all_ts) >= 2:
+                all_ts.sort()
+                gaps = [all_ts[i] - all_ts[i - 1] for i in range(1, len(all_ts))]
+                mean_idle_ms = float(np.mean(gaps)) if gaps else 0.0
+
+            total_events = math.log1p(n_moves + len(clicks))
+
+            return [mean_velocity, click_rate, mean_idle_ms, path_linearity, total_events]
+        except Exception as e:
+            logger.error(f"Mouse feature extraction error: {e}")
+            return None
+
+    # ------------------------------------------------------------------
+    # Touch pattern analysis
+    # ------------------------------------------------------------------
+
+    def analyze_touch_dynamics(
+        self, touch_data: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Analyze touch screen interaction patterns for behavioral anomalies.
+
+        Expected shape: list of touch events:
+          ``[{"pressure": float, "area": float, "x": float, "y": float,
+              "timestamp": float, "type": "tap"|"swipe"|...}, ...]``
+
+        Extracts 5 features and runs the LOF model bootstrapped at
+        startup. Like keystroke + mouse, the LOF is fit on synthetic
+        gaussian data — replace via retraining for production.
+        """
+        try:
+            if not isinstance(touch_data, list):
+                return {
+                    "risk_score": 0.0,
+                    "confidence": 0.0,
+                    "status": "error",
+                    "error": f"touch_data must be a list, got {type(touch_data).__name__}",
+                }
+
+            if not touch_data:
+                return {"risk_score": 0.0, "confidence": 0.0, "status": "no_data"}
+
+            features = self._extract_touch_features(touch_data)
+            if features is None:
+                return {
+                    "risk_score": 0.0,
+                    "confidence": 0.0,
+                    "status": "error",
+                    "error": "could not extract valid features from touch data",
+                }
+
+            anomaly_score = self.touch_model.decision_function([features])[0]
+            is_anomaly = self.touch_model.predict([features])[0] == -1
+            risk_score = float(max(0, min(1, (0.5 - anomaly_score) * 2)))
+
+            n_touches = len(touch_data)
+            size_conf = 1.0 - math.exp(-n_touches / 15.0)
+            margin_conf = min(1.0, abs(float(anomaly_score)) * 4.0)
+            confidence = float(min(0.85, 0.4 * size_conf + 0.6 * margin_conf))
+
+            return {
+                "risk_score": risk_score,
+                "is_anomaly": bool(is_anomaly),
+                "confidence": confidence,
+                "analysis_type": "touch_dynamics",
+                "touches_analyzed": n_touches,
+            }
+        except Exception as e:
+            logger.error(f"Touch analysis error: {e}")
+            return {
+                "risk_score": 0.0,
+                "confidence": 0.0,
+                "status": "error",
+                "error": str(e),
+            }
+
+    def _extract_touch_features(
+        self, touch_data: List[Dict]
+    ) -> Optional[List[float]]:
+        """Extract 5 numerical touch features.
+
+        Features (in order):
+          0. mean_pressure  — average tap pressure
+          1. mean_area      — average contact area
+          2. mean_swipe_velocity — average swipe velocity (px/s)
+          3. tap_swipe_ratio — fraction of events that are taps vs swipes
+          4. mean_idle_ms   — mean inter-event gap
+        """
+        try:
+            pressures: List[float] = []
+            areas: List[float] = []
+            timestamps: List[float] = []
+            tap_count = 0
+            swipe_count = 0
+            swipe_velocities: List[float] = []
+
+            for i, ev in enumerate(touch_data):
+                if not isinstance(ev, dict):
+                    continue
+                try:
+                    pressures.append(float(ev.get("pressure", 0.0)))
+                    areas.append(float(ev.get("area", 0.0)))
+                    timestamps.append(float(ev.get("timestamp", 0.0)))
+                except (TypeError, ValueError):
+                    continue
+
+                etype = str(ev.get("type", "tap")).lower()
+                if etype == "swipe":
+                    swipe_count += 1
+                    if i > 0 and isinstance(touch_data[i - 1], dict):
+                        prev = touch_data[i - 1]
+                        try:
+                            dx = float(ev["x"]) - float(prev["x"])
+                            dy = float(ev["y"]) - float(prev["y"])
+                            dt = max(float(ev["timestamp"]) - float(prev["timestamp"]), 1e-3)
+                            swipe_velocities.append(math.hypot(dx, dy) / dt * 1000.0)
+                        except (KeyError, TypeError, ValueError):
+                            pass
+                else:
+                    tap_count += 1
+
+            if not pressures:
+                return None
+
+            mean_pressure = float(np.mean(pressures))
+            mean_area = float(np.mean(areas)) if areas else 0.0
+            mean_swipe_velocity = float(np.mean(swipe_velocities)) if swipe_velocities else 0.0
+            total = tap_count + swipe_count
+            tap_swipe_ratio = float(tap_count / total) if total > 0 else 0.0
+
+            mean_idle_ms = 0.0
+            if len(timestamps) >= 2:
+                ts = sorted(timestamps)
+                gaps = [ts[i] - ts[i - 1] for i in range(1, len(ts))]
+                mean_idle_ms = float(np.mean(gaps)) if gaps else 0.0
+
+            return [mean_pressure, mean_area, mean_swipe_velocity, tap_swipe_ratio, mean_idle_ms]
+        except Exception as e:
+            logger.error(f"Touch feature extraction error: {e}")
+            return None
+
 
 class TransactionAnalyzer:
     """Advanced transaction pattern analysis"""
@@ -2952,6 +3235,42 @@ def detect_behavioral_anomaly_impl(behavioral_data: Dict[str, Any]) -> Dict[str,
             total_confidence += keystroke_result.get("confidence", 0.0)
             analysis_count += 1
 
+        # Mouse movement + click analysis
+        if "mouse_patterns" in behavioral_data:
+            mouse_result = behavioral_analyzer.analyze_mouse_dynamics(
+                behavioral_data["mouse_patterns"]
+            )
+            results["behavioral_analyses"]["mouse"] = mouse_result
+
+            if mouse_result.get("is_anomaly"):
+                results["detected_anomalies"].append("mouse_movement_anomaly")
+
+            results["overall_anomaly_score"] = max(
+                results["overall_anomaly_score"],
+                mouse_result.get("risk_score", 0.0),
+            )
+
+            total_confidence += mouse_result.get("confidence", 0.0)
+            analysis_count += 1
+
+        # Touch screen analysis
+        if "touch_patterns" in behavioral_data:
+            touch_result = behavioral_analyzer.analyze_touch_dynamics(
+                behavioral_data["touch_patterns"]
+            )
+            results["behavioral_analyses"]["touch"] = touch_result
+
+            if touch_result.get("is_anomaly"):
+                results["detected_anomalies"].append("touch_anomaly")
+
+            results["overall_anomaly_score"] = max(
+                results["overall_anomaly_score"],
+                touch_result.get("risk_score", 0.0),
+            )
+
+            total_confidence += touch_result.get("confidence", 0.0)
+            analysis_count += 1
+
         # Calculate average confidence
         if analysis_count > 0:
             results["confidence"] = total_confidence / analysis_count
@@ -4066,18 +4385,67 @@ def get_inference_stats_impl() -> Dict[str, Any]:
 
 
 def health_check_impl() -> Dict[str, Any]:
-    """Implementation of system health check."""
+    """Implementation of system health check.
+
+    Returns ``status``: one of ``healthy``, ``degraded``, ``unhealthy``.
+      - ``unhealthy``: a critical analyzer (isolation_forest or
+        feature_engineer) is missing — the transaction pipeline cannot
+        run.
+      - ``degraded``: a non-critical component is missing (autoencoder,
+        explainer, monitoring) OR the underlying ``monitor.health_check``
+        reports degraded.
+      - ``healthy``: everything required is present and the system
+        monitor (if available) is healthy.
+
+    Critically: this MUST be safe to call when components have failed —
+    a health check that raises on a failed component is worse than no
+    health check at all (it makes the failed system look 'down' instead
+    of 'unhealthy'). All field accesses use defensive ``getattr``.
+    """
+    fe = getattr(transaction_analyzer, "feature_engineer", None)
+    iso = getattr(transaction_analyzer, "isolation_forest", None)
+    feature_names = getattr(fe, "feature_names", None) if fe is not None else None
+
+    # Critical components — pipeline cannot run without these.
+    critical_ok = iso is not None and fe is not None and feature_names is not None
+
+    # Optional components — degraded if missing but pipeline still works.
+    optional_ok = (
+        getattr(transaction_analyzer, "autoencoder", None) is not None
+        and fraud_explainer is not None
+    )
+
+    if not critical_ok:
+        status = "unhealthy"
+    elif not optional_ok:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    failures: List[str] = []
+    if iso is None:
+        failures.append("isolation_forest_missing")
+    if fe is None:
+        failures.append("feature_engineer_missing")
+    if feature_names is None and fe is not None:
+        failures.append("feature_engineer_uninitialised")
+    if getattr(transaction_analyzer, "autoencoder", None) is None:
+        failures.append("autoencoder_missing")
+    if fraud_explainer is None:
+        failures.append("explainer_missing")
+
     result = {
-        "status": "healthy",
+        "status": status,
+        "failures": failures,
         "timestamp": datetime.now().isoformat(),
         "version": "2.3.0",
         "models": {
-            "isolation_forest": transaction_analyzer.isolation_forest is not None,
-            "feature_engineer": transaction_analyzer.feature_engineer is not None,
-            "autoencoder": transaction_analyzer.autoencoder is not None,
+            "isolation_forest": iso is not None,
+            "feature_engineer": fe is not None,
+            "autoencoder": getattr(transaction_analyzer, "autoencoder", None) is not None,
             "explainer": fraud_explainer is not None,
-            "feature_count": len(transaction_analyzer.feature_engineer.feature_names),
-            "model_source": transaction_analyzer._model_source,
+            "feature_count": len(feature_names) if feature_names is not None else 0,
+            "model_source": getattr(transaction_analyzer, "_model_source", None),
         },
         "explainability": {
             "available": EXPLAINABILITY_AVAILABLE,
@@ -4121,17 +4489,27 @@ def health_check_impl() -> Dict[str, Any]:
         "user_history": user_history.get_stats(),
     }
 
-    # Add system metrics if monitoring available
+    # Add system metrics if monitoring available. Status only worsens
+    # (healthy → degraded → unhealthy) — system metrics cannot promote
+    # an already-unhealthy state to healthy.
+    _STATUS_RANK = {"healthy": 0, "degraded": 1, "unhealthy": 2}
     if monitor is not None:
         try:
             system_health = monitor.health_check()
             result["system"] = system_health.get("system", {})
             result["checks"] = system_health.get("checks", {})
-            if system_health.get("status") == "degraded":
-                result["status"] = "degraded"
+            sys_status = system_health.get("status")
+            if sys_status in _STATUS_RANK and (
+                _STATUS_RANK[sys_status] > _STATUS_RANK[result["status"]]
+            ):
+                result["status"] = sys_status
         except Exception as e:
             logger.warning(f"System health check failed: {e}")
             result["system"] = {"error": str(e)}
+            # Monitor itself failed — degrade unless already unhealthy.
+            if result["status"] == "healthy":
+                result["status"] = "degraded"
+                result.setdefault("failures", []).append("monitor_check_failed")
 
     return result
 

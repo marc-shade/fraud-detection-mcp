@@ -260,3 +260,122 @@ class TestKeystrokeDynamicsAnalysis:
             f"Confidence should grow with sample size: "
             f"small={small_conf}, large={large_conf}"
         )
+
+
+class TestMouseDynamicsAnalyzer:
+    """Test the mouse-pattern analyzer that was previously dead code."""
+
+    def setup_method(self):
+        from server import BehavioralBiometrics
+        self.analyzer = BehavioralBiometrics()
+
+    def test_empty_mouse_data_no_data_status(self):
+        result = self.analyzer.analyze_mouse_dynamics({})
+        assert result["status"] == "no_data"
+
+    def test_invalid_type_returns_error(self):
+        result = self.analyzer.analyze_mouse_dynamics([])
+        assert result.get("status") == "error"
+
+    def test_movements_and_clicks_produce_real_score(self):
+        movements = [
+            {"x": 10 * i, "y": 5 * i, "timestamp": float(i * 100)}
+            for i in range(20)
+        ]
+        clicks = [
+            {"x": 100, "y": 50, "timestamp": 500.0, "button": "left"},
+            {"x": 200, "y": 100, "timestamp": 1500.0, "button": "left"},
+        ]
+        result = self.analyzer.analyze_mouse_dynamics(
+            {"movements": movements, "clicks": clicks}
+        )
+        assert "risk_score" in result
+        assert 0.0 <= result["risk_score"] <= 1.0
+        assert "confidence" in result
+        assert result["confidence"] > 0.0
+        assert result["movements_analyzed"] == 20
+        assert result["clicks_analyzed"] == 2
+        assert result["analysis_type"] == "mouse_dynamics"
+
+
+class TestTouchDynamicsAnalyzer:
+    """Test the touch-pattern analyzer that was previously dead code."""
+
+    def setup_method(self):
+        from server import BehavioralBiometrics
+        self.analyzer = BehavioralBiometrics()
+
+    def test_empty_touch_returns_no_data(self):
+        result = self.analyzer.analyze_touch_dynamics([])
+        assert result["status"] == "no_data"
+
+    def test_dict_instead_of_list_returns_error(self):
+        result = self.analyzer.analyze_touch_dynamics({"x": 1})
+        assert result.get("status") == "error"
+
+    def test_real_touch_events_produce_real_score(self):
+        events = [
+            {"pressure": 0.5, "area": 1.2, "x": 100, "y": 200,
+             "timestamp": float(i * 100), "type": "tap"}
+            for i in range(15)
+        ]
+        result = self.analyzer.analyze_touch_dynamics(events)
+        assert 0.0 <= result["risk_score"] <= 1.0
+        assert result["confidence"] > 0.0
+        assert result["touches_analyzed"] == 15
+        assert result["analysis_type"] == "touch_dynamics"
+
+
+class TestDetectBehavioralAnomalyRoutesAllModalities:
+    """Pre-fix detect_behavioral_anomaly only routed keystroke; mouse and
+    touch were SILENTLY IGNORED despite being documented in the README."""
+
+    def test_mouse_patterns_are_routed(self):
+        from server import detect_behavioral_anomaly_impl
+        result = detect_behavioral_anomaly_impl({
+            "mouse_patterns": {
+                "movements": [
+                    {"x": i, "y": i, "timestamp": float(i * 50)}
+                    for i in range(10)
+                ],
+                "clicks": [
+                    {"x": 50, "y": 50, "timestamp": 250.0, "button": "left"},
+                ],
+            }
+        })
+        assert "mouse" in result["behavioral_analyses"]
+        assert "risk_score" in result["behavioral_analyses"]["mouse"]
+
+    def test_touch_patterns_are_routed(self):
+        from server import detect_behavioral_anomaly_impl
+        result = detect_behavioral_anomaly_impl({
+            "touch_patterns": [
+                {"pressure": 0.5, "area": 1.0, "x": 100, "y": 200,
+                 "timestamp": float(i * 100), "type": "tap"}
+                for i in range(10)
+            ]
+        })
+        assert "touch" in result["behavioral_analyses"]
+        assert "risk_score" in result["behavioral_analyses"]["touch"]
+
+    def test_all_three_modalities_combined(self):
+        from server import detect_behavioral_anomaly_impl
+        result = detect_behavioral_anomaly_impl({
+            "keystroke_dynamics": [
+                {"key": "a", "press_time": 0.0, "release_time": 0.1},
+                {"key": "b", "press_time": 0.2, "release_time": 0.3},
+            ],
+            "mouse_patterns": {
+                "movements": [
+                    {"x": 1, "y": 1, "timestamp": 0.0},
+                    {"x": 5, "y": 5, "timestamp": 100.0},
+                ],
+                "clicks": [],
+            },
+            "touch_patterns": [
+                {"pressure": 0.5, "area": 1.0, "x": 100, "y": 200,
+                 "timestamp": 0.0, "type": "tap"},
+            ],
+        })
+        modalities = set(result["behavioral_analyses"].keys())
+        assert {"keystroke", "mouse", "touch"} <= modalities

@@ -568,3 +568,88 @@ class TestEd25519Verification:
         )
         assert result["verified"] is False
         assert "content_digest_header_missing_but_covered" in result["reason"]
+
+
+class TestEd25519WorksWithoutJose:
+    """Ed25519 must verify even when python-jose is unavailable.
+
+    Pre-fix, ``verify_rfc9421_signature`` bailed unconditionally on
+    ``not JOSE_AVAILABLE``, which made the EdDSA-via-cryptography
+    fallback in ``_verify_with_jwk`` dead code. Now the early bail is
+    skipped for EdDSA so the cryptography-backed path is reachable.
+    """
+
+    def setup_method(self):
+        from acp_signatures import JWKSResolver
+        self.kp = _ed25519_keypair()
+        self.resolver = JWKSResolver()
+        self.resolver.register_issuer("test_issuer", "memory://")
+        self.resolver._cache["test_issuer"] = {
+            "jwks_url": "memory://",
+            "expires_at": time.time() + 3600,
+            "keys": {self.kp["kid"]: self.kp["public_jwk"]},
+        }
+
+    def _sign_and_build(self):
+        created = int(time.time())
+        nonce = f"nonce-no-jose-{time.time_ns()}"
+        sig_input_value = (
+            f'sig1=("@method" "@authority" "@path");'
+            f'keyid="{self.kp["kid"]}";alg="EdDSA";created={created};'
+            f'nonce="{nonce}";tag="agent-payer-auth"'
+        )
+        sig_input = parse_signature_input(sig_input_value)
+        base = build_signature_base(
+            sig_input, headers={},
+            method="POST", path="/checkout", authority="merchant.example.com",
+        )
+        signature = self.kp["sign"](base.encode("utf-8"))
+        return {
+            "Signature-Input": sig_input_value,
+            "Signature": f"sig1=:{_b64url_no_pad(signature)}:",
+        }
+
+    def test_eddsa_verifies_with_jose_disabled(self, monkeypatch):
+        """Force JOSE_AVAILABLE=False at module level; EdDSA must still verify."""
+        import acp_signatures as acpsig
+        monkeypatch.setattr(acpsig, "JOSE_AVAILABLE", False)
+        headers = self._sign_and_build()
+        result = verify_rfc9421_signature(
+            headers=headers,
+            method="POST",
+            path="/checkout",
+            authority="merchant.example.com",
+            issuer="test_issuer",
+            expected_tag="agent-payer-auth",
+            resolver=self.resolver,
+        )
+        assert result["verified"] is True, result
+
+    def test_other_algs_fail_closed_with_jose_disabled(self, monkeypatch):
+        """Non-EdDSA algorithms must still fail closed when jose is unavailable.
+        The fix narrows the bail-out to algs that need jose; it must not
+        accidentally let RS256/PS256/ES256 through without verification."""
+        import acp_signatures as acpsig
+        monkeypatch.setattr(acpsig, "JOSE_AVAILABLE", False)
+
+        # Build a sig_input that claims RS256 (we don't need a real signature
+        # — the early bail should fire before any crypto runs)
+        created = int(time.time())
+        sig_input_value = (
+            f'sig1=("@method" "@authority" "@path");'
+            f'keyid="rsa-key";alg="RS256";created={created};'
+            f'nonce="rs256-nonce-{time.time_ns()}"'
+        )
+        result = verify_rfc9421_signature(
+            headers={
+                "Signature-Input": sig_input_value,
+                "Signature": "sig1=:AAAA:",
+            },
+            method="POST",
+            path="/checkout",
+            authority="merchant.example.com",
+            issuer="test_issuer",
+            resolver=self.resolver,
+        )
+        assert result["verified"] is False
+        assert "jose_library_unavailable_for_alg_RS256" in result["reason"]

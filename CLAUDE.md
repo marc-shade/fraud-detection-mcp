@@ -59,7 +59,7 @@ mypy server.py --ignore-missing-imports
 
 ### Core Analyzer Classes (server.py)
 
-1. **`BehavioralBiometrics`** -- Keystroke dynamics via Isolation Forest, mouse movement patterns via One-Class SVM, touch screen patterns via LOF. Extracts 10 statistical features (5 dwell time + 5 flight time). Reported `confidence` is derived from sample size (saturating at ~20 keystrokes) and decision-boundary margin, capped at 0.85 because the model bootstraps from synthetic gaussian data (replace via `train_models` for higher justified confidence).
+1. **`BehavioralBiometrics`** -- Three live analyzers: keystroke dynamics via Isolation Forest (10 features: 5 dwell + 5 flight), mouse movement+click patterns via One-Class SVM (5 features: velocity / click-rate / idle / linearity / log-event-count), touch screen patterns via LOF (5 features: pressure / area / swipe-velocity / tap-swipe-ratio / idle). Pre-2026-05-04 the mouse and touch models were initialized at startup but never invoked — the `detect_behavioral_anomaly` MCP tool only routed `keystroke_dynamics` so any `mouse_patterns` or `touch_patterns` field was silently ignored despite README + docs/API.md claiming the feature. Now wired through `analyze_mouse_dynamics` / `analyze_touch_dynamics` and routed by `detect_behavioral_anomaly_impl`. All three confidence scores are derived from sample size (saturating exponentially) + decision-boundary margin, capped at 0.85 because the underlying models bootstrap from synthetic gaussian data (replace via real-data retraining for higher justified confidence).
 
 2. **`TransactionAnalyzer`** -- 46-feature extraction via `FeatureEngineer`, Isolation Forest + Autoencoder ensemble scoring with configurable weights (default 60/40). Supports model persistence (`save_models`/`load_models` to `models/saved/`), hot-reload after training, and falls back to synthetic-data initialization when no saved models exist. Reported `confidence` is derived from decision-boundary margin (60%) + IF/AE ensemble agreement (40%) + a small uplift when models came from real-data training rather than the synthetic bootstrap; capped at 0.95.
 
@@ -156,7 +156,7 @@ The 5 defense compliance tools are backed by modules under `compliance/`:
 
 ### Testing Architecture
 
-**945 tests across 33 test files** (including `test_compliance_modules.py`, `test_coverage_gaps.py`, `test_acp_signatures.py`, `test_agent_security.py`, `test_agent_security_backends.py`, `test_agent_commerce_tier0.py`, `test_calibration_provenance.py`). Tests import from `tests/conftest.py` for fixtures and sample data.
+**958 tests across 33 test files** (including `test_compliance_modules.py`, `test_coverage_gaps.py`, `test_acp_signatures.py`, `test_agent_security.py`, `test_agent_security_backends.py`, `test_agent_commerce_tier0.py`, `test_calibration_provenance.py`). Tests import from `tests/conftest.py` for fixtures and sample data.
 
 Available pytest markers: `unit`, `integration`, `slow`, `network`, `behavioral`, `transaction`, `explainability`, `synthetic`, `benchmark`, `error`, `security`, `velocity`, `signature`.
 
