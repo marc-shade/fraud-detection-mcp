@@ -156,7 +156,7 @@ The 5 defense compliance tools are backed by modules under `compliance/`:
 
 ### Testing Architecture
 
-**961 tests across 33 test files** (including `test_compliance_modules.py`, `test_coverage_gaps.py`, `test_acp_signatures.py`, `test_agent_security.py`, `test_agent_security_backends.py`, `test_agent_commerce_tier0.py`, `test_calibration_provenance.py`). Tests import from `tests/conftest.py` for fixtures and sample data.
+**962 tests across 33 test files** (including `test_compliance_modules.py`, `test_coverage_gaps.py`, `test_acp_signatures.py`, `test_agent_security.py`, `test_agent_security_backends.py`, `test_agent_commerce_tier0.py`, `test_calibration_provenance.py`). Tests import from `tests/conftest.py` for fixtures and sample data.
 
 Available pytest markers: `unit`, `integration`, `slow`, `network`, `behavioral`, `transaction`, `explainability`, `synthetic`, `benchmark`, `error`, `security`, `velocity`, `signature`.
 
@@ -231,7 +231,7 @@ See also at repo root: `README.md`, `QUICK_START.md`, `TESTING.md`, `CONTRIBUTIN
 - Input validation happens in two layers: manual `validate_transaction_data()`/`validate_behavioral_data()` in `server.py`, and Pydantic models in `models_validation.py`.
 - All analysis functions return dicts with `risk_score` (0-1 float), `confidence`, `is_anomaly` boolean, and domain-specific details.
 - Agent traffic is automatically classified by `TrafficClassifier` and routed through agent-specific analysis (identity verification, behavioral fingerprinting, mandate compliance).
-- The `@_monitored` decorator wraps MCP tools with optional Prometheus metrics when monitoring is available.
+- The `@_monitored` decorator wraps MCP tools with optional Prometheus metrics when monitoring is available. **Decorator order matters**: `@mcp.tool()` MUST be the OUTERMOST decorator and `@_monitored(...)` directly above the function — i.e. `@_monitored` runs first, wraps the function with monitoring, then `@mcp.tool()` registers the monitoring-wrapped callable. Pre-2026-05-04 the order was reversed, which made `@mcp.tool()` register the bare function and the monitoring wrapper sat above as dead code that MCP never invoked. `tests/test_monitoring.py::TestMonitoringActuallyFiresOnMcpToolCall` is a regression gate that asserts the Prometheus counter actually moves on a real `mcp.call_tool()`.
 - Thread-safe singletons: `agent_registry`, `agent_verifier`, `agent_fingerprinter`, `mandate_verifier`, `collusion_detector`, `reputation_scorer`, `acp_signatures.jwks_resolver`, `agent_security.nonce_cache`, `agent_security.idempotency_store`.
 
 ## Agent Commerce Verification Status (Tier 0 — production-grade 2026-05-03)

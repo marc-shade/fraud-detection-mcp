@@ -56,8 +56,8 @@ try:
     MONITORING_AVAILABLE = True
 except ImportError:
     MONITORING_AVAILABLE = False
-    MonitoringManager = None
-    track_api_call = None
+    MonitoringManager = None  # type: ignore[assignment,misc]
+    track_api_call = None  # type: ignore[assignment]
 
 # Training pipeline (graceful degradation if deps unavailable)
 try:
@@ -66,7 +66,7 @@ try:
     TRAINING_AVAILABLE = True
 except ImportError:
     TRAINING_AVAILABLE = False
-    ModelTrainer = None
+    ModelTrainer = None  # type: ignore[assignment,misc]
 
 # Autoencoder ensemble (graceful degradation if unavailable)
 try:
@@ -94,7 +94,7 @@ try:
     SYNTHETIC_DATA_AVAILABLE = True
 except ImportError:
     SYNTHETIC_DATA_AVAILABLE = False
-    SyntheticDataIntegration = None
+    SyntheticDataIntegration = None  # type: ignore[assignment,misc]
 
 # Security utilities (graceful degradation if unavailable)
 try:
@@ -113,6 +113,25 @@ try:
     _ACP_SIGNATURES_AVAILABLE = True
 except ImportError:
     _ACP_SIGNATURES_AVAILABLE = False
+
+# JOSE crypto symbols at module scope so the JWT validator's except-clause
+# can reference them safely. Without this, if jose imports fail at runtime
+# *inside* _validate_token (after JOSE_AVAILABLE was True at startup),
+# the except-clause itself would raise NameError on JWTError/JWKError/etc.
+try:
+    from jose import jwt as _jose_jwt  # type: ignore[import-not-found]
+    from jose.exceptions import (  # type: ignore[import-not-found]
+        JWTError as _JWTError,
+        JWTClaimsError as _JWTClaimsError,
+        JWKError as _JWKError,
+    )
+    _JOSE_JWT_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _jose_jwt = None  # type: ignore[assignment]
+    _JWTError = Exception  # type: ignore[misc,assignment]
+    _JWTClaimsError = Exception  # type: ignore[misc,assignment]
+    _JWKError = Exception  # type: ignore[misc,assignment]
+    _JOSE_JWT_AVAILABLE = False
 
 try:
     from agent_security import (
@@ -220,9 +239,12 @@ class BehavioralBiometrics:
 
     def _initialize_models(self):
         """Initialize behavioral analysis models"""
-        # Isolation Forest for keystroke dynamics
+        # Isolation Forest for keystroke dynamics. Pyright's bundled
+        # sklearn stub mistypes `contamination` as `str` because the
+        # default value `'auto'` is a str literal — but the runtime API
+        # accepts `float | "auto"`. Targeted ignore at each call site.
         self.keystroke_model = IsolationForest(
-            contamination=0.1, random_state=42, n_estimators=100
+            contamination=0.1, random_state=42, n_estimators=100  # type: ignore[arg-type]
         )
 
         # Fit with dummy training data (10 features: 5 dwell + 5 flight)
@@ -238,7 +260,7 @@ class BehavioralBiometrics:
 
         # Local Outlier Factor for touch patterns
         self.touch_model = LocalOutlierFactor(
-            n_neighbors=20, contamination=0.1, novelty=True
+            n_neighbors=20, contamination=0.1, novelty=True  # type: ignore[arg-type]
         )
 
         # Fit with dummy touch data
@@ -270,7 +292,17 @@ class BehavioralBiometrics:
                     "error": "could not extract valid features from keystroke data",
                 }
 
-            # Predict anomaly
+            # Predict anomaly. Guard against the model being None (e.g.
+            # if _initialize_models() failed partway through startup —
+            # without this guard the next line raises AttributeError
+            # instead of returning a graceful 'model_unavailable' status).
+            if self.keystroke_model is None:
+                return {
+                    "risk_score": 0.0,
+                    "confidence": 0.0,
+                    "status": "model_unavailable",
+                    "error": "keystroke model not initialised",
+                }
             anomaly_score = self.keystroke_model.decision_function([features])[0]
             is_anomaly = self.keystroke_model.predict([features])[0] == -1
 
@@ -429,6 +461,13 @@ class BehavioralBiometrics:
                     "error": "could not extract valid features from mouse data",
                 }
 
+            if self.mouse_model is None:
+                return {
+                    "risk_score": 0.0,
+                    "confidence": 0.0,
+                    "status": "model_unavailable",
+                    "error": "mouse model not initialised",
+                }
             anomaly_score = self.mouse_model.decision_function([features])[0]
             is_anomaly = self.mouse_model.predict([features])[0] == -1
             risk_score = float(max(0, min(1, (0.5 - anomaly_score) * 2)))
@@ -579,6 +618,13 @@ class BehavioralBiometrics:
                     "error": "could not extract valid features from touch data",
                 }
 
+            if self.touch_model is None:
+                return {
+                    "risk_score": 0.0,
+                    "confidence": 0.0,
+                    "status": "model_unavailable",
+                    "error": "touch model not initialised",
+                }
             anomaly_score = self.touch_model.decision_function([features])[0]
             is_anomaly = self.touch_model.predict([features])[0] == -1
             risk_score = float(max(0, min(1, (0.5 - anomaly_score) * 2)))
@@ -682,7 +728,7 @@ class TransactionAnalyzer:
         self._model_dir = model_dir or self.DEFAULT_MODEL_DIR
         self.feature_engineer = FeatureEngineer()
         self.isolation_forest = IsolationForest(
-            contamination=0.1, random_state=42, n_estimators=200
+            contamination=0.1, random_state=42, n_estimators=200  # type: ignore[arg-type]
         )
         # Try to load saved models first; fall back to synthetic training
         if not self.load_models():
@@ -729,7 +775,10 @@ class TransactionAnalyzer:
         synthetic_transactions = []
         for i in range(n):
             amount = round(max(0.01, rng.exponential(500)), 2)
-            txn = TransactionData(
+            # Pyright's Pydantic plugin reports Optional[T]=Field(None,...)
+            # fields as required positional args. Runtime: pydantic v2
+            # honours the None defaults — verified by tests. Suppress.
+            txn = TransactionData(  # type: ignore[call-arg]
                 transaction_id=f"train-{i:04d}",
                 user_id=f"user-{i % 50:03d}",
                 amount=amount,
@@ -859,9 +908,15 @@ class TransactionAnalyzer:
         return self.feature_engineer.transform(txn)
 
     def _identify_risk_factors(
-        self, transaction: Dict[str, Any], features: List[float]
+        self, transaction: Dict[str, Any], features: Any
     ) -> List[str]:
-        """Identify specific risk factors in the transaction"""
+        """Identify specific risk factors in the transaction.
+
+        ``features`` is accepted as ``Any`` because callers may pass either
+        a ``List[float]`` or a ``numpy.ndarray`` — this method ignores the
+        feature vector itself and works off the raw transaction dict, so
+        the input shape is irrelevant to correctness.
+        """
         risk_factors = []
 
         amount = float(transaction.get("amount", 0))
@@ -1216,22 +1271,40 @@ class NetworkAnalyzer:
         if entity_id not in self.transaction_graph:
             return {}
 
-        # Basic metrics
-        degree = self.transaction_graph.degree(entity_id)
-        clustering = nx.clustering(self.transaction_graph, entity_id)
+        # Basic metrics. NetworkX overloads ``degree(node)`` to return an
+        # int but the type stub picks the wider DegreeView, and
+        # ``clustering(G, node)`` similarly returns float|dict. Coerce
+        # explicitly so the downstream ``float()`` calls don't break in
+        # static analysis (and would also fail at runtime if a future
+        # NetworkX change ever returns the dict-shape variant).
+        raw_degree = self.transaction_graph.degree(entity_id)
+        try:
+            degree: float = float(int(raw_degree))  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            degree = 0.0
+
+        raw_clust = nx.clustering(self.transaction_graph, entity_id)
+        if isinstance(raw_clust, dict):
+            # ``clustering(G, nodes)`` returns dict; for single-node we
+            # asked for ``entity_id`` so extract that key (defensive).
+            raw_clust = raw_clust.get(entity_id, 0.0)
+        try:
+            clustering = float(raw_clust)
+        except (TypeError, ValueError):
+            clustering = 0.0
 
         # Centrality measures
         try:
             betweenness = nx.betweenness_centrality(self.transaction_graph).get(
-                entity_id, 0
+                entity_id, 0.0
             )
             closeness = nx.closeness_centrality(self.transaction_graph).get(
-                entity_id, 0
+                entity_id, 0.0
             )
         except Exception as e:
             logger.error(f"Centrality calculation error: {e}")
-            betweenness = 0
-            closeness = 0
+            betweenness = 0.0
+            closeness = 0.0
 
         return {
             "degree": float(degree),
@@ -1312,7 +1385,7 @@ def _dict_to_transaction_data(data: Dict[str, Any]) -> TransactionData:
     pm = data.get("payment_method", "other")
     pm = _PAYMENT_METHOD_MAP.get(pm, "other")
 
-    return TransactionData(
+    return TransactionData(  # type: ignore[call-arg]
         transaction_id=data.get("transaction_id", f"txn-{uuid.uuid4().hex[:12]}"),
         user_id=data.get("user_id", "anonymous"),
         amount=max(0.01, float(data.get("amount", 0.01))),
@@ -1368,7 +1441,7 @@ else:
     sanitizer = None
 
 # Initialize monitoring
-if MONITORING_AVAILABLE:
+if MONITORING_AVAILABLE and MonitoringManager is not None:
     monitor = MonitoringManager(app_name="fraud-detection-mcp", version="2.4.0")
     # Start Prometheus metrics endpoint (default :9090/metrics)
     _metrics_port = int(os.environ.get("FRAUD_DETECT_METRICS_PORT", "9090"))
@@ -1982,11 +2055,14 @@ class AgentIdentityVerifier:
                 warnings.append("token_jwks_lookup_failed")
                 return stage2_signal
 
-            # Verify the signature using python-jose
+            # Verify the signature using python-jose. _jose_jwt and
+            # exception classes were resolved at module import; if jose
+            # is unavailable they are bound to safe sentinels (Exception)
+            # so the except-clause never raises NameError.
+            if not _JOSE_JWT_AVAILABLE or _jose_jwt is None:
+                warnings.append("token_signature_unverifiable")
+                return stage2_signal
             try:
-                from jose import jwt as _jose_jwt
-                from jose.exceptions import JWTError, JWTClaimsError, JWKError
-
                 # We've already checked exp manually; tell jose to skip
                 # audience verification (most agent commerce tokens omit
                 # `aud`) and verify just signature + exp.
@@ -1999,7 +2075,7 @@ class AgentIdentityVerifier:
                         "verify_iss": False,  # we already extracted iss
                     },
                 )
-            except (JWTError, JWTClaimsError, JWKError, ValueError, TypeError) as e:
+            except (_JWTError, _JWTClaimsError, _JWKError, ValueError, TypeError) as e:
                 warnings.append(f"token_signature_invalid:{type(e).__name__}")
                 return self._signal_jwt_invalid  # actively suspicious
 
@@ -2344,7 +2420,7 @@ class AgentBehavioralFingerprint:
 
         X = np.array(rows)
         model = IsolationForest(
-            contamination=0.1,
+            contamination=0.1,  # type: ignore[arg-type]
             random_state=42,
             n_estimators=100,
         )
@@ -4594,6 +4670,14 @@ def train_models_impl(
             "training_available": False,
         }
 
+    if ModelTrainer is None:
+        # TRAINING_AVAILABLE was True at import but ModelTrainer ended up
+        # None — defensive belt-and-suspenders so pyright + future callers
+        # see explicit fail-closed instead of TypeError on call.
+        return {
+            "error": "ModelTrainer unavailable despite TRAINING_AVAILABLE=True",
+            "status": "training_failed",
+        }
     try:
         data_file = Path(data_path)
         if not data_file.exists():
@@ -4987,7 +5071,11 @@ def run_benchmark_impl(
             "status": "validation_failed",
         }
 
-    if not SYNTHETIC_DATA_AVAILABLE or synthetic_data_integration is None:
+    if (
+        not SYNTHETIC_DATA_AVAILABLE
+        or synthetic_data_integration is None
+        or SyntheticDataIntegration is None
+    ):
         return {
             "error": "Synthetic data generation not available (pandas required)",
             "status": "unavailable",
@@ -5145,8 +5233,8 @@ def run_benchmark_impl(
 # =============================================================================
 
 
-@_monitored("/analyze_transaction", "TOOL")
 @mcp.tool()
+@_monitored("/analyze_transaction", "TOOL")
 def analyze_transaction(
     transaction_data: Dict[str, Any],
     include_behavioral: bool = False,
@@ -5168,8 +5256,8 @@ def analyze_transaction(
     )
 
 
-@_monitored("/detect_behavioral_anomaly", "TOOL")
 @mcp.tool()
+@_monitored("/detect_behavioral_anomaly", "TOOL")
 def detect_behavioral_anomaly(behavioral_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Analyze behavioral biometrics for anomaly detection.
@@ -5183,8 +5271,8 @@ def detect_behavioral_anomaly(behavioral_data: Dict[str, Any]) -> Dict[str, Any]
     return detect_behavioral_anomaly_impl(behavioral_data)
 
 
-@_monitored("/assess_network_risk", "TOOL")
 @mcp.tool()
+@_monitored("/assess_network_risk", "TOOL")
 def assess_network_risk(entity_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Analyze network patterns for fraud ring detection.
@@ -5198,8 +5286,8 @@ def assess_network_risk(entity_data: Dict[str, Any]) -> Dict[str, Any]:
     return assess_network_risk_impl(entity_data)
 
 
-@_monitored("/generate_risk_score", "TOOL")
 @mcp.tool()
+@_monitored("/generate_risk_score", "TOOL")
 def generate_risk_score(
     transaction_data: Dict[str, Any],
     behavioral_data: Optional[Dict[str, Any]] = None,
@@ -5227,8 +5315,8 @@ def generate_risk_score(
     )
 
 
-@_monitored("/explain_decision", "TOOL")
 @mcp.tool()
+@_monitored("/explain_decision", "TOOL")
 def explain_decision(
     analysis_result: Dict[str, Any],
     transaction_data: Optional[Dict[str, Any]] = None,
@@ -5249,8 +5337,8 @@ def explain_decision(
     return explain_decision_impl(analysis_result, transaction_data)
 
 
-@_monitored("/classify_traffic_source", "TOOL")
 @mcp.tool()
+@_monitored("/classify_traffic_source", "TOOL")
 def classify_traffic_source(
     transaction_data: Dict[str, Any], request_metadata: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
@@ -5272,8 +5360,8 @@ def classify_traffic_source(
     return classify_traffic_source_impl(transaction_data, request_metadata)
 
 
-@_monitored("/verify_agent_identity", "TOOL")
 @mcp.tool()
+@_monitored("/verify_agent_identity", "TOOL")
 def verify_agent_identity(
     agent_identifier: Optional[str] = None,
     api_key: Optional[str] = None,
@@ -5297,8 +5385,8 @@ def verify_agent_identity(
     return verify_agent_identity_impl(agent_identifier, api_key, token)
 
 
-@_monitored("/analyze_agent_transaction", "TOOL")
 @mcp.tool()
+@_monitored("/analyze_agent_transaction", "TOOL")
 def analyze_agent_transaction(
     transaction_data: Dict[str, Any],
     agent_behavior: Optional[Dict[str, Any]] = None,
@@ -5331,8 +5419,8 @@ def analyze_agent_transaction(
     return analyze_agent_transaction_impl(transaction_data, agent_behavior, mandate)
 
 
-@_monitored("/verify_transaction_mandate", "TOOL")
 @mcp.tool()
+@_monitored("/verify_transaction_mandate", "TOOL")
 def verify_transaction_mandate(
     transaction_data: Dict[str, Any],
     mandate: Dict[str, Any],
@@ -5357,8 +5445,8 @@ def verify_transaction_mandate(
     return verify_transaction_mandate_impl(transaction_data, mandate)
 
 
-@_monitored("/detect_agent_collusion", "TOOL")
 @mcp.tool()
+@_monitored("/detect_agent_collusion", "TOOL")
 def detect_agent_collusion(
     agent_ids: List[str],
     window_seconds: int = 3600,
@@ -5384,8 +5472,8 @@ def detect_agent_collusion(
     return detect_agent_collusion_impl(agent_ids, window_seconds, transactions)
 
 
-@_monitored("/score_agent_reputation", "TOOL")
 @mcp.tool()
+@_monitored("/score_agent_reputation", "TOOL")
 def score_agent_reputation(
     agent_id: str,
     time_window_days: int = 30,
@@ -5409,8 +5497,8 @@ def score_agent_reputation(
     return score_agent_reputation_impl(agent_id, time_window_days)
 
 
-@_monitored("/verify_agent_signature", "TOOL")
 @mcp.tool()
+@_monitored("/verify_agent_signature", "TOOL")
 def verify_agent_signature(
     headers: Dict[str, str],
     method: Optional[str] = None,
@@ -5449,8 +5537,8 @@ def verify_agent_signature(
     )
 
 
-@_monitored("/check_idempotency_key", "TOOL")
 @mcp.tool()
+@_monitored("/check_idempotency_key", "TOOL")
 def check_idempotency_key(
     idempotency_key: str,
     agent_id: str,
@@ -5483,8 +5571,8 @@ def check_idempotency_key(
     )
 
 
-@_monitored("/validate_nonce", "TOOL")
 @mcp.tool()
+@_monitored("/validate_nonce", "TOOL")
 def validate_nonce(
     keyid: str,
     nonce: str,
@@ -5513,8 +5601,8 @@ def validate_nonce(
     return validate_nonce_impl(keyid, nonce, record_seen)
 
 
-@_monitored("/consume_nonce", "TOOL")
 @mcp.tool()
+@_monitored("/consume_nonce", "TOOL")
 def consume_nonce(keyid: str, nonce: str) -> Dict[str, Any]:
     """
     Atomically check + record a nonce in the Visa-TAP 8-minute replay window.
@@ -5536,8 +5624,8 @@ def consume_nonce(keyid: str, nonce: str) -> Dict[str, Any]:
     return consume_nonce_impl(keyid, nonce)
 
 
-@_monitored("/analyze_batch", "TOOL")
 @mcp.tool()
+@_monitored("/analyze_batch", "TOOL")
 def analyze_batch(
     transactions: List[Dict[str, Any]], use_cache: bool = True
 ) -> Dict[str, Any]:
@@ -5554,8 +5642,8 @@ def analyze_batch(
     return analyze_batch_impl(transactions, use_cache)
 
 
-@_monitored("/get_inference_stats", "TOOL")
 @mcp.tool()
+@_monitored("/get_inference_stats", "TOOL")
 def get_inference_stats() -> Dict[str, Any]:
     """
     Get inference engine statistics including cache performance metrics.
@@ -5589,8 +5677,8 @@ def get_model_status() -> Dict[str, Any]:
     return get_model_status_impl()
 
 
-@_monitored("/train_models", "TOOL")
 @mcp.tool()
+@_monitored("/train_models", "TOOL")
 def train_models(
     data_path: str,
     test_size: float = 0.2,
@@ -5615,8 +5703,8 @@ def train_models(
     return train_models_impl(data_path, test_size, use_smote, optimize_hyperparams)
 
 
-@_monitored("/generate_synthetic_dataset", "TOOL")
 @mcp.tool()
+@_monitored("/generate_synthetic_dataset", "TOOL")
 def generate_synthetic_dataset(
     num_transactions: int = 10000,
     fraud_percentage: float = 5.0,
@@ -5649,8 +5737,8 @@ def generate_synthetic_dataset(
     )
 
 
-@_monitored("/analyze_dataset", "TOOL")
 @mcp.tool()
+@_monitored("/analyze_dataset", "TOOL")
 def analyze_dataset(
     dataset_path: str,
     fraud_threshold: float = 0.6,
@@ -5673,8 +5761,8 @@ def analyze_dataset(
     return analyze_dataset_impl(dataset_path, fraud_threshold)
 
 
-@_monitored("/run_benchmark", "TOOL")
 @mcp.tool()
+@_monitored("/run_benchmark", "TOOL")
 def run_benchmark(
     num_transactions: int = 100,
     fraud_percentage: float = 10.0,
@@ -5720,13 +5808,21 @@ except ImportError:
     ClearedPersonnelAnalyzer = None  # type: ignore[assignment,misc]
     ComplianceDashboard = None  # type: ignore[assignment,misc]
 
-# Initialize compliance singletons (if available)
-_insider_threat_assessor = InsiderThreatAssessor() if COMPLIANCE_AVAILABLE else None
-_siem_integration = SIEMIntegration() if COMPLIANCE_AVAILABLE else None
-_cleared_personnel_analyzer = (
-    ClearedPersonnelAnalyzer() if COMPLIANCE_AVAILABLE else None
+# Initialize compliance singletons (if available). Each `is not None`
+# guard satisfies pyright that the call target is non-None even though
+# COMPLIANCE_AVAILABLE already implies it at runtime.
+_insider_threat_assessor = (
+    InsiderThreatAssessor() if COMPLIANCE_AVAILABLE and InsiderThreatAssessor is not None else None
 )
-_compliance_dashboard = ComplianceDashboard() if COMPLIANCE_AVAILABLE else None
+_siem_integration = (
+    SIEMIntegration() if COMPLIANCE_AVAILABLE and SIEMIntegration is not None else None
+)
+_cleared_personnel_analyzer = (
+    ClearedPersonnelAnalyzer() if COMPLIANCE_AVAILABLE and ClearedPersonnelAnalyzer is not None else None
+)
+_compliance_dashboard = (
+    ComplianceDashboard() if COMPLIANCE_AVAILABLE and ComplianceDashboard is not None else None
+)
 
 
 def _compliance_not_available() -> Dict[str, Any]:
@@ -5782,8 +5878,8 @@ def assess_insider_threat_impl(
         }
 
 
-@_monitored("/assess_insider_threat", "TOOL")
 @mcp.tool()
+@_monitored("/assess_insider_threat", "TOOL")
 def assess_insider_threat(
     user_id: str,
     activity_data: Dict[str, Any],
@@ -5895,8 +5991,8 @@ def generate_siem_events_impl(
         }
 
 
-@_monitored("/generate_siem_events", "TOOL")
 @mcp.tool()
+@_monitored("/generate_siem_events", "TOOL")
 def generate_siem_events(
     assessment_result: Dict[str, Any],
     output_formats: Optional[List[str]] = None,
@@ -5991,8 +6087,8 @@ def evaluate_cleared_personnel_impl(
         }
 
 
-@_monitored("/evaluate_cleared_personnel", "TOOL")
 @mcp.tool()
+@_monitored("/evaluate_cleared_personnel", "TOOL")
 def evaluate_cleared_personnel(
     person_id: str,
     activity_data: Dict[str, Any],
@@ -6140,8 +6236,8 @@ def get_compliance_dashboard_impl(
         }
 
 
-@_monitored("/get_compliance_dashboard", "TOOL")
 @mcp.tool()
+@_monitored("/get_compliance_dashboard", "TOOL")
 def get_compliance_dashboard(
     include_maturity: bool = True,
     include_kris: bool = True,
@@ -6239,8 +6335,8 @@ def generate_threat_referral_impl(
         }
 
 
-@_monitored("/generate_threat_referral", "TOOL")
 @mcp.tool()
+@_monitored("/generate_threat_referral", "TOOL")
 def generate_threat_referral(
     user_id: str,
     referral_type: str = "insider_threat",

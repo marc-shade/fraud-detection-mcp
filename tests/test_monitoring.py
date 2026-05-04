@@ -125,3 +125,55 @@ class TestMonitoringIntegration:
         from server import MONITORING_AVAILABLE
 
         assert isinstance(MONITORING_AVAILABLE, bool)
+
+
+class TestMonitoringActuallyFiresOnMcpToolCall:
+    """Pre-fix theater: @_monitored was OUTER and @mcp.tool() was INNER, so
+    mcp.tool() registered the bare function; the monitoring wrapper sat
+    above it and was never invoked when MCP dispatched a tool call.
+
+    Demonstration: api_requests_total counter stayed at 0 even after
+    successful tool invocations.
+
+    Fix: swap decorator order — @mcp.tool() outer, @_monitored inner —
+    so MCP registers the monitoring-wrapped callable. This test asserts
+    the counter actually moves on a real mcp.call_tool().
+    """
+
+    async def _call_and_observe(self, tool_name: str, label_substr: str, payload):
+        import asyncio
+        from server import mcp, MONITORING_AVAILABLE
+        if not MONITORING_AVAILABLE:
+            import pytest
+            pytest.skip("monitoring not available")
+        from monitoring import api_requests_total
+
+        def _count():
+            return sum(
+                s.value
+                for s in list(api_requests_total.collect())[0].samples
+                if label_substr in str(s.labels)
+            )
+
+        before = _count()
+        await mcp.call_tool(tool_name, payload)
+        after = _count()
+        return before, after
+
+    def test_analyze_transaction_increments_counter(self):
+        import asyncio
+        before, after = asyncio.run(self._call_and_observe(
+            "analyze_transaction",
+            "analyze_transaction",
+            {"transaction_data": {
+                "amount": 50.0, "merchant": "M", "location": "L",
+                "timestamp": "2026-05-04T12:00:00Z",
+                "payment_method": "credit_card",
+            }},
+        ))
+        assert after > before, (
+            f"api_requests_total did NOT move on a real MCP call (before={before}, "
+            f"after={after}). The @_monitored decorator is not wired into the MCP "
+            f"dispatch path — likely the @mcp.tool()/@_monitored decorator order "
+            f"got swapped back."
+        )
