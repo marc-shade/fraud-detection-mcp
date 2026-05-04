@@ -2526,7 +2526,10 @@ class MandateVerifier:
     """
 
     def verify(
-        self, transaction: Dict[str, Any], mandate: Dict[str, Any]
+        self,
+        transaction: Dict[str, Any],
+        mandate: Dict[str, Any],
+        history: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """Check transaction against mandate constraints.
 
@@ -2535,6 +2538,13 @@ class MandateVerifier:
             mandate: Constraint dict with optional keys: max_amount, daily_limit,
                 allowed_merchants, blocked_merchants, allowed_locations,
                 time_window (start/end HH:MM).
+            history: Optional list of prior transaction dicts (each with at
+                least an ``amount`` and ``recorded_at`` field, matching
+                ``UserTransactionHistory.get_history()``). When provided,
+                ``daily_limit`` is checked against cumulative 24h spend
+                rather than the single transaction. Without history,
+                ``daily_limit`` falls back to single-transaction comparison
+                and the result includes a ``daily_limit_no_history`` warning.
 
         Returns:
             Dict with compliant (bool), violations (list), drift_score (0-1),
@@ -2543,6 +2553,7 @@ class MandateVerifier:
         violations: List[str] = []
         checks = 0
         utilization: Dict[str, float] = {}
+        warnings: List[str] = []
 
         amount = float(transaction.get("amount", 0.0))
         merchant = str(transaction.get("merchant", "")).lower()
@@ -2557,14 +2568,48 @@ class MandateVerifier:
             if amount > max_amount:
                 violations.append(f"amount_exceeded: {amount} > {max_amount}")
 
-        # --- Daily limit check ---
+        # --- Daily limit check (cumulative 24h spend if history provided) ---
         daily_limit = mandate.get("daily_limit")
         if daily_limit is not None:
             checks += 1
             daily_limit = float(daily_limit)
-            utilization["daily_pct"] = amount / daily_limit if daily_limit > 0 else 0.0
-            if amount > daily_limit:
-                violations.append(f"daily_limit_exceeded: {amount} > {daily_limit}")
+            if history is not None:
+                # Sum the last 24h of recorded transactions for this user
+                # (entries from UserTransactionHistory have monotonic
+                # ``recorded_at``; treat anything within 86400s as today's).
+                import time as _time
+                cutoff = _time.monotonic() - 86400.0
+                day_total_prior = 0.0
+                for h in history:
+                    try:
+                        if float(h.get("recorded_at", 0)) >= cutoff:
+                            day_total_prior += float(h.get("amount", 0.0))
+                    except (TypeError, ValueError):
+                        continue
+                projected = day_total_prior + amount
+                utilization["daily_pct"] = (
+                    projected / daily_limit if daily_limit > 0 else 0.0
+                )
+                utilization["daily_total_prior"] = day_total_prior
+                utilization["daily_total_projected"] = projected
+                if projected > daily_limit:
+                    violations.append(
+                        f"daily_limit_exceeded: 24h total {projected:.2f} "
+                        f"(prior {day_total_prior:.2f} + this {amount:.2f}) "
+                        f"> {daily_limit}"
+                    )
+            else:
+                # No history available — degrade to single-txn comparison
+                # and surface a warning so the operator knows the daily
+                # limit is not actually being aggregated.
+                utilization["daily_pct"] = (
+                    amount / daily_limit if daily_limit > 0 else 0.0
+                )
+                warnings.append("daily_limit_no_history")
+                if amount > daily_limit:
+                    violations.append(
+                        f"daily_limit_exceeded: single txn {amount} > {daily_limit}"
+                    )
 
         # --- Blocked merchants ---
         blocked = mandate.get("blocked_merchants")
@@ -2629,6 +2674,7 @@ class MandateVerifier:
             "drift_score": float(drift_score),
             "mandate_utilization": utilization,
             "checks_performed": checks,
+            "warnings": warnings,
         }
 
 
@@ -3942,7 +3988,16 @@ def analyze_agent_transaction_impl(
         # --- Mandate verification ---
         mandate_compliance = 1.0  # default: no mandate = fully compliant
         if mandate:
-            mandate_result = mandate_verifier.verify(transaction_data, mandate)
+            # Pull this agent's transaction history so daily_limit checks
+            # against actual cumulative spend, not just the current single
+            # transaction. Without this, a 'daily_limit' of $1000 would
+            # only fire if a single transaction exceeded $1000.
+            mandate_history = (
+                user_history.get_history(str(agent_id)) if agent_id else []
+            )
+            mandate_result = mandate_verifier.verify(
+                transaction_data, mandate, history=mandate_history
+            )
             mandate_compliance = 1.0 - mandate_result.get("drift_score", 0.0)
             if not mandate_result.get("compliant", True):
                 anomalies.append("mandate_violation")
