@@ -176,6 +176,40 @@ class TestMandateVerifier:
         assert result["mandate_utilization"]["daily_total_prior"] == 550.0
         assert result["mandate_utilization"]["daily_total_projected"] == 750.0
 
+    def test_allowed_merchants_fails_closed_on_unknown(self):
+        """Pre-2026-05-04 the merchant allow-list silently passed when
+        merchant was 'unknown' or missing — silent bypass of the
+        whole allow-list mechanism."""
+        from server import MandateVerifier
+
+        v = MandateVerifier()
+        mandate = {"allowed_merchants": ["Amazon"]}
+        # 'unknown' merchant on allow-listed mandate must fail
+        r = v.verify({"amount": 100, "merchant": "unknown"}, mandate)
+        assert r["compliant"] is False
+        # Missing merchant key must also fail
+        r2 = v.verify({"amount": 100}, mandate)
+        assert r2["compliant"] is False
+        # Empty merchant must also fail
+        r3 = v.verify({"amount": 100, "merchant": ""}, mandate)
+        assert r3["compliant"] is False
+        # Allow-listed merchant still passes
+        r4 = v.verify({"amount": 100, "merchant": "Amazon"}, mandate)
+        assert r4["compliant"] is True
+
+    def test_allowed_locations_fails_closed_on_unknown(self):
+        """Same fail-closed semantics for allowed_locations."""
+        from server import MandateVerifier
+
+        v = MandateVerifier()
+        mandate = {"allowed_locations": ["United States"]}
+        # 'unknown' location must fail
+        r = v.verify({"amount": 100, "location": "unknown"}, mandate)
+        assert r["compliant"] is False
+        # Missing location must fail
+        r2 = v.verify({"amount": 100}, mandate)
+        assert r2["compliant"] is False
+
     def test_daily_limit_no_history_warns(self):
         """Without history, daily_limit degrades to single-txn check and
         emits ``daily_limit_no_history`` warning so the operator knows."""

@@ -1029,13 +1029,34 @@ class UserTransactionHistory:
         self._lock = threading.Lock()
 
     def record(self, user_id: str, transaction: Dict[str, Any]) -> None:
-        """Record a transaction for a user."""
+        """Record a transaction for a user.
+
+        Captures ``location_lat`` / ``location_lon`` if the caller
+        supplied them — these are the inputs ``check_geographic_velocity``
+        uses to compute haversine-distance impossible-travel detection.
+        Without them the geo check falls back to a (less reliable)
+        canonicalised location-string comparison.
+        """
         import time as _time
+
+        # Optional lat/lon — only stored if convertible to float
+        lat: Optional[float] = None
+        lon: Optional[float] = None
+        try:
+            if transaction.get("location_lat") is not None:
+                lat = float(transaction["location_lat"])
+            if transaction.get("location_lon") is not None:
+                lon = float(transaction["location_lon"])
+        except (TypeError, ValueError):
+            lat = None
+            lon = None
 
         entry = {
             "amount": float(transaction.get("amount", 0)),
             "merchant": str(transaction.get("merchant", "")),
             "location": str(transaction.get("location", "")),
+            "location_lat": lat,
+            "location_lon": lon,
             "timestamp": transaction.get("timestamp", ""),
             "recorded_at": _time.monotonic(),
         }
@@ -1111,11 +1132,75 @@ class UserTransactionHistory:
             "insufficient_history": False,
         }
 
+    # Maximum sustainable travel velocity: ~1000 km/h (slightly above
+    # commercial jet cruise of ~900 km/h). Anything implying higher
+    # velocity is impossible-travel.
+    MAX_VELOCITY_KMH = 1000.0
+
+    @staticmethod
+    def _normalize_location(loc: str) -> str:
+        """Normalize a location string for comparison.
+
+        Pre-fix: 'New York, NY' vs 'New York' compared as different →
+        false-positive impossible-travel. Now: case-insensitive, trimmed,
+        and the first comma-delimited segment is used as the city. Still
+        a heuristic; coordinates win when present.
+        """
+        if not loc:
+            return ""
+        s = loc.lower().strip()
+        # Collapse internal whitespace
+        s = " ".join(s.split())
+        # Use the first comma-segment as the canonical city — handles
+        # 'New York, NY' / 'San Francisco, CA, USA' / 'London, UK'.
+        if "," in s:
+            s = s.split(",", 1)[0].strip()
+        return s
+
+    @staticmethod
+    def _haversine_km(
+        lat1: float, lon1: float, lat2: float, lon2: float
+    ) -> float:
+        """Great-circle distance in kilometres between two lat/lon points."""
+        R = 6371.0  # Earth radius in km
+        rad1 = math.radians(lat1)
+        rad2 = math.radians(lat2)
+        d_lat = math.radians(lat2 - lat1)
+        d_lon = math.radians(lon2 - lon1)
+        a = (
+            math.sin(d_lat / 2) ** 2
+            + math.cos(rad1) * math.cos(rad2) * math.sin(d_lon / 2) ** 2
+        )
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        return R * c
+
     def check_geographic_velocity(self, user_id: str) -> Dict[str, Any]:
-        """Detect impossible travel (different locations in rapid succession).
+        """Detect impossible travel between successive transactions.
+
+        Pre-2026-05-04 this compared raw location *strings* on only the
+        last two transactions. Two consequences:
+          1. NYC → Tokyo in 8 min wasn't flagged (suspicious window
+             was hardcoded at <5 min, far below jet travel time).
+          2. 'New York, NY' → 'New York' WAS flagged (string-equality
+             treats them as different cities).
+
+        Real impossible-travel needs distance + time. This implementation:
+          - If both transactions carry ``location_lat`` and
+            ``location_lon`` floats, computes the haversine great-circle
+            distance and the implied velocity (km/h). Velocity above
+            ``MAX_VELOCITY_KMH`` (1000 km/h, slightly above commercial
+            cruise) is flagged as impossible-travel.
+          - Otherwise falls back to canonicalised location-string
+            comparison (lowercase + first comma-segment), so 'NYC' vs
+            'NYC, USA' don't false-positive. The string fallback only
+            triggers if cities differ within 5 minutes, which is the
+            same heuristic as before but without obviously-equivalent
+            strings being treated as different.
 
         Returns:
-            Dict with location_changes, time_between, and is_suspicious flag.
+            Dict with location_changes, time_between_seconds, distance_km
+            (if computable), velocity_kmh (if computable), and
+            is_suspicious flag.
         """
         history = self.get_history(user_id)
         if len(history) < 2:
@@ -1126,15 +1211,53 @@ class UserTransactionHistory:
             }
         last = history[-1]
         prev = history[-2]
-        same_location = (
-            last["location"].lower().strip() == prev["location"].lower().strip()
-        )
         time_between = last["recorded_at"] - prev["recorded_at"]
+
+        # Attempt distance-based check first. The float() calls each
+        # raise TypeError on None or ValueError on non-numeric — caught
+        # below to fall through to the string heuristic.
+        distance_km: Optional[float] = None
+        velocity_kmh: Optional[float] = None
+        try:
+            lat1 = float(prev.get("location_lat"))  # type: ignore[arg-type]
+            lon1 = float(prev.get("location_lon"))  # type: ignore[arg-type]
+            lat2 = float(last.get("location_lat"))  # type: ignore[arg-type]
+            lon2 = float(last.get("location_lon"))  # type: ignore[arg-type]
+            distance_km = self._haversine_km(lat1, lon1, lat2, lon2)
+            if time_between > 0:
+                velocity_kmh = distance_km / (time_between / 3600.0)
+        except (TypeError, ValueError):
+            distance_km = None
+            velocity_kmh = None
+
+        if velocity_kmh is not None and distance_km is not None:
+            # Trusted distance-based path
+            is_suspicious = (
+                velocity_kmh > self.MAX_VELOCITY_KMH and distance_km > 50.0
+            )
+            return {
+                "location_changes": 0 if distance_km < 1.0 else 1,
+                "time_between_seconds": round(time_between, 2),
+                "distance_km": round(distance_km, 2),
+                "velocity_kmh": round(velocity_kmh, 2),
+                "max_velocity_kmh": self.MAX_VELOCITY_KMH,
+                "is_suspicious": is_suspicious,
+                "insufficient_history": False,
+                "method": "haversine",
+            }
+
+        # Fallback: canonicalised string comparison
+        loc_last = self._normalize_location(str(last.get("location") or ""))
+        loc_prev = self._normalize_location(str(prev.get("location") or ""))
+        same_location = loc_last == loc_prev and loc_last != ""
         return {
             "location_changes": 0 if same_location else 1,
             "time_between_seconds": round(time_between, 2),
-            "is_suspicious": not same_location and time_between < 300,
+            "distance_km": None,
+            "velocity_kmh": None,
+            "is_suspicious": (not same_location and time_between < 300),
             "insufficient_history": False,
+            "method": "string_fallback",
         }
 
     def check_merchant_diversity(
@@ -2698,19 +2821,37 @@ class MandateVerifier:
                 violations.append(f"blocked_merchant: {merchant}")
 
         # --- Allowed merchants ---
+        # Fail-closed when an allow-list is set: a missing/unknown
+        # merchant must NOT silently pass the check (Security rule).
+        # Pre-fix: ``merchant != "unknown"`` skipped the check entirely
+        # for transactions without merchant data, letting an attacker
+        # (or buggy upstream) bypass merchant allowlists by sending no
+        # merchant field at all.
         allowed_merchants = mandate.get("allowed_merchants")
         if allowed_merchants is not None:
             checks += 1
             allowed_lower = [m.lower() for m in allowed_merchants]
-            if merchant and merchant != "unknown" and merchant not in allowed_lower:
+            if not merchant or merchant == "unknown":
+                violations.append(
+                    "merchant_not_allowed: missing or unknown merchant on "
+                    "allow-listed mandate"
+                )
+            elif merchant not in allowed_lower:
                 violations.append(f"merchant_not_allowed: {merchant}")
 
         # --- Allowed locations ---
+        # Same fail-closed rule: missing/unknown location is a violation
+        # when an allow-list is configured.
         allowed_locations = mandate.get("allowed_locations")
         if allowed_locations is not None:
             checks += 1
             allowed_loc_lower = [loc.lower() for loc in allowed_locations]
-            if location and location != "unknown" and location not in allowed_loc_lower:
+            if not location or location == "unknown":
+                violations.append(
+                    "location_not_allowed: missing or unknown location on "
+                    "allow-listed mandate"
+                )
+            elif location not in allowed_loc_lower:
                 violations.append(f"location_not_allowed: {location}")
 
         # --- Time window ---

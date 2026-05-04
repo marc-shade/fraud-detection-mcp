@@ -458,3 +458,131 @@ class TestHistoryServerIntegration:
             result = server.analyze_transaction_impl(txn)
         anomalies = result.get("detected_anomalies", [])
         assert "high_merchant_diversity" in anomalies
+
+
+class TestImpossibleTravelDetection:
+    """Pre-2026-05-04 check_geographic_velocity was theater:
+      - Compared raw location strings — 'NYC' vs 'NYC, USA' was flagged
+      - Hardcoded suspicion window of <5min — NYC→Tokyo in 8min not flagged
+      - No distance computation — the entire 'impossible travel' premise
+
+    Now uses haversine distance + velocity threshold (1000 km/h) when
+    coordinates are present, with canonicalised string fallback.
+    """
+
+    def setup_method(self):
+        from server import user_history
+        user_history.reset()
+
+    def test_nyc_to_tokyo_in_8min_is_flagged(self):
+        """Pre-fix this was NOT flagged because the suspicious-window
+        threshold was hardcoded at <5min."""
+        from server import user_history
+        import time as _time
+
+        user_history.record("u", {"amount": 100, "merchant": "M",
+                                   "location": "NYC",
+                                   "location_lat": 40.7128, "location_lon": -74.0060,
+                                   "timestamp": "2026-05-04T12:00:00Z"})
+        user_history.record("u", {"amount": 100, "merchant": "M",
+                                   "location": "Tokyo",
+                                   "location_lat": 35.6762, "location_lon": 139.6503,
+                                   "timestamp": "2026-05-04T12:08:00Z"})
+        # Force the recorded_at gap to be exactly 8 min
+        hist = user_history._history["u"]
+        now = _time.monotonic()
+        hist[0]["recorded_at"] = now - 480
+        hist[1]["recorded_at"] = now
+
+        result = user_history.check_geographic_velocity("u")
+        assert result["method"] == "haversine"
+        assert result["distance_km"] > 10000  # NYC↔Tokyo ~10,800 km
+        assert result["velocity_kmh"] > 70000  # 10800/(8/60) ≈ 81000
+        assert result["is_suspicious"] is True
+
+    def test_nyc_to_sf_in_4h_is_flagged(self):
+        """4h NYC→SF requires ~1030 km/h — above commercial cruise."""
+        from server import user_history
+        import time as _time
+
+        user_history.record("u", {"amount": 100, "merchant": "M",
+                                   "location": "NYC",
+                                   "location_lat": 40.7128, "location_lon": -74.0060,
+                                   "timestamp": "2026-05-04T12:00:00Z"})
+        user_history.record("u", {"amount": 100, "merchant": "M",
+                                   "location": "SF",
+                                   "location_lat": 37.7749, "location_lon": -122.4194,
+                                   "timestamp": "2026-05-04T16:00:00Z"})
+        hist = user_history._history["u"]
+        now = _time.monotonic()
+        hist[0]["recorded_at"] = now - 14400  # 4h ago
+        hist[1]["recorded_at"] = now
+
+        result = user_history.check_geographic_velocity("u")
+        assert result["is_suspicious"] is True
+
+    def test_nyc_to_sf_in_24h_is_not_flagged(self):
+        """24h NYC→SF is ~172 km/h — totally normal travel."""
+        from server import user_history
+        import time as _time
+
+        user_history.record("u", {"amount": 100, "merchant": "M",
+                                   "location": "NYC",
+                                   "location_lat": 40.7128, "location_lon": -74.0060,
+                                   "timestamp": "2026-05-04T12:00:00Z"})
+        user_history.record("u", {"amount": 100, "merchant": "M",
+                                   "location": "SF",
+                                   "location_lat": 37.7749, "location_lon": -122.4194,
+                                   "timestamp": "2026-05-05T12:00:00Z"})
+        hist = user_history._history["u"]
+        now = _time.monotonic()
+        hist[0]["recorded_at"] = now - 86400  # 24h ago
+        hist[1]["recorded_at"] = now
+
+        result = user_history.check_geographic_velocity("u")
+        assert result["is_suspicious"] is False
+        assert result["velocity_kmh"] < 200
+
+    def test_string_fallback_canonicalises_city_names(self):
+        """Pre-fix 'New York, NY' vs 'New York' was flagged as different
+        cities — false positive on the SAME city."""
+        from server import user_history
+
+        user_history.record("u", {"amount": 100, "merchant": "M",
+                                   "location": "New York, NY",
+                                   "timestamp": "2026-05-04T12:00:00Z"})
+        user_history.record("u", {"amount": 100, "merchant": "M",
+                                   "location": "New York",
+                                   "timestamp": "2026-05-04T12:00:01Z"})
+        result = user_history.check_geographic_velocity("u")
+        assert result["method"] == "string_fallback"
+        assert result["is_suspicious"] is False, (
+            "'New York, NY' and 'New York' must be treated as the same city"
+        )
+
+    def test_string_fallback_still_flags_different_cities(self):
+        """No coordinates → string fallback should still flag NYC vs LA
+        within 5 min as suspicious (the only signal we have)."""
+        from server import user_history
+
+        user_history.record("u", {"amount": 100, "merchant": "M",
+                                   "location": "New York",
+                                   "timestamp": "2026-05-04T12:00:00Z"})
+        user_history.record("u", {"amount": 100, "merchant": "M",
+                                   "location": "Los Angeles",
+                                   "timestamp": "2026-05-04T12:00:30Z"})
+        result = user_history.check_geographic_velocity("u")
+        assert result["method"] == "string_fallback"
+        assert result["is_suspicious"] is True
+
+    def test_haversine_self_distance_is_zero(self):
+        """Sanity — haversine(p, p) == 0."""
+        from server import UserTransactionHistory
+        d = UserTransactionHistory._haversine_km(40.7128, -74.0060, 40.7128, -74.0060)
+        assert d == 0.0
+
+    def test_haversine_known_distance(self):
+        """NYC↔SF haversine should match published value (~4130 km)."""
+        from server import UserTransactionHistory
+        d = UserTransactionHistory._haversine_km(40.7128, -74.0060, 37.7749, -122.4194)
+        assert 4100 <= d <= 4150
