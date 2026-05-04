@@ -380,3 +380,115 @@ class TestInferenceStats:
         ]
         for field in expected_fields:
             assert field in stats, f"Missing field: {field}"
+
+
+class TestCacheDoesNotBypassVelocity:
+    """Pre-2026-05-04 the prediction_cache served stateful results that
+    silently bypassed velocity tracking: identical-content transactions
+    after the first only recorded ONE history entry, so a fraudster
+    spamming identical transactions would never trip the velocity gate.
+
+    Fix: history.record() runs BEFORE the cache check; the cache only
+    stores the ML inference output, not the velocity-augmented final
+    result. Velocity flags are recomputed every call from current state.
+    """
+
+    def setup_method(self):
+        from server import prediction_cache
+        import server
+        prediction_cache.clear()
+        server.user_history._history.clear()
+
+    def test_identical_transactions_increment_velocity_counter(self):
+        from server import analyze_transaction_impl, user_history
+
+        uid = "velocity-cache-test"
+        txn = {
+            "amount": 50.0, "merchant": "M", "location": "L",
+            "timestamp": "2026-05-04T12:00:00Z",
+            "payment_method": "credit_card",
+            "user_id": uid,
+        }
+
+        for _ in range(12):
+            analyze_transaction_impl(txn)
+
+        # All 12 should be in history (pre-fix: only 1)
+        assert len(user_history.get_history(uid)) == 12
+
+        # Velocity check should report 12, not 1
+        v = user_history.check_velocity(uid)
+        assert v["transaction_count"] == 12
+        assert v["is_suspicious"] is True
+
+    def test_velocity_flag_appears_after_threshold(self):
+        from server import analyze_transaction_impl
+
+        uid = "velocity-flag-test"
+        txn = {
+            "amount": 50.0, "merchant": "M", "location": "L",
+            "timestamp": "2026-05-04T12:00:00Z",
+            "payment_method": "credit_card",
+            "user_id": uid,
+        }
+
+        # Threshold for is_suspicious is 10 (UserTransactionHistory.check_velocity)
+        for _ in range(9):
+            r = analyze_transaction_impl(txn)
+        assert "high_transaction_velocity" not in r.get("detected_anomalies", [])
+
+        for _ in range(3):
+            r = analyze_transaction_impl(txn)
+        assert "high_transaction_velocity" in r.get("detected_anomalies", []), (
+            "velocity flag did not appear after 12 identical transactions — "
+            "the prediction_cache is masking velocity tracking again"
+        )
+
+    def test_cache_hit_still_serves_fresh_velocity_info(self):
+        from server import analyze_transaction_impl
+
+        uid = "velocity-fresh-test"
+        txn = {
+            "amount": 50.0, "merchant": "M", "location": "L",
+            "timestamp": "2026-05-04T12:00:00Z",
+            "payment_method": "credit_card",
+            "user_id": uid,
+        }
+
+        # Prime the cache
+        analyze_transaction_impl(txn)
+        # Pile on more so velocity threshold is crossed
+        for _ in range(15):
+            r = analyze_transaction_impl(txn)
+        assert r["cache_hit"] is True  # subsequent calls hit cache
+        v = r["velocity_analysis"]["velocity"]
+        assert v["transaction_count"] >= 10
+        assert v["is_suspicious"] is True
+
+
+class TestLRUCacheTTL:
+    """LRUCache acquired a TTL at 2026-05-04 to bound stale-state risk.
+    Verify it actually enforces it."""
+
+    def test_ttl_evicts_expired_entry_on_get(self):
+        from async_inference import LRUCache
+        import time as _time
+
+        c = LRUCache(capacity=10, ttl_seconds=0.05)
+        c.put("k1", "v1")
+        # Immediately readable
+        assert c.get("k1") == "v1"
+        # After TTL
+        _time.sleep(0.10)
+        assert c.get("k1") is None
+        # Eviction freed the slot
+        assert c.size() == 0
+
+    def test_ttl_none_preserves_legacy_behaviour(self):
+        from async_inference import LRUCache
+        import time as _time
+
+        c = LRUCache(capacity=10, ttl_seconds=None)
+        c.put("k1", "v1")
+        _time.sleep(0.05)
+        assert c.get("k1") == "v1"  # never expires

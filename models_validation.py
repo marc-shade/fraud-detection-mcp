@@ -6,7 +6,7 @@ Ensures all inputs are validated and sanitized
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 
 
@@ -127,16 +127,33 @@ class TransactionData(BaseModel):
     @field_validator("timestamp")
     @classmethod
     def validate_timestamp(cls, v):
-        """Ensure timestamp is reasonable"""
-        now = datetime.now()
+        """Ensure timestamp is reasonable.
+
+        Pre-fix bug: ``datetime.now()`` returned a naive datetime, but
+        callers can (and routinely do) pass an aware datetime parsed from
+        an ISO 8601 string ending in ``Z`` or with a timezone offset. The
+        comparison ``v > now`` then raised
+        ``TypeError: can't compare offset-naive and offset-aware
+        datetimes``, which the production catch-all swallowed and
+        returned an empty ``detected_anomalies=[]`` — silently passing
+        a transaction that never actually got analyzed.
+
+        Fix: compare both as UTC-aware. Naive incoming datetimes are
+        treated as UTC (the documented convention).
+        """
+        if v.tzinfo is None:
+            v_aware = v.replace(tzinfo=timezone.utc)
+        else:
+            v_aware = v
+        now = datetime.now(timezone.utc)
 
         # Not in future
-        if v > now + timedelta(hours=1):  # Allow 1 hour clock skew
+        if v_aware > now + timedelta(hours=1):  # Allow 1 hour clock skew
             raise ValueError("Timestamp cannot be in the future")
 
         # Not too old (reject >1 year old transactions)
         one_year_ago = now - timedelta(days=365)
-        if v < one_year_ago:
+        if v_aware < one_year_ago:
             raise ValueError("Timestamp too old (>1 year)")
 
         return v

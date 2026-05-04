@@ -1410,8 +1410,10 @@ if EXPLAINABILITY_AVAILABLE and FraudExplainer is not None:
 else:
     fraud_explainer = None
 
-# Initialize prediction cache and inference statistics
-prediction_cache = LRUCache(capacity=1000)
+# Initialize prediction cache and inference statistics. The 5-minute
+# TTL bounds stale-state risk: a cached entry that's older than the TTL
+# is evicted on next access rather than being served indefinitely.
+prediction_cache = LRUCache(capacity=1000, ttl_seconds=300)
 _inference_stats = {
     "total_predictions": 0,
     "cache_hits": 0,
@@ -3132,30 +3134,43 @@ def analyze_transaction_impl(
                     "status": "validation_failed",
                 }
 
-        # Check prediction cache (only for pure transaction analysis, not behavioral)
-        cache_key = None
-        if use_cache and not include_behavioral:
-            cache_key = _generate_cache_key(transaction_data)
-            cached = prediction_cache.get(cache_key)
-            if cached is not None:
-                _inference_stats["cache_hits"] += 1
-                _inference_stats["total_predictions"] += 1
-                elapsed = (_time.monotonic() - _start) * 1000
-                _inference_stats["total_time_ms"] += elapsed
-                if monitor is not None:
-                    monitor.record_cache_hit(cache_type="prediction")
-                result = dict(cached)
-                result["cache_hit"] = True
-                return result
-
-        _inference_stats["cache_misses"] += 1
-
-        # Primary transaction analysis
-        transaction_result = transaction_analyzer.analyze_transaction(transaction_data)
-
-        # Record transaction in user history for velocity analysis
+        # ALWAYS record into user_history before consulting the cache.
+        # The pre-2026-05-04 design checked cache first and recorded after,
+        # which silently bypassed velocity tracking on every cache hit:
+        # 5 identical fraudulent rapid-fire transactions would only count
+        # as 1 in the velocity window. Recording up-front keeps the
+        # stateful aggregate accurate regardless of cache outcome.
         user_id = str(transaction_data.get("user_id", "anonymous"))
         user_history.record(user_id, transaction_data)
+
+        # Check prediction cache for the ML inference output ONLY (not the
+        # full result, which depends on now-state velocity flags). The
+        # cache is bounded by capacity AND TTL — see LRUCache.
+        cache_key: Optional[str] = None
+        transaction_result: Optional[Dict[str, Any]] = None
+        is_cache_hit = False
+        if use_cache and not include_behavioral:
+            cache_key = _generate_cache_key(transaction_data)
+            cached_inference = prediction_cache.get(cache_key)
+            if cached_inference is not None:
+                transaction_result = dict(cached_inference)
+                is_cache_hit = True
+                _inference_stats["cache_hits"] += 1
+                if monitor is not None:
+                    monitor.record_cache_hit(cache_type="prediction")
+            else:
+                _inference_stats["cache_misses"] += 1
+
+        # Run the ML inference if we didn't get a cache hit.
+        if transaction_result is None:
+            transaction_result = transaction_analyzer.analyze_transaction(
+                transaction_data
+            )
+            if cache_key is not None:
+                # Store the bare ML output in the cache. Velocity-derived
+                # flags are computed below from current history state, so
+                # cached entries don't carry stale aggregates forward.
+                prediction_cache.put(cache_key, transaction_result)
 
         # Velocity-based risk factors
         velocity_info = user_history.check_velocity(user_id)
@@ -3292,11 +3307,10 @@ def analyze_transaction_impl(
                 status="processed",
             )
 
-        results["cache_hit"] = False
-
-        # Store in prediction cache
-        if cache_key is not None:
-            prediction_cache.put(cache_key, results)
+        results["cache_hit"] = is_cache_hit
+        # NOTE: only ``transaction_result`` is cached (above), not the
+        # full ``results`` dict — velocity-derived flags must be fresh
+        # on every call. Caching the full result was Theater #9.
 
         # Update inference stats
         _inference_stats["total_predictions"] += 1
